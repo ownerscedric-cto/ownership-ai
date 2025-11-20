@@ -1,0 +1,83 @@
+'use client';
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
+import { Button } from '../common/Button';
+
+export const HeroSection: React.FC = () => {
+  const scrollToInvitation = () => {
+    document.getElementById('invitation')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--primary-blue)] to-[var(--gradient-end)]">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+            backgroundSize: '50px 50px',
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center"
+        >
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
+            컨설턴트를 위한
+            <br />
+            <span className="text-blue-200">스마트한 고객 관리</span>
+          </h1>
+
+          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
+            정부지원사업을 자동으로 매칭하고, 고객에게 딱 맞는 기회를 추천하세요
+          </p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          >
+            <Button size="lg" variant="secondary" onClick={scrollToInvitation} className="group">
+              지금 시작하기
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.6 }}
+            className="mt-12 text-blue-100 text-sm"
+          >
+            초대 기반 서비스 • 베타 테스터 모집 중
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Scroll Indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 1 }}
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+      >
+        <div className="w-6 h-10 border-2 border-white rounded-full flex items-start justify-center p-2">
+          <motion.div
+            animate={{ y: [0, 12, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="w-1 h-2 bg-white rounded-full"
+          />
+        </div>
+      </motion.div>
+    </section>
+  );
+};

@@ -1,0 +1,19 @@
+# dependencies
+node_modules
+.next
+out
+build
+dist
+
+# generated
+.prisma
+*.gen.ts
+
+# misc
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# vercel
+.vercel
