@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
-
-// Zod 스키마 정의
-const invitationSchema = z.object({
-  email: z.string().email('유효한 이메일 주소를 입력해주세요'),
-  name: z.string().min(1, '이름을 입력해주세요'),
-  companyName: z.string().optional(),
-});
+import { supabase } from '@/lib/supabase';
+import { invitationSchema } from '@/lib/validations/invitation';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,27 +12,40 @@ export async function POST(request: NextRequest) {
     const validatedData = invitationSchema.parse(body);
 
     // 이미 등록된 이메일인지 확인
-    const existingInvitation = await prisma.invitation.findUnique({
-      where: { email: validatedData.email },
-    });
+    const { data: existingInvitation } = await supabase
+      .from('invitations')
+      .select('email')
+      .eq('email', validatedData.email)
+      .single();
 
     if (existingInvitation) {
       return NextResponse.json({ error: '이미 신청된 이메일 주소입니다' }, { status: 400 });
     }
 
     // 데이터베이스에 저장
-    const invitation = await prisma.invitation.create({
-      data: {
+    const { data: invitation, error: insertError } = await supabase
+      .from('invitations')
+      .insert({
+        id: uuidv4(),
         email: validatedData.email,
         name: validatedData.name,
         companyName: validatedData.companyName || null,
-      },
-    });
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Supabase insert error:', insertError);
+      return NextResponse.json({ error: '초대 신청 중 오류가 발생했습니다' }, { status: 500 });
+    }
 
     // 성공 응답
     return NextResponse.json(
       {
-        message: '초대 신청이 완료되었습니다',
+        message: '초대 신청이 완료되었습니다! 검토 후 연락드리겠습니다.',
         data: {
           id: invitation.id,
           email: invitation.email,
@@ -48,8 +55,16 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     // Zod 검증 오류
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    if (
+      error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      error.name === 'ZodError' &&
+      'errors' in error &&
+      Array.isArray(error.errors)
+    ) {
+      const firstError = error.errors[0] as { message: string };
+      return NextResponse.json({ error: firstError.message }, { status: 400 });
     }
 
     // 데이터베이스 오류

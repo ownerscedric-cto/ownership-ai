@@ -6,10 +6,6 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
 
 export const HeroSection: React.FC = () => {
-  const scrollToInvitation = () => {
-    document.getElementById('invitation')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--primary-blue)] to-[var(--gradient-end)]">
       {/* Background Pattern */}
@@ -30,10 +26,10 @@ export const HeroSection: React.FC = () => {
           transition={{ duration: 0.8 }}
           className="text-center"
         >
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-            컨설턴트를 위한
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+            <span className="text-[var(--text-highlight)]">컨설턴트를 위한</span>
             <br />
-            <span className="text-blue-200">스마트한 고객 관리</span>
+            <span className="text-white">스마트한 고객 관리</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
@@ -46,8 +42,13 @@ export const HeroSection: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <Button size="lg" variant="secondary" onClick={scrollToInvitation} className="group">
-              지금 시작하기
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => (window.location.href = '/auth/signup')}
+              className="group"
+            >
+              무료로 시작하기
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </motion.div>

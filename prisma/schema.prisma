@@ -29,3 +29,46 @@ model Invitation {
   @@index([status])
   @@map("invitations")
 }
+
+// 고객 관리 모델
+model Customer {
+  id String @id @default(uuid())
+  userId String // 컨설턴트 ID (Supabase Auth UID)
+
+  // 사업자 정보
+  businessNumber String @unique // 사업자등록번호 (10자리, 필수)
+  businessType String // 'INDIVIDUAL' | 'CORPORATE' (개인사업자 | 법인사업자)
+  corporateNumber String? // 법인등록번호 (13자리, 법인사업자만 해당)
+  name String // 사업자명/상호
+
+  // 기업 정보
+  industry String?
+  companySize String?
+  location String?
+  budget Int?
+
+  // 니즈 정보
+  challenges String[]
+  goals String[]
+  preferredKeywords String[] @default([]) // 영업자가 선택한 프로그램 기반 학습된 키워드
+
+  // 연락처 정보
+  contactEmail String?
+  contactPhone String?
+
+  // 기타
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Phase 4에서 MatchingResult 관계 추가 예정
+  // matchingResults MatchingResult[]
+
+  @@index([userId])
+  @@index([businessNumber])
+  @@index([businessType])
+  @@index([industry])
+  @@index([location])
+  @@index([createdAt])
+  @@map("customers")
+}

@@ -68,13 +68,18 @@ export const InvitationForm: React.FC = () => {
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('신청에 실패했습니다');
+        // 서버에서 반환한 에러 메시지 사용
+        setErrors({ email: data.error || '신청에 실패했습니다' });
+        return;
       }
 
       setIsSuccess(true);
       setFormData({ email: '', name: '', companyName: '' });
     } catch (error) {
+      console.error('Invitation submission error:', error);
       setErrors({ email: '신청 처리 중 오류가 발생했습니다. 다시 시도해주세요.' });
     } finally {
       setIsSubmitting(false);
@@ -121,7 +126,7 @@ export const InvitationForm: React.FC = () => {
   }
 
   return (
-    <section id="invitation" className="py-20 bg-[var(--bg-gray-50)]">
+    <section id="invitation-form" className="py-20 bg-[var(--bg-gray-50)]">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
