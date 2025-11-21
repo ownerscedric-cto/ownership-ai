@@ -13,12 +13,11 @@
   --gradient-start: #0052cc;
   --gradient-end: #0041a8;
 
-  /* Text Colors - WCAG AA 대비율 준수 */
-  --text-primary: #111827; /* 더 진한 검정 (대비율 향상) */
-  --text-secondary: #4b5563; /* 더 진한 회색 (대비율 4.5:1 이상) */
-  --text-muted: #6b7280; /* 부가 정보용 */
+  /* Text Colors */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
   --text-white: #ffffff;
-  --text-highlight: #fbbf24; /* 골드 - 파란 배경 강조용 */
+  --text-highlight: #fbbf24; /* 골드 색상 */
 
   /* Background Colors */
   --bg-white: #ffffff;
@@ -39,8 +38,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: #0052cc;
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -123,21 +122,21 @@ h1 {
   font-size: 36px;
   font-weight: 700;
   line-height: 1.2;
-  color: var(--text-primary);
+  /* color: var(--text-primary); - Tailwind utility 클래스가 우선하도록 주석 처리 */
 }
 
 h2 {
   font-size: 28px;
   font-weight: 700;
   line-height: 1.3;
-  color: var(--text-primary);
+  /* color: var(--text-primary); - Tailwind utility 클래스가 우선하도록 주석 처리 */
 }
 
 h3 {
   font-size: 20px;
   font-weight: 600;
   line-height: 1.4;
-  color: var(--text-primary);
+  /* color: var(--text-primary); - Tailwind utility 클래스가 우선하도록 주석 처리 */
 }
 
 /* Smooth Scroll */
