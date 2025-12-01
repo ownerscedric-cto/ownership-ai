@@ -1,136 +1,179 @@
 'use client';
 
-import { useState } from 'react';
-import { CustomerList } from '@/components/customers/CustomerList';
-import { CustomerCard } from '@/components/customers/CustomerCard';
-import { CustomerFilters } from '@/components/customers/CustomerFilters';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { CustomerSidebar } from '@/components/customers/CustomerSidebar';
+import { CustomerDetailPanel } from '@/components/customers/CustomerDetailPanel';
+import { CustomerProgressPanel } from '@/components/customers/CustomerProgressPanel';
+import { CustomerDialog } from '@/components/customers/CustomerDialog';
 import { Button } from '@/components/ui/button';
 import { useCustomers, useDeleteCustomer } from '@/hooks/useCustomers';
-import { Plus, Grid, List } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { AppLayout } from '@/components/layout/AppLayout';
 
-export default function CustomersPage() {
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [filters, setFilters] = useState<{
-    search?: string;
-    industry?: string;
-    location?: string;
-  }>({});
+function CustomersPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const selectedIdFromUrl = useMemo(() => searchParams.get('selected'), [searchParams]);
+
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(selectedIdFromUrl);
+
+  // 뷰 상태 관리 ('detail' | 'progress')
+  const [currentView, setCurrentView] = useState<'detail' | 'progress'>('detail');
+
+  // Dialog 상태 관리
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
 
   // 고객 목록 조회
-  const { data, isLoading, error } = useCustomers(filters);
+  const { data, isLoading, error } = useCustomers({});
   const deleteCustomerMutation = useDeleteCustomer();
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('정말 이 고객을 삭제하시겠습니까?')) {
-      return;
+  // URL 파라미터와 동기화
+  useEffect(() => {
+    if (selectedIdFromUrl && selectedIdFromUrl !== selectedCustomerId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedCustomerId(selectedIdFromUrl);
     }
+  }, [selectedIdFromUrl, selectedCustomerId]);
 
+  // 고객 선택 시 URL 업데이트 (항상 기본 정보로 리셋)
+  const handleSelectCustomer = (id: string) => {
+    setSelectedCustomerId(id);
+    setCurrentView('detail'); // 새 고객 선택 시 항상 기본 정보로 리셋
+    router.push(`/customers?selected=${id}`, { scroll: false });
+  };
+
+  // 고객 삭제
+  const handleDelete = async (id: string) => {
     try {
       await deleteCustomerMutation.mutateAsync(id);
+      // 삭제된 고객이 선택되어 있었다면 선택 해제
+      if (selectedCustomerId === id) {
+        setSelectedCustomerId(null);
+        router.push('/customers', { scroll: false });
+      }
     } catch {
       alert('고객 삭제에 실패했습니다');
     }
   };
 
-  const handleFilterChange = (newFilters: typeof filters) => {
-    setFilters(newFilters);
+  // 선택된 고객 정보 찾기
+  const selectedCustomer =
+    selectedCustomerId && data?.customers
+      ? data.customers.find(c => c.id === selectedCustomerId) || null
+      : null;
+
+  // 수정할 고객 정보 찾기
+  const editingCustomer =
+    editingCustomerId && data?.customers
+      ? data.customers.find(c => c.id === editingCustomerId) || null
+      : null;
+
+  // 고객 추가 핸들러
+  const handleAddCustomer = () => {
+    setEditingCustomerId(null); // 등록 모드
+    setDialogOpen(true);
   };
 
-  const handleResetFilters = () => {
-    setFilters({});
+  // 고객 수정 핸들러
+  const handleEditCustomer = (id: string) => {
+    setEditingCustomerId(id); // 수정 모드
+    setDialogOpen(true);
+  };
+
+  // Dialog 성공 시 콜백
+  const handleDialogSuccess = () => {
+    // Dialog가 닫힌 후 상태 초기화는 Dialog 내부에서 처리됨
+    setEditingCustomerId(null);
+  };
+
+  // 뷰 전환 핸들러
+  const handleViewChange = (customerId: string, view: 'detail' | 'progress') => {
+    setSelectedCustomerId(customerId);
+    setCurrentView(view);
+    router.push(`/customers?selected=${customerId}`, { scroll: false });
   };
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="h-[calc(100vh-64px)] flex flex-col">
         {/* 헤더 */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">고객 관리</h1>
-              <p className="text-gray-600 mt-2">
-                총 {data?.metadata.total || 0}명의 고객이 등록되어 있습니다
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              {/* 보기 모드 전환 */}
-              <div className="flex gap-1 bg-white rounded-lg border p-1">
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* 고객 추가 버튼 */}
-              <Link href="/customers/new">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  고객 추가
-                </Button>
-              </Link>
-            </div>
+        <div className="border-b bg-white px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">고객 관리</h1>
+            <p className="text-sm text-gray-600 mt-1">총 {data?.metadata.total || 0}명의 고객</p>
           </div>
 
-          {/* 필터 */}
-          <CustomerFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onReset={handleResetFilters}
-          />
+          <div className="flex gap-3">
+            {/* 일괄 등록 버튼 */}
+            <Link href="/customers/bulk-upload">
+              <Button variant="outline" size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                일괄 등록
+              </Button>
+            </Link>
+
+            {/* 고객 추가 버튼 */}
+            <Button size="sm" onClick={handleAddCustomer}>
+              <Plus className="h-4 w-4 mr-2" />
+              고객 추가
+            </Button>
+          </div>
         </div>
 
         {/* 에러 표시 */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">
+          <div className="bg-red-50 border-b border-red-200 px-6 py-3">
+            <p className="text-sm text-red-800">
               ❌ {error instanceof Error ? error.message : '고객 목록을 불러오는데 실패했습니다'}
             </p>
           </div>
         )}
 
-        {/* 고객 목록 */}
-        {viewMode === 'list' ? (
-          <CustomerList
+        {/* Split View */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* 왼쪽: 고객 목록 사이드바 */}
+          <CustomerSidebar
             customers={data?.customers || []}
+            selectedId={selectedCustomerId}
+            onSelect={handleSelectCustomer}
+            onViewChange={handleViewChange}
             isLoading={isLoading}
-            onDelete={handleDelete}
           />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {isLoading ? (
-              <>
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
-                ))}
-              </>
-            ) : data?.customers && data.customers.length > 0 ? (
-              data.customers.map(customer => (
-                <CustomerCard key={customer.id} customer={customer} onDelete={handleDelete} />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-gray-500 text-lg">등록된 고객이 없습니다.</p>
-                <Link href="/customers/new" className="mt-4 inline-block">
-                  <Button>첫 고객 등록하기</Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
+
+          {/* 오른쪽: 패널 (상세 정보 또는 사업진행현황) */}
+          {currentView === 'detail' ? (
+            <CustomerDetailPanel
+              customer={selectedCustomer}
+              isLoading={isLoading}
+              onEdit={handleEditCustomer}
+              onDelete={handleDelete}
+            />
+          ) : (
+            <CustomerProgressPanel customer={selectedCustomer} isLoading={isLoading} />
+          )}
+        </div>
+
+        {/* 고객 등록/수정 Dialog */}
+        <CustomerDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          customer={editingCustomer}
+          onSuccess={handleDialogSuccess}
+        />
       </div>
     </AppLayout>
+  );
+}
+
+export default function CustomersPage() {
+  return (
+    <Suspense
+      fallback={<div className="h-screen flex items-center justify-center">로딩 중...</div>}
+    >
+      <CustomersPageContent />
+    </Suspense>
   );
 }
