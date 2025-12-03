@@ -13,6 +13,22 @@ Simple actionable rules for Claude Code SuperClaude framework operation.
 - Use /spawn and /task for complex multi-session workflows
 - Maintain ≥90% context retention across operations
 
+### Phase Progress Tracking Rules
+
+- **MANDATORY**: Update `.claude/CURRENT_PHASE.md` after completing each ISSUE or significant milestone
+  - Change ISSUE status from `⏳ 대기` or `🔄 진행중` to `✅ 완료`
+  - Update completion checkboxes `[ ]` to `[x]` for finished tasks
+  - Update Phase progress summary at the top (e.g., "✅ ISSUE-03 완료", "🔄 ISSUE-04 진행중")
+- **Phase Completion Alert**: When ALL issues in current phase are completed:
+  - Update CURRENT_PHASE.md to mark phase as complete
+  - **MUST** explicitly notify user: "🎉 Phase X 완료! 모든 이슈가 완료되었습니다."
+  - Provide summary of completed work and next phase preview
+  - Ask user if they want to proceed to next phase
+- **Progress Visibility**: Keep user informed of current status
+  - Update CURRENT_PHASE.md immediately after completing each ISSUE
+  - Mention completion status in response to user
+  - Example: "✅ ISSUE-03 완료했습니다! CURRENT_PHASE.md를 업데이트했습니다."
+
 ### File Operation Security
 
 - Always use Read tool before Write or Edit operations

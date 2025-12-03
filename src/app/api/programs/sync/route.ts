@@ -1,0 +1,68 @@
+/**
+ * @file /api/programs/sync/route.ts
+ * @description 정부지원사업 데이터 수동 동기화 API
+ * Phase 3: 다중 API 통합 연동
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { ProgramSyncOrchestrator } from '@/lib/sync/program-sync-orchestrator';
+
+/**
+ * POST /api/programs/sync
+ *
+ * 정부지원사업 데이터를 수동으로 동기화
+ *
+ * 기능:
+ * - 4개 API (기업마당, K-Startup, KOCCA-PIMS, KOCCA-Finance)에서 데이터 수집
+ * - 병렬 동기화 (Promise.allSettled)
+ * - 부분 실패 허용
+ * - 동기화 결과 및 통계 반환
+ *
+ * 응답:
+ * - success: true
+ * - data: { total, succeeded, failed, programCount, results }
+ * - metadata: null
+ */
+export async function POST(_request: NextRequest) {
+  try {
+    console.log('[POST /api/programs/sync] Starting manual sync...');
+
+    // ProgramSyncOrchestrator 인스턴스 생성
+    const orchestrator = new ProgramSyncOrchestrator();
+
+    try {
+      // 모든 API 동기화 실행
+      const stats = await orchestrator.syncAll();
+
+      console.log('[POST /api/programs/sync] Sync completed:', stats);
+
+      // 성공 응답
+      return NextResponse.json(
+        {
+          success: true,
+          data: stats,
+          metadata: null,
+        },
+        { status: 200 }
+      );
+    } finally {
+      // Prisma 연결 해제
+      await orchestrator.dispose();
+    }
+  } catch (error) {
+    console.error('[POST /api/programs/sync] Error during sync:', error);
+
+    // 에러 응답
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'SYNC_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to sync programs',
+          details: error instanceof Error ? error.stack : null,
+        },
+      },
+      { status: 500 }
+    );
+  }
+}

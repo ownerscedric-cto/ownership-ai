@@ -1,0 +1,163 @@
+/**
+ * @file ProgramCard.tsx
+ * @description 프로그램 카드 컴포넌트
+ * Phase 3: 정부지원사업 UI 컴포넌트
+ */
+
+'use client';
+
+import Link from 'next/link';
+import { MapPin, Tag, Building2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { DeadlineBadge } from './DeadlineBadge';
+import type { Program } from '@/lib/types/program';
+
+interface ProgramCardProps {
+  program: Program;
+}
+
+/**
+ * 데이터 소스 이름 정규화 함수
+ * KOCCA-PIMS, KOCCA-Finance → 한국콘텐츠진흥원
+ */
+const normalizeDataSource = (dataSource: string): string => {
+  if (dataSource === 'KOCCA-PIMS' || dataSource === 'KOCCA-Finance') {
+    return '한국콘텐츠진흥원';
+  }
+  return dataSource;
+};
+
+/**
+ * 데이터 소스별 Badge 색상 매핑
+ */
+const dataSourceColors: Record<string, string> = {
+  기업마당: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+  'K-Startup': 'bg-green-100 text-green-800 hover:bg-green-200',
+  한국콘텐츠진흥원: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
+};
+
+/**
+ * 프로그램 카드 컴포넌트
+ *
+ * 프로그램 정보를 카드 형태로 표시
+ * - 제목, 설명
+ * - 데이터 소스 (Badge)
+ * - 카테고리
+ * - 마감일
+ * - 대상 업종 (최대 3개)
+ * - 대상 지역 (최대 3개)
+ */
+export function ProgramCard({ program }: ProgramCardProps) {
+  // HTML 엔티티 디코딩 헬퍼 함수
+  const decodeHtmlEntities = (text: string): string => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
+
+  // HTML 태그 제거 헬퍼 함수
+  const stripHtml = (html: string): string => {
+    return html
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // 설명 최대 길이 제한 (모바일에서 너무 길지 않도록) - HTML 엔티티 디코딩 → HTML 태그 제거
+  const truncatedDescription = program.description
+    ? (() => {
+        const decoded = decodeHtmlEntities(program.description);
+        const plainText = stripHtml(decoded);
+        return plainText.length > 150 ? `${plainText.slice(0, 150)}...` : plainText;
+      })()
+    : null;
+
+  // 대상 업종/지역 최대 3개만 표시
+  const displayedAudiences = program.targetAudience.slice(0, 3);
+  const remainingAudiencesCount = Math.max(0, program.targetAudience.length - 3);
+
+  const displayedLocations = program.targetLocation.slice(0, 3);
+  const remainingLocationsCount = Math.max(0, program.targetLocation.length - 3);
+
+  return (
+    <Link href={`/programs/${program.id}`}>
+      <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-[#0052CC]/50 cursor-pointer">
+        <CardHeader className="space-y-2">
+          {/* 데이터 소스 Badge + 마감일 Badge */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <Badge
+              className={
+                dataSourceColors[normalizeDataSource(program.dataSource)] ||
+                'bg-gray-100 text-gray-800'
+              }
+            >
+              {normalizeDataSource(program.dataSource)}
+            </Badge>
+            <DeadlineBadge deadline={program.deadline} />
+          </div>
+
+          {/* 제목 */}
+          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+            {decodeHtmlEntities(program.title)}
+          </CardTitle>
+
+          {/* 카테고리 */}
+          {program.category && (
+            <div className="flex items-center gap-1 text-sm text-gray-600">
+              <Tag className="w-4 h-4" />
+              <span>{program.category}</span>
+            </div>
+          )}
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {/* 설명 (최대 150자) */}
+          {truncatedDescription && (
+            <CardDescription className="text-sm text-gray-600 line-clamp-2">
+              {truncatedDescription}
+            </CardDescription>
+          )}
+
+          {/* 대상 업종 */}
+          {displayedAudiences.length > 0 && (
+            <div className="flex items-start gap-2">
+              <Building2 className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-wrap gap-1">
+                {displayedAudiences.map((audience, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {decodeHtmlEntities(audience)}
+                  </Badge>
+                ))}
+                {remainingAudiencesCount > 0 && (
+                  <Badge variant="outline" className="text-xs text-gray-500">
+                    +{remainingAudiencesCount}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 대상 지역 */}
+          {displayedLocations.length > 0 && (
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-wrap gap-1">
+                {displayedLocations.map((location, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {decodeHtmlEntities(location)}
+                  </Badge>
+                ))}
+                {remainingLocationsCount > 0 && (
+                  <Badge variant="outline" className="text-xs text-gray-500">
+                    +{remainingLocationsCount}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}

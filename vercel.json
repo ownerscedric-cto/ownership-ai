@@ -7,5 +7,11 @@
     "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
     "DATABASE_URL": "@database-url"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/sync-programs",
+      "schedule": "0 17 * * *"
+    }
+  ]
 }

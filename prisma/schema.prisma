@@ -72,3 +72,51 @@ model Customer {
   @@index([createdAt])
   @@map("customers")
 }
+
+// 정부지원사업 프로그램 모델
+model Program {
+  id String @id @default(uuid())
+
+  // 다중 API 대응 필드
+  dataSource  String // "기업마당", "K-Startup", "KOCCA-PIMS", "KOCCA-Finance"
+  sourceApiId String // 각 API에서 제공하는 원본 ID
+
+  // 기본 정보
+  title           String
+  description     String? // 프로그램 설명
+  category        String?
+  targetAudience  String[] // 대상 업종
+  targetLocation  String[] // 대상 지역
+  keywords        String[] // 키워드 배열
+  budgetRange     String?
+  deadline        DateTime?
+  sourceUrl       String?
+  rawData         Json // 원본 데이터 보관 (API별 차이 흡수)
+
+  // 날짜 정보 (교차 정렬용)
+  registeredAt DateTime // 등록일 (교차 정렬의 핵심 필드) ⭐
+  startDate    DateTime?
+  endDate      DateTime?
+
+  // 동기화 메타데이터
+  lastSyncedAt DateTime @default(now()) @updatedAt
+  syncStatus   String   @default("active") // "active", "outdated", "deleted"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Phase 4에서 MatchingResult 관계 추가 예정
+  // matchingResults MatchingResult[]
+
+  // 복합 인덱스 (검색 성능 향상)
+  @@unique([dataSource, sourceApiId]) // 중복 방지
+  @@index([registeredAt(sort: Desc)]) // 등록일 내림차순 정렬 (교차 노출용) ⭐
+  @@index([dataSource, registeredAt(sort: Desc)]) // 출처별 정렬
+  @@index([category])
+  @@index([targetAudience])
+  @@index([targetLocation])
+  @@index([deadline])
+  @@index([dataSource]) // API별 필터링
+  @@index([lastSyncedAt]) // 동기화 추적
+  @@map("programs")
+}

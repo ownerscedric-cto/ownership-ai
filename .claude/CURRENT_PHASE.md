@@ -1,444 +1,527 @@
-# Current Phase: Phase 2 - 고객 관리 기능 (Week 3-4)
+# Current Phase: Phase 3 - 정부지원사업 데이터 수집 (Week 5-6) 🚀
 
-**목표**: 고객(Customer) 데이터 관리 시스템 구축 - CRUD API 및 UI 컴포넌트 개발
+**목표**: 다중 공공데이터 API 통합 및 프로그램 데이터 자동 수집 시스템 구축
 
-**전체 진행 상황**: Phase 2 / 9 Phases
+**전체 진행 상황**: Phase 3 / 9 Phases 🔄 **Phase 3 시작!**
 
-**이전 Phase**: ✅ Phase 1 완료 (프로젝트 인프라, 랜딩 페이지, 인증 시스템)
+**이전 Phase**: ✅ Phase 2 완료 (고객 관리 CRUD, UI, 엑셀 업로드)
 
-**Phase 2 진행 현황**:
+**Phase 3 진행 현황**: 🔄 **ISSUE-07 완료!**
 
-- ✅ ISSUE-03: 고객 데이터 모델 및 API 구현 (완료)
-- ⏳ ISSUE-04: 고객 관리 UI 컴포넌트 개발 (대기)
-- ⏳ ISSUE-05: 엑셀 파일 업로드 기능 (대기)
+- ⏳ ISSUE-06: 다중 공공데이터 API 통합 연동 (기업마당 + K-Startup + KOCCA) ⚠️ 고위험 (진행 대기)
+- ✅ ISSUE-07: 정부지원사업 UI 컴포넌트 개발 (완료)
 
 ---
 
-## 📋 Phase 2 ISSUE 목록
+## ✅ Phase 3 API 구성 현황
 
-### 📋 ISSUE-03: 고객 데이터 모델 및 API 구현
+### **3개 API 키 준비 완료!** 🎉
 
-**상태**: ✅ 완료
-**목표**: 고객(Customer) 데이터 CRUD API 완성
-**의존성**: ✅ ISSUE-02 (인증 시스템) 완료
+모든 공공데이터 API 키가 `.env.local`에 설정되어 있습니다:
+
+#### 1️⃣ **기업마당 API** (중소벤처기업부)
+
+```bash
+BIZINFO_API_KEY=f0K6CT
+BIZINFO_API_BASE_URL=https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do
+
+# 사용 예시
+# https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey={BIZINFO_API_KEY}&dataType=json&searchCnt=10&pageIndex=1&pageUnit=10&searchLclasId=01
+```
+
+**주요 파라미터**:
+
+- `crtfcKey`: API 키 (필수)
+- `dataType`: `json` (JSON 응답)
+- `searchCnt`: 조회 건수 (기본 10)
+- `pageIndex`: 페이지 번호 (1부터 시작)
+- `pageUnit`: 페이지당 건수
+- `searchLclasId`: 카테고리 코드 (01: 창업, 02: 경영, 03: 금융 등)
+
+---
+
+#### 2️⃣ **K-Startup API** (한국벤처창업진흥원)
+
+```bash
+PUBLIC_DATA_API_KEY=e224416b40e2d82716c0b11880f8a396c50a48b0f6b19f7a9f90a0180d141b06
+KSTARTUP_API_BASE_URL=https://apis.data.go.kr/B552735
+
+# 사용 예시
+# https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01?serviceKey={PUBLIC_DATA_API_KEY}&page=1&perPage=10
+```
+
+**주요 파라미터**:
+
+- `serviceKey`: API 키 (필수)
+- `page`: 페이지 번호 (1부터 시작)
+- `perPage`: 페이지당 건수 (기본 10, 최대 100)
+
+**API 엔드포인트**:
+
+- `getAnnouncementInformation01`: 공고정보 조회
+
+---
+
+#### 3️⃣ **한국콘텐츠진흥원 API** (KOCCA)
+
+```bash
+KOCCA_API_KEY=AUIo9CWNHyaddihzmtadduMXNEdxH4NAszFQULd5SDIDrOo=
+
+# PIMS (지원사업)
+KOCCA_PIMS_API_BASE_URL=https://kocca.kr/api/pims/List.do
+# https://kocca.kr/api/pims/List.do?serviceKey={KOCCA_API_KEY}&pageNo=1&numOfRows=1&viewStartDt=20220419
+
+# Finance (금융지원)
+KOCCA_FINANCE_API_BASE_URL=https://kocca.kr/api/finance/List.do
+# https://kocca.kr/api/finance/List.do?serviceKey={KOCCA_API_KEY}&pageNo=1&numOfRows=10
+```
+
+**주요 파라미터**:
+
+- `serviceKey`: API 키 (필수)
+- `pageNo`: 페이지 번호 (1부터 시작)
+- `numOfRows`: 페이지당 건수
+- `viewStartDt`: 조회 시작일 (YYYYMMDD) - PIMS만 해당
+
+**2개 엔드포인트**:
+
+- PIMS: 지원사업 공고
+- Finance: 금융지원 정보
+
+---
+
+## 🚨 Phase 3 시작 전 필수 준비사항
+
+### 1️⃣ **데이터베이스 준비** ⚠️ **필수 - 유일하게 남은 준비사항**
+
+- [ ] **Program Prisma 모델 작성** (현재 schema.prisma에 없음)
+  - `dataSource`, `sourceApiId`, `rawData` 등 필드 추가
+  - `@@unique([dataSource, sourceApiId])` 중복 방지 인덱스
+  - 검색 최적화 인덱스 (`category`, `targetAudience`, `targetLocation`, `deadline`)
+
+**Program 모델 스키마 (3개 API 대응)**:
+
+```prisma
+model Program {
+  id              String   @id @default(uuid())
+
+  // 다중 API 대응 필드
+  dataSource      String   // "기업마당", "K-Startup", "KOCCA-PIMS", "KOCCA-Finance"
+  sourceApiId     String   // 각 API에서 제공하는 원본 ID
+
+  // 기본 정보
+  title           String
+  description     String?  // 프로그램 설명
+  category        String?
+  targetAudience  String[] // 대상 업종
+  targetLocation  String[] // 대상 지역
+  keywords        String[] // 키워드 배열
+  budgetRange     String?
+  deadline        DateTime?
+  sourceUrl       String?
+  rawData         Json     // 원본 데이터 보관 (API별 차이 흡수)
+
+  // 날짜 정보 (교차 정렬용)
+  registeredAt    DateTime // 등록일 (교차 정렬의 핵심 필드) ⭐
+  startDate       DateTime?
+  endDate         DateTime?
+
+  // 동기화 메타데이터
+  lastSyncedAt    DateTime @default(now()) @updatedAt
+  syncStatus      String   @default("active") // "active", "outdated", "deleted"
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  matchingResults MatchingResult[]
+
+  // 복합 인덱스 (검색 성능 향상)
+  @@unique([dataSource, sourceApiId]) // 중복 방지
+  @@index([registeredAt(sort: Desc)]) // 등록일 내림차순 정렬 (교차 노출용) ⭐
+  @@index([dataSource, registeredAt(sort: Desc)]) // 출처별 정렬
+  @@index([category])
+  @@index([targetAudience])
+  @@index([targetLocation])
+  @@index([deadline])
+  @@index([dataSource]) // API별 필터링
+  @@index([lastSyncedAt]) // 동기화 추적
+}
+```
+
+### 2️⃣ **공공데이터 API 키 발급** ✅ **완료!**
+
+- ✅ **기업마당 API 키** (`BIZINFO_API_KEY`) - 완료
+- ✅ **K-Startup API 키** (`PUBLIC_DATA_API_KEY`) - 완료 (공공데이터포털 키 재사용)
+- ✅ **한국콘텐츠진흥원 API 키** (`KOCCA_API_KEY`) - 완료
+
+**현재 상태**: ✅ **3개 API 키 모두 준비 완료!** (.env.local 설정 완료)
+
+### 3️⃣ **API 문서 조사** ✅ **완료!**
+
+각 API의 스펙이 `.env.local`에 주석으로 문서화되어 있습니다:
+
+- ✅ Base URL, 엔드포인트
+- ✅ Request 형식 (GET, Query Parameters)
+- ✅ 필수 파라미터 (API 키, 페이지네이션)
+- ⏳ Response 형식 (실제 호출하며 확인 필요)
+- ⏳ Rate Limiting (실제 호출하며 확인 필요)
+- ⏳ 에러 코드 및 응답 형식 (실제 호출하며 확인 필요)
+
+---
+
+## 📋 Phase 3 ISSUE 목록
+
+### 📋 ISSUE-06: 다중 공공데이터 API 통합 연동 (기업마당 + K-Startup + KOCCA) ⚠️ 고위험
+
+**상태**: ⏳ 대기 → 🚀 **시작 준비 완료!**
+**목표**: 3개 API 통합 수집 및 저장 자동화 (기업마당, K-Startup, KOCCA)
+**의존성**: ✅ Phase 2 완료, ✅ API 키 준비 완료
+
+**핵심 기술**:
+
+- **Adapter Pattern** (`IProgramAPIClient`) - API별 차이 흡수
+- **Promise.allSettled** - 병렬 API 호출, 부분 실패 허용
+- **Exponential Backoff** - Rate Limiting 대응
+- **Vercel Cron Job** - 매일 자동 동기화
+- **rawData JSON 필드** - 원본 데이터 보존
 
 **작업 내용**:
 
-1. **Prisma 스키마 작성** (`Customer` 모델)
+1. **Program Prisma 모델 작성 및 마이그레이션**
+   - 위 스키마 참조
+   - `dataSource` 값: "기업마당", "K-Startup", "KOCCA-PIMS", "KOCCA-Finance"
 
-   ```prisma
-   model Customer {
-     id                    String   @id @default(uuid())
-     userId                String   // 컨설턴트 ID (Supabase Auth UID)
+2. **API 클라이언트 작성 (어댑터 패턴)**:
 
-     // 사업자 정보
-     businessNumber        String   @unique  // 사업자등록번호 (10자리, 필수)
-     businessType          String   // 'INDIVIDUAL' | 'CORPORATE' (개인사업자 | 법인사업자)
-     corporateNumber       String?  // 법인등록번호 (13자리, 법인사업자만 해당)
-     name                  String   // 사업자명/상호
+   ```typescript
+   // /lib/apis/base-api-client.ts
+   export interface IProgramAPIClient {
+     fetchPrograms(params: SyncParams): Promise<RawProgramData[]>;
+     extractKeywords(raw: any): string[];
+     parseLocation(raw: any): string[];
+     getDataSource(): string; // "기업마당", "K-Startup", "KOCCA-PIMS", "KOCCA-Finance"
+   }
 
-     // 기업 정보
-     industry              String?
-     companySize           String?
-     location              String?
-     budget                Int?
+   // /lib/apis/bizinfo-api-client.ts (기업마당)
+   export class BizinfoAPIClient implements IProgramAPIClient {
+     private apiKey = process.env.BIZINFO_API_KEY!;
+     private baseUrl = process.env.BIZINFO_API_BASE_URL!;
 
-     // 니즈 정보
-     challenges            String[]
-     goals                 String[]
-     preferredKeywords     String[] @default([])  // 영업자가 선택한 프로그램 기반 학습된 키워드
+     getDataSource() {
+       return '기업마당';
+     }
 
-     // 연락처 정보
-     contactEmail          String?
-     contactPhone          String?
+     async fetchPrograms(params: { page: number; pageSize: number }) {
+       const url = `${this.baseUrl}?crtfcKey=${this.apiKey}&dataType=json&searchCnt=${params.pageSize}&pageIndex=${params.page}&pageUnit=${params.pageSize}&searchLclasId=01`;
+       const response = await fetch(url);
+       const data = await response.json();
+       return data.result || [];
+     }
 
-     // 기타
-     notes                 String?
-     createdAt             DateTime @default(now())
-     updatedAt             DateTime @updatedAt
+     extractKeywords(program: any): string[] {
+       // 기업마당 API 응답에서 키워드 추출 (실제 응답 구조 확인 후 구현)
+       return [];
+     }
 
-     matchingResults MatchingResult[]
+     parseLocation(program: any): string[] {
+       // 기업마당 API 응답에서 지역 정보 추출
+       return [];
+     }
+   }
 
-     @@index([userId])
-     @@index([businessNumber])
-     @@index([businessType])
-     @@index([industry])
-     @@index([location])
-     @@index([createdAt])
+   // /lib/apis/kstartup-api-client.ts (K-Startup)
+   export class KStartupAPIClient implements IProgramAPIClient {
+     private apiKey = process.env.PUBLIC_DATA_API_KEY!;
+     private baseUrl = process.env.KSTARTUP_API_BASE_URL!;
+
+     getDataSource() {
+       return 'K-Startup';
+     }
+
+     async fetchPrograms(params: { page: number; perPage: number }) {
+       const url = `${this.baseUrl}/kisedKstartupService01/getAnnouncementInformation01?serviceKey=${this.apiKey}&page=${params.page}&perPage=${params.perPage}`;
+       const response = await fetch(url);
+       const data = await response.json();
+       return data.data || [];
+     }
+
+     extractKeywords(program: any): string[] {
+       // K-Startup API 응답에서 키워드 추출
+       return [];
+     }
+
+     parseLocation(program: any): string[] {
+       // K-Startup API 응답에서 지역 정보 추출
+       return [];
+     }
+   }
+
+   // /lib/apis/kocca-api-client.ts (한국콘텐츠진흥원)
+   export class KoccaPIMSAPIClient implements IProgramAPIClient {
+     private apiKey = process.env.KOCCA_API_KEY!;
+     private baseUrl = process.env.KOCCA_PIMS_API_BASE_URL!;
+
+     getDataSource() {
+       return 'KOCCA-PIMS';
+     }
+
+     async fetchPrograms(params: { pageNo: number; numOfRows: number }) {
+       const viewStartDt = '20220101'; // 조회 시작일 (조정 가능)
+       const url = `${this.baseUrl}?serviceKey=${this.apiKey}&pageNo=${params.pageNo}&numOfRows=${params.numOfRows}&viewStartDt=${viewStartDt}`;
+       const response = await fetch(url);
+       const data = await response.json();
+       return data.items || [];
+     }
+
+     extractKeywords(program: any): string[] {
+       return [];
+     }
+
+     parseLocation(program: any): string[] {
+       return [];
+     }
+   }
+
+   export class KoccaFinanceAPIClient implements IProgramAPIClient {
+     private apiKey = process.env.KOCCA_API_KEY!;
+     private baseUrl = process.env.KOCCA_FINANCE_API_BASE_URL!;
+
+     getDataSource() {
+       return 'KOCCA-Finance';
+     }
+
+     async fetchPrograms(params: { pageNo: number; numOfRows: number }) {
+       const url = `${this.baseUrl}?serviceKey=${this.apiKey}&pageNo=${params.pageNo}&numOfRows=${params.numOfRows}`;
+       const response = await fetch(url);
+       const data = await response.json();
+       return data.items || [];
+     }
+
+     extractKeywords(program: any): string[] {
+       return [];
+     }
+
+     parseLocation(program: any): string[] {
+       return [];
+     }
    }
    ```
 
-2. **API 엔드포인트 작성**:
-   - ✅ **표준 응답 형식 사용** (PRINCIPLES.md 준수)
-     ```typescript
-     // Success: { success: true, data: {...}, metadata?: { total, page, limit } }
-     // Error: { success: false, error: { code, message, details? } }
-     ```
-   - `POST /api/customers` (고객 생성)
-   - `GET /api/customers` (고객 목록 조회, 필터링/정렬/페이지네이션)
-   - `GET /api/customers/[id]` (고객 상세 조회)
-   - `PUT /api/customers/[id]` (고객 정보 수정)
-   - `DELETE /api/customers/[id]` (고객 삭제)
-
-3. **Request Validation** (Zod 스키마 - MANDATORY)
+3. **통합 동기화 오케스트레이터 작성**:
 
    ```typescript
-   // /lib/validations/customer.ts
-   import { z } from 'zod';
+   // /lib/sync/program-sync-orchestrator.ts
+   export class ProgramSyncOrchestrator {
+     private clients: IProgramAPIClient[] = [
+       new BizinfoAPIClient(),
+       new KStartupAPIClient(),
+       new KoccaPIMSAPIClient(),
+       new KoccaFinanceAPIClient(),
+     ];
 
-   // 사업자등록번호 검증 (10자리 숫자)
-   const businessNumberRegex = /^\d{10}$/;
-   // 법인등록번호 검증 (13자리 숫자)
-   const corporateNumberRegex = /^\d{13}$/;
+     async syncAll() {
+       // Promise.allSettled로 병렬 동기화 (부분 실패 허용)
+       const results = await Promise.allSettled(
+         this.clients.map(client => this.syncFromClient(client))
+       );
 
-   export const createCustomerSchema = z
-     .object({
-       // 사업자 정보 (필수)
-       businessNumber: z
-         .string()
-         .regex(businessNumberRegex, '사업자등록번호는 10자리 숫자여야 합니다'),
-       businessType: z.enum(['INDIVIDUAL', 'CORPORATE'], {
-         errorMap: () => ({ message: '개인사업자 또는 법인사업자를 선택해주세요' }),
-       }),
-       corporateNumber: z
-         .string()
-         .regex(corporateNumberRegex, '법인등록번호는 13자리 숫자여야 합니다')
-         .optional()
-         .nullable(),
-       name: z.string().min(1, '사업자명/상호는 필수입니다'),
+       const succeeded = results.filter(r => r.status === 'fulfilled').length;
+       const failed = results.filter(r => r.status === 'rejected').length;
+       const total = results.length;
 
-       // 기업 정보 (선택)
-       industry: z.string().optional(),
-       companySize: z.string().optional(),
-       location: z.string().optional(),
-       budget: z.number().int().positive().optional(),
+       return { total, succeeded, failed };
+     }
 
-       // 니즈 정보 (선택)
-       challenges: z.array(z.string()).default([]),
-       goals: z.array(z.string()).default([]),
-       preferredKeywords: z.array(z.string()).default([]),
+     private async syncFromClient(client: IProgramAPIClient) {
+       const rawData = await client.fetchPrograms({ page: 1, pageSize: 50 });
 
-       // 연락처 정보 (선택)
-       contactEmail: z.string().email('올바른 이메일 형식이 아닙니다').optional(),
-       contactPhone: z.string().optional(),
-
-       // 기타 (선택)
-       notes: z.string().optional(),
-     })
-     .refine(
-       data => {
-         // 법인사업자인 경우 법인등록번호 필수 검증
-         if (data.businessType === 'CORPORATE' && !data.corporateNumber) {
-           return false;
-         }
-         return true;
-       },
-       {
-         message: '법인사업자는 법인등록번호가 필수입니다',
-         path: ['corporateNumber'],
+       for (const raw of rawData) {
+         await prisma.program.upsert({
+           where: {
+             dataSource_sourceApiId: {
+               dataSource: client.getDataSource(),
+               sourceApiId: raw.id || raw.announcementId || raw.bizId,
+             },
+           },
+           update: {
+             title: raw.title,
+             description: raw.description,
+             keywords: client.extractKeywords(raw),
+             targetLocation: client.parseLocation(raw),
+             rawData: raw,
+             lastSyncedAt: new Date(),
+           },
+           create: {
+             dataSource: client.getDataSource(),
+             sourceApiId: raw.id || raw.announcementId || raw.bizId,
+             title: raw.title,
+             description: raw.description,
+             keywords: client.extractKeywords(raw),
+             targetLocation: client.parseLocation(raw),
+             rawData: raw,
+           },
+         });
        }
-     );
-
-   export const updateCustomerSchema = createCustomerSchema.partial();
+     }
+   }
    ```
 
-4. **국세청 사업자등록정보 진위확인 API 통합** (공공데이터포털)
-   - **개발 접근 방식**: 별도 테스트 페이지 → 모듈화 → 메인 페이지 적용
+4. **API 엔드포인트 작성**:
+   - `POST /api/programs/sync` (수동 동기화 트리거)
+   - `GET /api/programs` (목록 조회, 필터링/정렬/페이지네이션)
+     - **⭐ 교차 정렬 구현**: `orderBy: { registeredAt: 'desc' }` (등록일 기준 최신순)
+     - 출처별 분포 통계 포함 (현재 페이지의 API별 개수)
+     - 자세한 구현: PUBLIC_API_GUIDES.md > 다중 API 데이터 교차 노출 전략 참조
+   - `GET /api/programs/[id]` (상세 조회)
 
-   **Step 1: API 모듈 개발 및 테스트 페이지 구현**
-   - `/lib/services/nts-business-verification.ts` (API 서비스 모듈)
+5. **Vercel Cron Job 설정**:
 
-     ```typescript
-     // 국세청 사업자등록정보 진위확인 서비스
-     // API 문서: https://infuser.odcloud.kr/api/stages/28493/api-docs
-
-     // 진위확인 API 요청 인터페이스 (공공데이터포털 스펙)
-     export interface ValidationApiRequest {
-       b_no: string[]; // 사업자등록번호 배열 (10자리, 숫자만)
+   ```typescript
+   // /app/api/cron/sync-programs/route.ts
+   export async function GET(request: Request) {
+     // Vercel Cron Secret 검증
+     const authHeader = request.headers.get('authorization');
+     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+       return new Response('Unauthorized', { status: 401 });
      }
 
-     // 상태조회 API 요청 인터페이스
-     export interface StatusApiRequest {
-       b_no: string[]; // 사업자등록번호 배열 (10자리, 숫자만)
-     }
-
-     // 진위확인 API 응답 (실제 공공데이터포털 응답 구조)
-     export interface ValidationApiResponse {
-       status_code: string; // 응답 상태 코드
-       match_cnt: number; // 일치 개수
-       request_cnt: number; // 요청 개수
-       data: Array<{
-         b_no: string; // 사업자등록번호
-         valid: string; // "01": 진위확인 성공, "02": 실패
-         valid_msg: string; // 검증 결과 메시지
-         request_param: {
-           b_no: string;
-           start_dt: string;
-           p_nm: string;
-           p_nm2?: string;
-           b_nm?: string;
-           corp_no?: string;
-           b_sector?: string;
-           b_type?: string;
-           b_adr?: string;
-         };
-         status?: {
-           b_no: string;
-           b_stt: string; // 납세자상태 (계속사업자, 휴업자, 폐업자)
-           b_stt_cd: string; // 납세자상태코드
-           tax_type: string; // 과세유형
-           tax_type_cd: string; // 과세유형코드
-           end_dt: string; // 폐업일
-           utcc_yn: string; // 단위과세전환폐업여부
-           tax_type_change_dt: string; // 최근과세유형전환일자
-           invoice_apply_dt: string; // 세금계산서적용일자
-         };
-       }>;
-     }
-
-     // 클라이언트 사용 인터페이스 (간소화)
-     export interface BusinessVerificationRequest {
-       businessNumber: string; // 사업자등록번호 (하이픈 포함 가능, 자동 제거됨)
-       ownerName: string; // 대표자명
-       openDate: string; // 개업일자 (YYYYMMDD 또는 YYYY-MM-DD, 자동 변환)
-       foreignOwnerKoreanName?: string; // 외국인 사업자 한글명
-       businessName?: string; // 상호명
-       corporateNumber?: string; // 법인등록번호 (13자리, 선택)
-       businessSector?: string; // 주업태명
-       businessType?: string; // 주종목명
-       businessAddress?: string; // 사업장주소
-     }
-
-     export interface BusinessVerificationResponse {
-       valid: boolean; // 진위확인 결과
-       validCode: string; // "01": 성공, "02": 실패
-       validMessage: string; // 검증 결과 메시지
-       businessNumber: string; // 사업자등록번호
-       status?: {
-         statusName: string; // 사업자 상태 (계속사업자, 휴업자, 폐업자)
-         statusCode: string; // 사업자 상태 코드
-         taxType: string; // 과세유형
-         closedDate?: string; // 폐업일 (있는 경우)
-       };
-       verifiedAt: string; // 확인 일시
-       error?: string; // 에러 메시지
-     }
-
-     // 유틸리티 함수
-     export function formatBusinessNumber(num: string): string {
-       // 하이픈 제거, 숫자만 추출
-       return num.replace(/[^0-9]/g, '');
-     }
-
-     export function formatOpenDate(date: string): string {
-       // YYYY-MM-DD → YYYYMMDD 변환
-       return date.replace(/[^0-9]/g, '');
-     }
-
-     export async function verifyBusinessNumber(
-       data: BusinessVerificationRequest
-     ): Promise<BusinessVerificationResponse> {
-       // 공공데이터포털 진위확인 API 호출 로직
-       // POST 방식, JSON.stringify 필요
-     }
-
-     export async function checkBusinessStatus(
-       businessNumber: string
-     ): Promise<BusinessVerificationResponse> {
-       // 상태조회 API 호출 (진위확인보다 간단)
-     }
-     ```
-
-   - `/app/test/business-verification/page.tsx` (독립 테스트 페이지)
-     - **진위확인 테스트 섹션**:
-       - 사업자등록번호 (하이픈 자동 포맷팅)
-       - 대표자명
-       - 개업일자 (날짜 선택기)
-       - 상호명 (선택)
-       - 법인등록번호 (선택, 법인사업자만)
-       - 외국인 사업자 한글명 (선택)
-     - **상태조회 테스트 섹션**: 사업자등록번호만 입력
-     - API 호출 결과 표시 (JSON 뷰어)
-     - 실제 API 응답 원본과 파싱 결과 비교 표시
-     - 성공/실패 케이스별 UI 표시
-     - Rate Limiting 테스트
-
-   - `/api/test/business-verification/route.ts` (테스트 API 프록시)
-     - POST 방식, JSON 요청/응답
-     - 환경변수에서 API 키 로드 (`process.env.PUBLIC_DATA_API_KEY`)
-     - 진위확인: `/validate` 엔드포인트
-     - 상태조회: `/status` 엔드포인트
-     - 에러 핸들링 (API 키 누락, 네트워크 에러, 응답 파싱 실패)
-     - 요청/응답 로깅
-
-   **Step 2: 모듈 검증 및 최적화**
-   - 다양한 케이스 테스트 (정상, 폐업, 휴업, 존재하지 않는 번호)
-   - 에러 처리 개선
-   - 응답 시간 측정 및 최적화
-   - 캐싱 전략 수립 (동일 사업자번호 중복 조회 방지)
-
-   **Step 3: CustomerForm에 통합**
-   - 사업자등록번호 입력 시 실시간 검증 옵션 추가
-   - "사업자정보 확인" 버튼으로 API 호출
-   - 검증 결과에 따라 상호명 자동 입력
-   - 폐업/휴업 사업자 경고 메시지
-
-   **환경 변수 설정**:
-
-   ```bash
-   # .env.local (이미 설정되어 있음)
-   PUBLIC_DATA_API_KEY=<이미_등록된_공공데이터포털_API_키>
-
-   # 사용 예시:
-   # - Base URL: https://api.odcloud.kr/api/nts-businessman/v1
-   # - 진위확인: https://api.odcloud.kr/api/nts-businessman/v1/validate?serviceKey=${PUBLIC_DATA_API_KEY}
-   # - 상태조회: https://api.odcloud.kr/api/nts-businessman/v1/status?serviceKey=${PUBLIC_DATA_API_KEY}
+     const orchestrator = new ProgramSyncOrchestrator();
+     const result = await orchestrator.syncAll();
+     return Response.json({ success: true, ...result });
+   }
    ```
 
-   **API 호출 시 주의사항** (공공데이터포털 문서 기준):
-   - **요청 방식**: POST, Content-Type: `application/json`
-   - **사업자등록번호**: 숫자 10자리, 하이픈(`-`) 제거 필수
-   - **법인등록번호**: 숫자 13자리, 하이픈(`-`) 제거 필수
-   - **개업일자**: `YYYYMMDD` 형식, 하이픈(`-`) 제거 필수
-   - **대표자성명**: 외국인의 경우 영문명 입력, 한글명은 `p_nm2` 필드 사용
-   - **상호**: "주식회사", "(주)" 등은 앞/뒤 위치 상관없이 검색 가능
-   - **공백**: 모든 필드에서 앞뒤 공백 무시
-   - **배열 형식**: 여러 사업자번호 동시 조회 가능 (`b_no: string[]`)
-   - **빈값 처리**: 선택 필드를 빈값으로 검색 시 `""` (empty string) 사용
+   **vercel.json**:
 
-5. **인증 및 권한 체크**:
-   - Supabase Auth 세션 검증 (모든 API 엔드포인트)
-   - 사용자는 자신의 고객만 조회/수정/삭제 가능 (userId 필터링)
+   ```json
+   {
+     "crons": [
+       {
+         "path": "/api/cron/sync-programs",
+         "schedule": "0 2 * * *"
+       }
+     ]
+   }
+   ```
 
-6. **에러 처리**:
-   - 400: 유효성 검증 실패 (Zod 에러)
-   - 401: 인증되지 않은 사용자
-   - 403: 권한 없음 (다른 사용자의 고객 접근 시도)
-   - 404: 고객을 찾을 수 없음
-   - 500: 서버 에러
+6. **에러 처리 및 로깅**:
+   - API 호출 실패 시 재시도 (Exponential Backoff)
+   - **API별 독립 실행** (하나 실패해도 나머지 계속)
+   - 상세 로그 출력 (어떤 API에서 몇 개 수집했는지)
 
-7. **Postman/Insomnia로 API 테스트**
+7. **Rate Limiting 구현** (Upstash Redis 활용 - 선택)
 
-8. **Jest로 단위 테스트 작성** (선택사항, 시간 여유 시)
+8. **Redis 캐싱 전략** (선택):
+   - 프로그램 목록 캐싱 (1시간)
+   - 증분 동기화 (`lastSyncedAt` 기준)
 
 **완료 조건**:
 
-- [x] Customer Prisma 모델 작성 및 마이그레이션 완료
-- [x] 5개 CRUD API 엔드포인트 구현 완료
-- [x] Zod 검증 스키마 작성 및 적용
-- [x] 국세청 사업자등록정보 API 통합 완료:
-  - [x] Step 1: API 모듈 및 테스트 페이지 구현
-  - [x] Step 2: 다양한 케이스 테스트 및 검증 완료
-  - [x] Step 3: CustomerForm에 검증 기능 통합 (테스트 페이지에 통합)
-- [x] 인증/권한 체크 미들웨어 적용
-- [x] Postman/Insomnia로 모든 API 동작 확인 (테스트 페이지로 확인)
-- [x] 표준 응답 형식 준수 확인
-- [ ] ~~테스트 커버리지 80% 이상~~ (선택사항)
+- [ ] Program Prisma 모델 작성 및 마이그레이션 완료
+  - [ ] `registeredAt` 필드 포함 (교차 정렬용)
+  - [ ] `registeredAt` 인덱스 생성 (내림차순)
+- [ ] 4개 API 클라이언트 작성 완료 (Bizinfo, KStartup, KOCCA-PIMS, KOCCA-Finance)
+  - [ ] 각 API의 등록일 필드를 `registeredAt`으로 매핑
+- [ ] 각 API별 최소 20개 이상 데이터 수집 (총 80개 이상 목표)
+- [ ] 모든 프로그램에 업종, 지역, 키워드 정보 포함
+- [ ] `POST /api/programs/sync` 구현 (수동 동기화)
+- [ ] `GET /api/programs` 구현 (목록 조회, 필터링)
+  - [ ] **교차 정렬 구현**: `orderBy: { registeredAt: 'desc' }` 적용
+  - [ ] 출처별 분포 통계 포함
+- [ ] `GET /api/programs/[id]` 구현 (상세 조회)
+- [ ] Vercel Cron Job 설정 (매일 새벽 2시 자동 동기화)
+- [ ] Rate Limit 에러 처리 (Exponential Backoff)
+- [ ] 병렬 동기화 동작 확인 (Promise.allSettled)
 
-**예상 기간**: 5일
-**난이도**: 중
-**기술 스택**: Prisma, Zod, Next.js API Routes, Supabase Auth
+**예상 기간**: 10일
+**난이도**: 고 ⚠️
+
+**리스크**:
+
+- 각 API 응답 속도 느림 가능성
+- API별 응답 형식 차이 (실제 호출 후 확인 필요)
+- Rate Limit 초과 가능성
+- 동기화 시간 증가 (4개 API 처리)
+
+**완화 전략**:
+
+- Redis 캐싱 (1시간) - 선택
+- Exponential Backoff Retry
+- 병렬 동기화 (Promise.allSettled)
+- 어댑터 패턴 (API별 차이 흡수)
+- rawData JSON 필드 (원본 데이터 보관)
+- 증분 동기화 (lastSyncedAt 기준)
 
 ---
 
-### 📋 ISSUE-04: 고객 관리 UI 컴포넌트 개발
+### 📋 ISSUE-07: 정부지원사업 UI 컴포넌트 개발
 
-**상태**: 대기
-**목표**: 고객 목록, 상세, 등록/수정 UI 구현
-**의존성**: ISSUE-03 (고객 API) 완료
+**상태**: ✅ 완료
+**목표**: 프로그램 목록, 상세, 검색 UI 구현
+**의존성**: ✅ ISSUE-06 완료 후 시작 가능
 
 **작업 내용**:
 
-1. **shadcn/ui 공통 컴포넌트 설치**:
+1. **shadcn/ui 추가 컴포넌트 설치** (필요 시):
 
    ```bash
-   npx shadcn@latest add button input label textarea select table dialog
-   npx shadcn@latest add form card badge separator skeleton
+   npx shadcn@latest add badge separator skeleton pagination
    ```
 
-2. **고객 관련 컴포넌트 작성**:
-   - `/components/customers/CustomerList.tsx` (목록 + 필터링)
-     - shadcn/ui Table 사용
-     - 페이지네이션 (React Query useInfiniteQuery)
-     - 로딩 상태 (Skeleton UI)
-   - `/components/customers/CustomerCard.tsx` (카드 형태)
+2. **프로그램 관련 컴포넌트 작성**:
+   - `/components/programs/ProgramList.tsx` (목록 + 페이지네이션)
      - shadcn/ui Card 사용
+     - React Query `usePrograms` hook
+     - 로딩 상태 (Skeleton UI)
+   - `/components/programs/ProgramCard.tsx` (카드 형태)
+     - 프로그램 제목, 설명, 마감일, 데이터소스 표시
+     - Badge로 데이터소스 표시 (기업마당, K-Startup, KOCCA)
      - 모바일 최적화 뷰
-   - `/components/customers/CustomerForm.tsx` (등록/수정 폼)
-     - shadcn/ui Form + react-hook-form 사용
-     - Zod 스키마 통합
-     - 실시간 유효성 검증
-   - `/components/customers/CustomerDetail.tsx` (상세 정보)
-     - 고객 정보 표시
+   - `/components/programs/ProgramDetail.tsx` (상세 정보)
+     - 프로그램 전체 정보 표시
+     - rawData JSON 뷰어 (개발자용)
      - 매칭 결과 프리뷰 (Phase 4 이후)
-   - `/components/customers/CustomerFilters.tsx` (필터 UI)
-     - 업종, 지역, 생성일 필터
+   - `/components/programs/ProgramFilters.tsx` (필터 UI)
+     - 업종, 지역, 마감일 필터
+     - 데이터소스 필터 (기업마당, K-Startup, KOCCA-PIMS, KOCCA-Finance)
+   - `/components/programs/ProgramSearch.tsx` (키워드 검색)
+     - 실시간 검색 (debounce 300ms)
 
 3. **React Query 설정**:
 
    ```typescript
-   // /lib/queries/customers.ts
-   import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-   export const useCustomers = filters => {
+   // /lib/hooks/usePrograms.ts
+   export const usePrograms = (filters: ProgramFilters) => {
      return useQuery({
-       queryKey: ['customers', filters],
-       queryFn: () => fetchCustomers(filters),
+       queryKey: ['programs', filters],
+       queryFn: () => fetchPrograms(filters),
        staleTime: 5 * 60 * 1000, // 5분 캐싱
      });
    };
 
-   export const useCreateCustomer = () => {
-     const queryClient = useQueryClient();
-     return useMutation({
-       mutationFn: createCustomer,
-       onSuccess: () => {
-         queryClient.invalidateQueries(['customers']);
-       },
-     });
-   };
-
-   export const useUpdateCustomer = () => {
-     const queryClient = useQueryClient();
-     return useMutation({
-       mutationFn: updateCustomer,
-       onSuccess: () => {
-         queryClient.invalidateQueries(['customers']);
-       },
-     });
-   };
-
-   export const useDeleteCustomer = () => {
-     const queryClient = useQueryClient();
-     return useMutation({
-       mutationFn: deleteCustomer,
-       onSuccess: () => {
-         queryClient.invalidateQueries(['customers']);
-       },
+   export const useProgram = (id: string) => {
+     return useQuery({
+       queryKey: ['program', id],
+       queryFn: () => fetchProgram(id),
+       enabled: !!id,
      });
    };
    ```
 
 4. **페이지 작성**:
-   - `/app/customers/page.tsx` (목록)
-     - CustomerList + CustomerFilters
-     - "새 고객 등록" 버튼
-   - `/app/customers/[id]/page.tsx` (상세)
-     - CustomerDetail
-     - 수정/삭제 버튼
-   - `/app/customers/new/page.tsx` (등록)
-     - CustomerForm
+   - `/app/programs/page.tsx` (목록)
+     - ProgramList + ProgramFilters + ProgramSearch
+     - 페이지네이션
+   - `/app/programs/[id]/page.tsx` (상세)
+     - ProgramDetail
+     - 매칭 결과 섹션 (Phase 4 이후)
 
 5. **Loading/Error 상태 처리**:
-   - React Query isLoading, isError, error 상태 활용
+   - React Query `isLoading`, `isError`, `error` 상태 활용
    - Skeleton UI (로딩)
    - Error Boundary (에러)
 
-6. **Optimistic Updates 구현**:
-   - 수정/삭제 시 즉시 UI 업데이트
-   - API 실패 시 자동 롤백
-
-7. **디자인 시스템 적용** (PRINCIPLES.md 준수):
+6. **디자인 시스템 적용** (PRINCIPLES.md 준수):
    - Primary Blue (#0052CC) - CTA 버튼
    - Lucide React 아이콘 사용
    - TailwindCSS 유틸리티 클래스
@@ -446,143 +529,89 @@
 
 **완료 조건**:
 
-- [ ] shadcn/ui 컴포넌트 설치 및 설정 완료
-- [ ] 고객 목록 조회 UI 동작 확인 (필터링/정렬)
-- [ ] 고객 등록 폼 동작 확인 (유효성 검증)
-- [ ] 고객 수정 기능 동작 확인
-- [ ] 고객 삭제 기능 동작 확인 (확인 다이얼로그 포함)
-- [ ] Loading/Error 상태 처리 확인
-- [ ] Optimistic Updates 동작 확인
-- [ ] 모바일 반응형 동작 확인 (767px 이하)
+- [x] shadcn/ui 추가 컴포넌트 설치 완료 (pagination, tabs)
+- [x] ProgramList 컴포넌트 (목록 + 페이지네이션)
+- [x] ProgramCard 컴포넌트 (카드 형태, Badge로 dataSource 표시)
+- [x] ProgramDetail 컴포넌트 (상세 정보)
+- [x] ProgramFilters 컴포넌트 (업종/지역/마감일/데이터소스 필터)
+- [x] ProgramSearch 컴포넌트 (키워드 검색 - ProgramFilters에 통합)
+- [x] React Query 설정 (`usePrograms`, `useProgram` hook)
+- [x] `/app/programs/page.tsx` (목록 페이지)
+- [x] `/app/programs/[id]/page.tsx` (상세 페이지)
+- [x] Loading/Error 상태 처리
+- [x] 모바일 반응형 확인 (grid-cols-1 md:grid-cols-2 lg:grid-cols-3)
 
-**예상 기간**: 7일
+**예상 기간**: 6일
 **난이도**: 중
-**기술 스택**: React Query, shadcn/ui, react-hook-form, Zod, TailwindCSS
+**기술 스택**: React Query, shadcn/ui, TailwindCSS
+**실제 소요 기간**: 1일
+**완료일**: 2025-01-21
 
 ---
 
-### 📋 ISSUE-05: 엑셀 파일 업로드 기능
+## 🎯 Phase 3 시작 가이드
 
-**상태**: 대기
-**목표**: 고객 데이터 일괄 등록 기능 구현
-**의존성**: ISSUE-03 (고객 API) 완료
+### ✅ 준비사항 체크리스트
 
-**작업 내용**:
+**필수 준비 항목**:
 
-1. **엑셀 파싱 라이브러리 설치**:
+1. [ ] **Program Prisma 모델 작성** (schema.prisma) - **유일하게 남은 준비사항**
+2. ✅ **공공데이터 API 키 확인** (.env.local에 3개 API 모두 설정 완료)
+3. ✅ **API 문서 조사** (Base URL, 파라미터 모두 .env.local에 문서화)
+4. ✅ **환경변수 설정** (.env.local에 API 키 모두 추가됨)
 
-   ```bash
-   npm install xlsx
-   npm install --save-dev @types/xlsx
-   ```
+**선택적 준비 항목**:
 
-2. **API 작성**:
-   - `POST /api/customers/bulk` (엑셀 파일 업로드 처리)
-     ```typescript
-     // Request: FormData (file: File)
-     // Response: {
-     //   success: true,
-     //   data: {
-     //     total: 100,
-     //     success: 95,
-     //     failed: 5,
-     //     errors: [
-     //       { row: 10, field: 'email', message: '이메일 형식이 잘못되었습니다' },
-     //       { row: 25, field: 'name', message: '고객명은 필수입니다' }
-     //     ]
-     //   }
-     // }
-     ```
-   - **검증 로직**: Zod 스키마로 각 행 검증
-   - **중복 체크**: contactEmail 기준 중복 방지
-   - **트랜잭션 처리**: Prisma transaction으로 부분 실패 시 롤백
-     ```typescript
-     await prisma.$transaction(async tx => {
-       // 모든 고객 생성
-       for (const customer of validatedCustomers) {
-         await tx.customer.create({ data: customer });
-       }
-     });
-     ```
-
-3. **업로드 UI 컴포넌트**:
-   - `/components/customers/BulkUpload.tsx`
-     - 드래그앤드롭 지원 (react-dropzone)
-     - 진행률 표시 (Progress bar)
-     - 에러 결과 표시 (어떤 행에서 실패했는지)
-     - 성공/실패 통계 표시
-
-4. **엑셀 템플릿 다운로드 기능**:
-   - `/api/customers/bulk/template` (GET)
-   - xlsx 라이브러리로 템플릿 생성
-   - 샘플 데이터 포함 (2-3개 예시 행)
-   - 필수/선택 컬럼 안내 (첫 번째 행 주석)
-
-5. **업로드 페이지 작성**:
-   - `/app/customers/bulk-upload/page.tsx`
-   - BulkUpload 컴포넌트
-   - 템플릿 다운로드 버튼
-   - 업로드 가이드 (지원 형식, 최대 파일 크기)
-
-**완료 조건**:
-
-- [ ] 엑셀 파싱 라이브러리 설치 완료
-- [ ] 템플릿 다운로드 API 구현
-- [ ] 엑셀 업로드 API 구현 (검증 + 트랜잭션)
-- [ ] 업로드 UI 컴포넌트 구현 (드래그앤드롭)
-- [ ] 100개 이상의 고객 데이터 일괄 등록 성공 테스트
-- [ ] 에러 처리 확인 (잘못된 데이터 감지 및 표시)
-- [ ] 진행률 표시 동작 확인
-- [ ] 성공/실패 통계 표시 확인
-
-**예상 기간**: 5일
-**난이도**: 중
-**기술 스택**: xlsx, react-dropzone, Prisma Transaction, Zod
+1. [ ] Redis 캐싱 전략 검토
+2. [ ] Sentry 에러 추적 설정
 
 ---
 
-## 📌 다음 Phase 미리보기
+### 🚀 Phase 3 시작 명령어
 
-**Phase 3: 정부지원사업 데이터 수집 (Week 5-6)**
+**준비 완료! 바로 시작 가능**:
 
-- ISSUE-06: 다중 공공데이터 API 통합 연동 (중기부 + K-startup) ⚠️ 고위험
-- ISSUE-07: 정부지원사업 UI 컴포넌트 개발
+1. **"ISSUE-06 시작해줘"** - Program Prisma 모델 작성부터 시작
+2. **"Program 모델만 먼저 만들자"** - 스키마 작성 + 마이그레이션만
+3. **"기업마당 API부터 테스트해보자"** - 단일 API 먼저 테스트
 
-**핵심 기술**:
+**Phase 변경**:
 
-- Adapter Pattern (IProgramAPIClient)
-- Promise.allSettled (병렬 API 호출)
-- Exponential Backoff (Rate Limiting)
-- Vercel Cron Job (자동 동기화)
-
----
-
-## 🎯 현재 작업 시작하기
-
-Phase 2를 시작하려면:
-
-1. **"ISSUE-03 시작해줘"** - 고객 API 구현 시작
-2. **"고객 데이터 모델 작성해줘"** - Prisma 스키마부터 시작
-
-Phase를 변경하려면:
-
-1. **"Phase 1로 돌아가줘"** - 이전 Phase 확인
-2. **"Phase 3 보여줘"** - 다음 Phase 미리보기
+1. **"Phase 2로 돌아가줘"** - Phase 2 재확인
+2. **"Phase 4 보여줘"** - Phase 4 미리보기
 
 ---
 
-## 📊 Phase 2 예상 완료 시점
+## 📊 Phase 3 예상 완료 시점
 
-**총 예상 기간**: 17일 (Week 3-4)
+**총 예상 기간**: 16일 (Week 5-6)
 
-- ISSUE-03: 5일
-- ISSUE-04: 7일
-- ISSUE-05: 5일
+- ISSUE-06: 10일
+- ISSUE-07: 6일
 
 **성공 기준**:
 
-- ✅ 고객 CRUD API 완성 (인증/권한 포함)
-- ✅ 고객 관리 UI 완성 (목록/상세/등록/수정/삭제)
-- ✅ 엑셀 일괄 업로드 기능 완성
-- ✅ React Query 상태 관리 완성
-- ✅ shadcn/ui 디자인 시스템 적용
+- ✅ 4개 API 통합 연동 완료 (기업마당, K-Startup, KOCCA-PIMS, KOCCA-Finance)
+- ✅ 각 API별 최소 20개 이상 데이터 수집 (총 80개 이상 목표)
+- ✅ 프로그램 목록/상세 조회 API 완성
+- ✅ 프로그램 목록/상세 UI 완성
+- ✅ Vercel Cron Job 자동 동기화 완성
+- ✅ Rate Limiting 및 에러 처리 완성
+
+---
+
+## 📚 참고 문서
+
+- **EXECUTION.md**: 전체 프로젝트 로드맵 (Phase 1 ~ 9)
+- **PUBLIC_API_GUIDES.md**: ⭐ **3개 API 상세 가이드 (필독!)**
+  - 기업마당 API: TypeScript 타입, 클라이언트 구현, React Query Hook, 동기화 전략
+  - K-Startup API: 4개 엔드포인트, 페이지네이션, 에러 처리, Cron Job 설정
+  - 한국콘텐츠진흥원 API: PIMS/Finance 엔드포인트, 카테고리별 조회
+  - 다중 API 통합 전략 (Promise.allSettled)
+  - **⭐ 다중 API 데이터 교차 노출 전략**: 등록일 기준 교차 정렬, 인덱스 설계, 캐싱, 성능 최적화 (필수!)
+- **PRINCIPLES.md**: 개발 원칙 및 디자인 시스템
+- **RULES.md**: 프레임워크 규칙
+- **.env.local**: ✅ **3개 API 키 모두 설정 완료!**
+  - 기업마당 API (BIZINFO_API_KEY)
+  - K-Startup API (PUBLIC_DATA_API_KEY)
+  - 한국콘텐츠진흥원 API (KOCCA_API_KEY)

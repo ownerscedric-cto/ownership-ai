@@ -858,6 +858,11 @@ describe('POST /api/customers', () => {
 
 ### Phase 3: 정부지원사업 데이터 수집 (Week 5-6)
 
+**📚 공공데이터 API 활용 가이드**: [PUBLIC_API_GUIDES.md](./PUBLIC_API_GUIDES.md) 참조
+
+- 기업마당 API 상세 가이드 (요청 파라미터, TypeScript 타입, 사용 예시, 에러 처리)
+- K-Startup API 가이드 (예정)
+
 #### ISSUE-06: 다중 공공데이터 API 통합 연동 (중기부 + K-startup) (⚠️ 고위험)
 
 - **목표**: 2개 API 통합 수집 및 저장 자동화 (중기부, K-startup)
@@ -1872,6 +1877,532 @@ describe('POST /api/customers', () => {
 - **예상 기간**: 4일 (선택 기반 학습 기능 추가로 1일 증가)
 - **난이도**: 하
 - **의존성**: ISSUE-08
+
+---
+
+#### ISSUE-10.5: 고객별 정부지원사업 진행 상태 관리 (To-Do List)
+
+- **목표**: 영업자가 각 고객의 지원사업 신청 및 진행 상태를 To-Do List처럼 관리
+- **작업 내용**:
+  1. **Prisma 스키마 작성** (`CustomerProgramStatus` 모델):
+
+     ```prisma
+     model CustomerProgramStatus {
+       id              String   @id @default(uuid())
+       customerId      String
+       programId       String
+       matchingResultId String?  // 매칭 결과에서 생성된 경우 (선택)
+
+       // 진행 상태
+       status          String   @default("RECOMMENDED")
+       // "RECOMMENDED" | "PREPARING" | "APPLIED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "NOT_INTERESTED"
+
+       // 메타 정보
+       priority        Int      @default(0) // 우선순위 (0-5, 5가 가장 높음)
+       notes           String?  // 영업자 메모
+       dueDate         DateTime? // 마감일 (신청 마감일)
+
+       // 타임스탬프
+       statusUpdatedAt DateTime @default(now())
+       createdAt       DateTime @default(now())
+       updatedAt       DateTime @updatedAt
+
+       // 관계
+       customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+       program         Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+       matchingResult  MatchingResult? @relation(fields: [matchingResultId], references: [id], onDelete: SetNull)
+
+       @@unique([customerId, programId]) // 고객당 프로그램 하나씩만
+       @@index([customerId, status]) // 고객별 상태 필터링
+       @@index([status]) // 전체 상태별 필터링
+       @@index([dueDate]) // 마감일 순 정렬
+       @@index([priority]) // 우선순위 정렬
+     }
+     ```
+
+  2. **API 엔드포인트 작성**:
+     - `POST /api/customers/[customerId]/programs` (프로그램 추가)
+
+     ```typescript
+     // /app/api/customers/[customerId]/programs/route.ts
+     export async function POST(request: Request, { params }: { params: { customerId: string } }) {
+       const { programId, matchingResultId, status, priority, notes, dueDate } =
+         await request.json();
+
+       // 중복 체크
+       const existing = await db.customerProgramStatus.findUnique({
+         where: {
+           customerId_programId: {
+             customerId: params.customerId,
+             programId,
+           },
+         },
+       });
+
+       if (existing) {
+         return Response.json(
+           { success: false, error: '이미 추가된 프로그램입니다' },
+           { status: 409 }
+         );
+       }
+
+       const customerProgram = await db.customerProgramStatus.create({
+         data: {
+           customerId: params.customerId,
+           programId,
+           matchingResultId,
+           status: status || 'RECOMMENDED',
+           priority: priority || 0,
+           notes,
+           dueDate: dueDate ? new Date(dueDate) : null,
+         },
+         include: {
+           program: true, // 프로그램 정보 포함
+         },
+       });
+
+       return Response.json({ success: true, data: customerProgram });
+     }
+
+     // GET /api/customers/[customerId]/programs (목록 조회)
+     export async function GET(request: Request, { params }: { params: { customerId: string } }) {
+       const { searchParams } = new URL(request.url);
+       const status = searchParams.get('status'); // 상태 필터
+
+       const programs = await db.customerProgramStatus.findMany({
+         where: {
+           customerId: params.customerId,
+           ...(status && { status }),
+         },
+         include: {
+           program: true, // 프로그램 정보 포함
+         },
+         orderBy: [
+           { priority: 'desc' }, // 우선순위 높은 순
+           { dueDate: 'asc' }, // 마감일 빠른 순
+           { createdAt: 'desc' }, // 최근 추가 순
+         ],
+       });
+
+       return Response.json({ success: true, data: programs });
+     }
+     ```
+
+     - `PATCH /api/customers/[customerId]/programs/[programId]` (상태 업데이트)
+
+     ```typescript
+     // /app/api/customers/[customerId]/programs/[programId]/route.ts
+     export async function PATCH(
+       request: Request,
+       { params }: { params: { customerId: string; programId: string } }
+     ) {
+       const { status, priority, notes, dueDate } = await request.json();
+
+       const updated = await db.customerProgramStatus.update({
+         where: {
+           customerId_programId: {
+             customerId: params.customerId,
+             programId: params.programId,
+           },
+         },
+         data: {
+           ...(status !== undefined && { status }),
+           ...(priority !== undefined && { priority }),
+           ...(notes !== undefined && { notes }),
+           ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+           statusUpdatedAt: new Date(),
+         },
+         include: {
+           program: true,
+         },
+       });
+
+       return Response.json({ success: true, data: updated });
+     }
+
+     // DELETE /api/customers/[customerId]/programs/[programId] (프로그램 제거)
+     export async function DELETE(
+       request: Request,
+       { params }: { params: { customerId: string; programId: string } }
+     ) {
+       await db.customerProgramStatus.delete({
+         where: {
+           customerId_programId: {
+             customerId: params.customerId,
+             programId: params.programId,
+           },
+         },
+       });
+
+       return Response.json({ success: true });
+     }
+     ```
+
+     - `GET /api/dashboard/upcoming-deadlines` (전체 마감일 조회)
+
+     ```typescript
+     // /app/api/dashboard/upcoming-deadlines/route.ts
+     export async function GET(request: Request) {
+       const { searchParams } = new URL(request.url);
+       const days = parseInt(searchParams.get('days') || '30'); // 기본 30일 이내
+
+       const upcomingDeadlines = await db.customerProgramStatus.findMany({
+         where: {
+           userId: session.user.id, // 인증된 사용자의 데이터만
+           dueDate: {
+             gte: new Date(), // 오늘 이후
+             lte: new Date(Date.now() + days * 24 * 60 * 60 * 1000), // N일 이내
+           },
+           status: {
+             in: ['RECOMMENDED', 'PREPARING', 'APPLIED', 'UNDER_REVIEW'], // 진행중인 것만
+           },
+         },
+         include: {
+           customer: true,
+           program: true,
+         },
+         orderBy: {
+           dueDate: 'asc', // 마감일 빠른 순
+         },
+         take: 10, // 최대 10개
+       });
+
+       return Response.json({ success: true, data: upcomingDeadlines });
+     }
+     ```
+
+  3. **UI 컴포넌트 작성**:
+     - `/components/customers/CustomerProgramTracker.tsx` (진행 상태 관리)
+
+     ```tsx
+     import { Badge, Button, Card, Select, Textarea } from '@/components/ui';
+     import {
+       Check,
+       Clock,
+       FileText,
+       ThumbsDown,
+       AlertCircle,
+       CheckCircle,
+       XCircle,
+       Calendar,
+       Star,
+     } from 'lucide-react';
+
+     const STATUS_CONFIG = {
+       RECOMMENDED: {
+         label: '추천됨',
+         icon: <FileText className="w-4 h-4" />,
+         color: 'bg-blue-100 text-blue-800',
+       },
+       PREPARING: {
+         label: '준비중',
+         icon: <Clock className="w-4 h-4" />,
+         color: 'bg-yellow-100 text-yellow-800',
+       },
+       APPLIED: {
+         label: '신청완료',
+         icon: <CheckCircle className="w-4 h-4" />,
+         color: 'bg-green-100 text-green-800',
+       },
+       UNDER_REVIEW: {
+         label: '심사중',
+         icon: <Clock className="w-4 h-4" />,
+         color: 'bg-orange-100 text-orange-800',
+       },
+       APPROVED: {
+         label: '승인됨',
+         icon: <Check className="w-4 h-4" />,
+         color: 'bg-green-100 text-green-800',
+       },
+       REJECTED: {
+         label: '탈락',
+         icon: <XCircle className="w-4 h-4" />,
+         color: 'bg-red-100 text-red-800',
+       },
+       NOT_INTERESTED: {
+         label: '관심없음',
+         icon: <AlertCircle className="w-4 h-4" />,
+         color: 'bg-gray-100 text-gray-800',
+       },
+     };
+
+     const PRIORITY_CONFIG = [
+       { value: 0, label: '없음', color: 'text-gray-400' },
+       { value: 1, label: '낮음', color: 'text-blue-500' },
+       { value: 2, label: '보통', color: 'text-green-500' },
+       { value: 3, label: '높음', color: 'text-orange-500' },
+       { value: 4, label: '긴급', color: 'text-red-500' },
+       { value: 5, label: '최우선', color: 'text-red-700' },
+     ];
+
+     export function CustomerProgramTracker({ customerId }: { customerId: string }) {
+       const { data: programs, isLoading } = useCustomerPrograms(customerId);
+       const updateStatus = useUpdateProgramStatus();
+
+       if (isLoading) return <div>로딩중...</div>;
+
+       return (
+         <div className="space-y-4">
+           <div className="flex justify-between items-center">
+             <h3 className="text-lg font-semibold">진행 중인 지원사업</h3>
+             <Button onClick={() => openAddProgramDialog()}>+ 프로그램 추가</Button>
+           </div>
+
+           {/* 상태별 필터 탭 */}
+           <div className="flex gap-2 overflow-x-auto">
+             {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+               <Badge key={value} variant="outline" className={`cursor-pointer ${config.color}`}>
+                 {config.icon}
+                 <span className="ml-1">{config.label}</span>
+                 <span className="ml-1 text-xs">
+                   ({programs?.filter(p => p.status === value).length || 0})
+                 </span>
+               </Badge>
+             ))}
+           </div>
+
+           {programs?.length === 0 ? (
+             <Card className="p-8 text-center text-gray-500">
+               아직 진행 중인 지원사업이 없습니다.
+             </Card>
+           ) : (
+             <div className="space-y-3">
+               {programs?.map(item => (
+                 <Card key={item.id} className="p-4">
+                   <div className="flex justify-between items-start">
+                     <div className="flex-1">
+                       <div className="flex items-center gap-2">
+                         <h4 className="font-medium">{item.program.name}</h4>
+                         {item.priority > 0 && (
+                           <Badge
+                             variant="outline"
+                             className={PRIORITY_CONFIG[item.priority].color}
+                           >
+                             <Star className="w-3 h-3 fill-current" />
+                             {PRIORITY_CONFIG[item.priority].label}
+                           </Badge>
+                         )}
+                       </div>
+
+                       {item.dueDate && (
+                         <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                           <Calendar className="w-3 h-3" />
+                           마감일: {formatDate(item.dueDate)}
+                           <span className="text-red-500">(D-{getDaysUntil(item.dueDate)})</span>
+                         </p>
+                       )}
+                     </div>
+
+                     {/* 상태 선택 */}
+                     <Select
+                       value={item.status}
+                       onValueChange={status =>
+                         updateStatus.mutate({
+                           customerId,
+                           programId: item.programId,
+                           status,
+                         })
+                       }
+                     >
+                       {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                         <option key={value} value={value}>
+                           {config.label}
+                         </option>
+                       ))}
+                     </Select>
+                   </div>
+
+                   {/* 우선순위 선택 */}
+                   <div className="mt-3 flex items-center gap-2">
+                     <span className="text-sm text-gray-600">우선순위:</span>
+                     <Select
+                       value={item.priority.toString()}
+                       onValueChange={priority =>
+                         updateStatus.mutate({
+                           customerId,
+                           programId: item.programId,
+                           priority: parseInt(priority),
+                         })
+                       }
+                     >
+                       {PRIORITY_CONFIG.map(config => (
+                         <option key={config.value} value={config.value.toString()}>
+                           {config.label}
+                         </option>
+                       ))}
+                     </Select>
+                   </div>
+
+                   {/* 메모 */}
+                   <Textarea
+                     value={item.notes || ''}
+                     onChange={e =>
+                       updateStatus.mutate({
+                         customerId,
+                         programId: item.programId,
+                         notes: e.target.value,
+                       })
+                     }
+                     placeholder="메모를 입력하세요..."
+                     className="mt-3 text-sm"
+                     rows={2}
+                   />
+
+                   {/* 삭제 버튼 */}
+                   <div className="mt-2 flex justify-end">
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => removeProgram(customerId, item.programId)}
+                     >
+                       제거
+                     </Button>
+                   </div>
+                 </Card>
+               ))}
+             </div>
+           )}
+         </div>
+       );
+     }
+     ```
+
+     - `/components/dashboard/UpcomingDeadlines.tsx` (대시보드 위젯)
+
+     ```tsx
+     import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+     import { Badge } from '@/components/ui/badge';
+     import { Calendar } from 'lucide-react';
+
+     export function UpcomingDeadlines() {
+       const { data } = useQuery({
+         queryKey: ['upcoming-deadlines'],
+         queryFn: async () => {
+           const res = await fetch('/api/dashboard/upcoming-deadlines?days=30');
+           return res.json();
+         },
+       });
+
+       const getDaysUntil = (date: string) => {
+         const days = Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+         return days;
+       };
+
+       const getUrgencyColor = (daysUntil: number) => {
+         if (daysUntil <= 3) return 'destructive';
+         if (daysUntil <= 7) return 'warning';
+         return 'default';
+       };
+
+       return (
+         <Card>
+           <CardHeader>
+             <CardTitle className="flex items-center gap-2">
+               <Calendar className="w-5 h-5" />
+               다가오는 마감일
+             </CardTitle>
+           </CardHeader>
+           <CardContent>
+             {data?.data?.length === 0 ? (
+               <p className="text-sm text-gray-500 text-center py-4">다가오는 마감일이 없습니다.</p>
+             ) : (
+               <div className="space-y-2">
+                 {data?.data?.map(item => {
+                   const daysUntil = getDaysUntil(item.dueDate);
+                   return (
+                     <div
+                       key={item.id}
+                       className="flex justify-between items-center p-2 rounded hover:bg-gray-50"
+                     >
+                       <div className="flex-1">
+                         <p className="text-sm font-medium">{item.customer.name}</p>
+                         <p className="text-xs text-gray-500">{item.program.name}</p>
+                       </div>
+                       <Badge variant={getUrgencyColor(daysUntil)}>D-{daysUntil}</Badge>
+                     </div>
+                   );
+                 })}
+               </div>
+             )}
+           </CardContent>
+         </Card>
+       );
+     }
+     ```
+
+  4. **고객 상세 페이지에 통합**:
+     - `/app/customers/[id]/page.tsx`에 `CustomerProgramTracker` 추가
+
+     ```tsx
+     export default function CustomerDetailPage({ params }: { params: { id: string } }) {
+       return (
+         <div className="space-y-8">
+           {/* 고객 정보 */}
+           <CustomerInfo customerId={params.id} />
+
+           {/* 매칭 결과 섹션 */}
+           <section>
+             <h2 className="text-2xl font-bold mb-4">추천 정부지원사업</h2>
+             <MatchingResults customerId={params.id} />
+           </section>
+
+           {/* 진행 상태 관리 섹션 (새로 추가) */}
+           <section>
+             <CustomerProgramTracker customerId={params.id} />
+           </section>
+         </div>
+       );
+     }
+     ```
+
+  5. **React Query Hooks 작성**:
+
+     ```typescript
+     // /lib/queries/customer-programs.ts
+     import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+     export const useCustomerPrograms = (customerId: string, status?: string) => {
+       return useQuery({
+         queryKey: ['customer-programs', customerId, status],
+         queryFn: async () => {
+           const url = `/api/customers/${customerId}/programs${status ? `?status=${status}` : ''}`;
+           const res = await fetch(url);
+           return res.json();
+         },
+       });
+     };
+
+     export const useUpdateProgramStatus = () => {
+       const queryClient = useQueryClient();
+
+       return useMutation({
+         mutationFn: async ({ customerId, programId, ...data }) => {
+           const res = await fetch(`/api/customers/${customerId}/programs/${programId}`, {
+             method: 'PATCH',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify(data),
+           });
+           return res.json();
+         },
+         onSuccess: (_, { customerId }) => {
+           queryClient.invalidateQueries({ queryKey: ['customer-programs', customerId] });
+           queryClient.invalidateQueries({ queryKey: ['upcoming-deadlines'] });
+         },
+       });
+     };
+     ```
+
+- **완료 조건**:
+  - [x] CustomerProgramStatus 모델 생성 및 마이그레이션
+  - [x] CRUD API 엔드포인트 구현 완료
+  - [x] 상태 변경 UI 동작 확인
+  - [x] 우선순위 및 메모 기능 동작 확인
+  - [x] 고객 상세 페이지에 통합
+  - [x] 대시보드 마감일 위젯 추가
+  - [x] 마감일 알림 기능 동작 확인
+- **예상 기간**: 5일
+- **난이도**: 중
+- **의존성**: ISSUE-08 (매칭 로직)
 
 ---
 

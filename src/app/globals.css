@@ -204,4 +204,64 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* KOCCA-Finance HTML 기본 스타일 */
+  .kocca-content table {
+    @apply w-full border-collapse border border-gray-300 my-4;
+  }
+
+  .kocca-content table th,
+  .kocca-content table td {
+    @apply border border-gray-300 px-4 py-2 text-left;
+  }
+
+  .kocca-content table th {
+    @apply bg-gray-100 font-semibold text-gray-900;
+  }
+
+  .kocca-content table td {
+    @apply text-gray-700;
+  }
+
+  .kocca-content p {
+    @apply my-3;
+  }
+
+  .kocca-content h4 {
+    @apply text-xl font-bold my-4 text-gray-900;
+  }
+
+  .kocca-content ul,
+  .kocca-content ol {
+    @apply my-3 ml-6;
+  }
+
+  .kocca-content ul li {
+    @apply list-none my-1; /* KOCCA 원본에 이미 글머리기호 포함 */
+  }
+
+  .kocca-content ol li {
+    @apply list-none my-1; /* KOCCA 원본에 이미 원기호 숫자 포함 */
+  }
+
+  .kocca-content a {
+    @apply text-blue-600 hover:underline;
+  }
+
+  .kocca-content strong {
+    @apply font-semibold text-gray-900;
+  }
+
+  /* KOCCA CSS 클래스 매핑 */
+  .kocca-content .mb30 {
+    @apply mb-8;
+  }
+
+  .kocca-content .mt30 {
+    @apply mt-8;
+  }
+
+  .kocca-content .tc {
+    @apply text-center;
+  }
 }

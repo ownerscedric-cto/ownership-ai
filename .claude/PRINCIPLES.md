@@ -348,6 +348,24 @@
   - Response: status_code, duration, error_code
   - External API calls: provider, endpoint, duration, rate_limit_remaining
 
+### TypeScript Strict Type Principles
+
+- **NO `any` Type**: NEVER use `any` type in TypeScript code - it defeats the purpose of type safety
+  - ❌ **Forbidden**: `const data: any = ...`, `function foo(param: any)`, `record: Record<string, any>`
+  - ✅ **Use Instead**: `unknown` for truly unknown types, then narrow with type guards
+  - ✅ **Use Instead**: Proper interfaces, types, or generics for all data structures
+  - ✅ **Use Instead**: `Record<string, T>` with specific type T instead of `Record<string, any>`
+- **Type Safety Standards**:
+  - Enable strict mode in `tsconfig.json`: `"strict": true`, `"noImplicitAny": true`
+  - Use type narrowing with type guards (`typeof`, `instanceof`, custom type guards)
+  - Define explicit interfaces for all API responses, props, and complex objects
+  - Use generics for reusable type-safe functions and components
+  - Leverage TypeScript utility types (`Partial<T>`, `Pick<T, K>`, `Omit<T, K>`, `Required<T>`)
+- **Type Inference**: Let TypeScript infer types when obvious, but be explicit when clarity improves readability
+- **External Libraries**: Use `@types/*` packages or create type declaration files for untyped libraries
+- **Migration from `any`**: If encountering legacy `any` code, refactor to proper types immediately
+- **Unknown vs Any**: Use `unknown` for values whose type is truly unknown at compile time, then narrow with type guards
+
 ### Mobile Optimization Principles
 
 - **Target Users**: 1인 컨설턴트 (외근/영업 중 모바일 사용 빈도 높음)
