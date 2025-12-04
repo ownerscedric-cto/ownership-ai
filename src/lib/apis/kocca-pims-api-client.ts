@@ -85,10 +85,17 @@ export class KoccaPIMSAPIClient implements IProgramAPIClient {
    * @returns 원본 프로그램 데이터 배열
    */
   async fetchPrograms(params: SyncParams): Promise<RawProgramData[]> {
-    // 조회 시작일 설정 (최근 3년 데이터)
-    const threeYearsAgo = new Date();
-    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-    const viewStartDt = threeYearsAgo.toISOString().split('T')[0].replace(/-/g, '');
+    // ⭐ 증분 동기화: registeredAfter가 있으면 사용, 없으면 최근 3년 데이터
+    let viewStartDt: string;
+    if (params.registeredAfter) {
+      viewStartDt = params.registeredAfter.toISOString().split('T')[0].replace(/-/g, '');
+      console.log(`[KoccaPIMSAPI] 🔄 Incremental sync from ${viewStartDt} (registeredAfter)`);
+    } else {
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      viewStartDt = threeYearsAgo.toISOString().split('T')[0].replace(/-/g, '');
+      console.log(`[KoccaPIMSAPI] 🔄 Full sync from ${viewStartDt} (last 3 years)`);
+    }
 
     console.log(
       `[KoccaPIMSAPI] Fetching programs: pageNo=${params.page}, numOfRows=${params.pageSize}`

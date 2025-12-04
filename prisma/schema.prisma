@@ -121,3 +121,20 @@ model Program {
   @@index([lastSyncedAt]) // 동기화 추적
   @@map("programs")
 }
+
+// 동기화 메타데이터 모델 (증분 동기화용)
+model SyncMetadata {
+  id String @id @default(uuid())
+
+  dataSource   String   @unique // "기업마당", "K-Startup", "KOCCA-PIMS", "KOCCA-Finance"
+  lastSyncedAt DateTime // 마지막 동기화 시간 (증분 동기화의 기준점)
+  syncCount    Int      @default(0) // 동기화 횟수
+  lastResult   String? // 마지막 동기화 결과 (success, failed)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dataSource])
+  @@index([lastSyncedAt])
+  @@map("sync_metadata")
+}

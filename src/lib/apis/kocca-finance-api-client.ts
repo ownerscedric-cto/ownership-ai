@@ -86,11 +86,19 @@ export class KoccaFinanceAPIClient implements IProgramAPIClient {
    * @returns 원본 프로그램 데이터 배열
    */
   async fetchPrograms(params: SyncParams): Promise<RawProgramData[]> {
-    // 조회 시작일/종료일 설정 (2020년부터 현재까지 - Finance API는 과거 데이터 보유)
+    // ⭐ 증분 동기화: registeredAfter가 있으면 사용, 없으면 2020년부터 전체 조회
     const today = new Date();
-    const startDate = new Date('2020-01-01');
+    let viewStartDt: string;
 
-    const viewStartDt = startDate.toISOString().split('T')[0].replace(/-/g, '');
+    if (params.registeredAfter) {
+      viewStartDt = params.registeredAfter.toISOString().split('T')[0].replace(/-/g, '');
+      console.log(`[KoccaFinanceAPI] 🔄 Incremental sync from ${viewStartDt} (registeredAfter)`);
+    } else {
+      const startDate = new Date('2020-01-01');
+      viewStartDt = startDate.toISOString().split('T')[0].replace(/-/g, '');
+      console.log(`[KoccaFinanceAPI] 🔄 Full sync from ${viewStartDt} (since 2020)`);
+    }
+
     const viewEndDt = today.toISOString().split('T')[0].replace(/-/g, '');
 
     console.log(

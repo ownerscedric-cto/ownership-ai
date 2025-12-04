@@ -10,6 +10,7 @@
 export interface SyncParams {
   page: number;
   pageSize: number;
+  registeredAfter?: Date; // 증분 동기화: 이 날짜 이후 등록된 데이터만 조회
 }
 
 /**

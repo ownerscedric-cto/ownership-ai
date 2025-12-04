@@ -107,10 +107,20 @@ export class BizinfoAPIClient implements IProgramAPIClient {
    * 기업마당 API에서 프로그램 목록 조회
    * ⭐ searchLclasId 미사용으로 모든 분야(01~09)의 지원사업을 한 번에 조회
    *
+   * ⚠️ 기업마당 API는 날짜 필터링을 지원하지 않음
+   * params.registeredAfter는 무시되고 항상 전체 데이터 조회 (Full Sync)
+   *
    * @param params - 페이지네이션 파라미터
    * @returns 원본 프로그램 데이터 배열
    */
   async fetchPrograms(params: SyncParams): Promise<RawProgramData[]> {
+    // ⚠️ 증분 동기화 미지원: registeredAfter 무시, 전체 동기화만 가능
+    if (params.registeredAfter) {
+      console.log(
+        `[BizinfoAPI] ⚠️ 기업마당 API does not support date filtering. Performing full sync.`
+      );
+    }
+
     console.log(`[BizinfoAPI] Fetching programs: page=${params.page}, pageSize=${params.pageSize}`);
 
     // RetryStrategy로 API 호출 (Exponential Backoff + Jitter)

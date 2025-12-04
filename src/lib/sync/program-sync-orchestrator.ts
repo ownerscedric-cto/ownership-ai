@@ -108,7 +108,80 @@ export class ProgramSyncOrchestrator {
   }
 
   /**
-   * 단일 API 클라이언트에서 데이터를 동기화
+   * 동기화 메타데이터 조회/생성
+   *
+   * @param dataSource - 데이터 소스 이름
+   * @returns 마지막 동기화 시간 (증분 동기화용), 없으면 null (전체 동기화)
+   */
+  private async getSyncMetadata(dataSource: string): Promise<Date | null> {
+    try {
+      const metadata = await prisma.syncMetadata.findUnique({
+        where: { dataSource },
+      });
+
+      if (metadata) {
+        console.log(
+          `[ProgramSyncOrchestrator] 🔄 Incremental sync for ${dataSource} since ${metadata.lastSyncedAt.toISOString()}`
+        );
+        return metadata.lastSyncedAt;
+      } else {
+        console.log(`[ProgramSyncOrchestrator] 🔄 Full sync for ${dataSource} (first time)`);
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        `[ProgramSyncOrchestrator] Error fetching sync metadata for ${dataSource}:`,
+        error
+      );
+      return null; // 에러 발생 시 전체 동기화
+    }
+  }
+
+  /**
+   * 동기화 메타데이터 업데이트
+   *
+   * @param dataSource - 데이터 소스 이름
+   * @param success - 동기화 성공 여부
+   * @param count - 동기화된 프로그램 개수
+   */
+  private async updateSyncMetadata(
+    dataSource: string,
+    success: boolean,
+    count: number
+  ): Promise<void> {
+    try {
+      const now = new Date();
+
+      await prisma.syncMetadata.upsert({
+        where: { dataSource },
+        update: {
+          lastSyncedAt: now,
+          syncCount: { increment: 1 },
+          lastResult: success ? 'success' : 'failed',
+          updatedAt: now,
+        },
+        create: {
+          dataSource,
+          lastSyncedAt: now,
+          syncCount: 1,
+          lastResult: success ? 'success' : 'failed',
+        },
+      });
+
+      console.log(
+        `[ProgramSyncOrchestrator] ✅ Updated sync metadata for ${dataSource}: ${count} programs, ${success ? 'success' : 'failed'}`
+      );
+    } catch (error) {
+      console.error(
+        `[ProgramSyncOrchestrator] Error updating sync metadata for ${dataSource}:`,
+        error
+      );
+      // 메타데이터 업데이트 실패는 무시 (동기화 자체는 성공했으므로)
+    }
+  }
+
+  /**
+   * 단일 API 클라이언트에서 데이터를 동기화 (증분 동기화 지원)
    *
    * @param client - API 클라이언트
    * @returns 동기화된 프로그램 개수
@@ -118,6 +191,9 @@ export class ProgramSyncOrchestrator {
     console.log(`[ProgramSyncOrchestrator] Syncing from ${dataSource}...`);
 
     try {
+      // ⭐ 증분 동기화: 마지막 동기화 시간 조회
+      const lastSyncedAt = await this.getSyncMetadata(dataSource);
+
       let totalCount = 0;
       let currentPage = 1;
       const pageSize = 50;
@@ -126,10 +202,11 @@ export class ProgramSyncOrchestrator {
 
       // 최대 페이지 제한 내에서 조회
       while (hasMore && currentPage <= MAX_PAGES) {
-        // API에서 프로그램 목록 조회
+        // ⭐ API에서 프로그램 목록 조회 (증분 동기화 파라미터 전달)
         const rawPrograms = await client.fetchPrograms({
           page: currentPage,
           pageSize,
+          registeredAfter: lastSyncedAt || undefined, // null이면 undefined로 변환
         });
 
         console.log(
@@ -168,9 +245,16 @@ export class ProgramSyncOrchestrator {
         `[ProgramSyncOrchestrator] Successfully synced ${totalCount} programs from ${dataSource} (${currentPage} pages)`
       );
 
+      // ⭐ 동기화 메타데이터 업데이트
+      await this.updateSyncMetadata(dataSource, true, totalCount);
+
       return totalCount;
     } catch (error) {
       console.error(`[ProgramSyncOrchestrator] Error syncing from ${dataSource}:`, error);
+
+      // ⭐ 실패 시에도 메타데이터 업데이트 (재시도 시 전체 동기화 방지)
+      await this.updateSyncMetadata(dataSource, false, 0);
+
       throw error;
     }
   }
