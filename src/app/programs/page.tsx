@@ -6,7 +6,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProgramFilters } from '@/components/programs/ProgramFilters';
 import { ProgramList } from '@/components/programs/ProgramList';
@@ -19,28 +20,103 @@ import type { ProgramFilters as FilterType } from '@/lib/types/program';
  * - 프로그램 필터 (데이터 소스, 키워드)
  * - 프로그램 목록 (그리드 뷰)
  * - 페이지네이션
+ * - URL 쿼리 파라미터로 상태 관리 (뒤로가기/앞으로가기/새로고침 지원)
  */
 export default function ProgramsPage() {
-  const [filters, setFilters] = useState<FilterType>({
-    page: 1,
-    limit: 20,
-  });
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL 쿼리 파라미터에서 초기 필터 상태 읽기
+  const [filters, setFilters] = useState<FilterType>(() => ({
+    page: Number(searchParams.get('page')) || 1,
+    limit: Number(searchParams.get('limit')) || 20,
+    dataSource: searchParams.get('dataSource') || undefined,
+    keyword: searchParams.get('keyword') || undefined,
+  }));
+
+  /**
+   * URL 쿼리 파라미터 업데이트
+   */
+  const updateURLParams = (newFilters: FilterType) => {
+    const params = new URLSearchParams();
+
+    if (newFilters.page && newFilters.page > 1) {
+      params.set('page', newFilters.page.toString());
+    }
+    if (newFilters.limit && newFilters.limit !== 20) {
+      params.set('limit', newFilters.limit.toString());
+    }
+    if (newFilters.dataSource) {
+      params.set('dataSource', newFilters.dataSource);
+    }
+    if (newFilters.keyword) {
+      params.set('keyword', newFilters.keyword);
+    }
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `/programs?${queryString}` : '/programs';
+
+    // URL이 현재 URL과 다를 때만 업데이트 (무한 루프 방지)
+    const currentUrl = window.location.pathname + window.location.search;
+    if (currentUrl !== newUrl) {
+      // History API를 직접 사용하여 명시적으로 새 entry 추가
+      window.history.pushState({}, '', newUrl);
+
+      // Next.js 라우터에도 알림 (페이지 데이터 갱신)
+      router.refresh();
+    }
+  };
 
   /**
    * 필터 변경 핸들러
    */
   const handleFiltersChange = (newFilters: FilterType) => {
     setFilters(newFilters);
+    updateURLParams(newFilters);
   };
 
   /**
    * 페이지 변경 핸들러
    */
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    const newFilters = { ...filters, page };
+    setFilters(newFilters);
+    updateURLParams(newFilters);
     // 페이지 변경 시 스크롤을 상단으로 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // URL 쿼리 파라미터에서 필터 상태 파싱 (useMemo로 최적화)
+  const parsedFilters = useMemo<FilterType>(() => {
+    return {
+      page: Number(searchParams.get('page')) || 1,
+      limit: Number(searchParams.get('limit')) || 20,
+      dataSource: searchParams.get('dataSource') || undefined,
+      keyword: searchParams.get('keyword') || undefined,
+    };
+  }, [searchParams]);
+
+  // 파싱된 필터를 상태에 반영 (searchParams 변경 시)
+  useEffect(() => {
+    setFilters(parsedFilters);
+  }, [parsedFilters]);
+
+  // popstate 이벤트 리스닝 (브라우저 뒤로가기/앞으로가기)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const newFilters: FilterType = {
+        page: Number(params.get('page')) || 1,
+        limit: Number(params.get('limit')) || 20,
+        dataSource: params.get('dataSource') || undefined,
+        keyword: params.get('keyword') || undefined,
+      };
+      setFilters(newFilters);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   return (
     <AppLayout>

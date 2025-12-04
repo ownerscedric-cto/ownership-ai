@@ -96,4 +96,11 @@ export interface IProgramAPIClient {
    * @returns 마감일 (Date 객체 또는 null)
    */
   parseDeadline(raw: RawProgramData): Date | null;
+
+  /**
+   * 원본 데이터에서 첨부파일 URL 추출
+   * @param raw - 원본 프로그램 데이터
+   * @returns 첨부파일 URL (없으면 null)
+   */
+  parseAttachmentUrl(raw: RawProgramData): string | null;
 }

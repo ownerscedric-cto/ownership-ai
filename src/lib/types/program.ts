@@ -22,6 +22,7 @@ export type Program = {
   budgetRange: string | null;
   deadline: Date | null;
   sourceUrl: string | null;
+  attachmentUrl: string | null;
   rawData: Prisma.JsonValue;
   registeredAt: Date;
   startDate: Date | null;

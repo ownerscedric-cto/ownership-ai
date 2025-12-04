@@ -6,6 +6,8 @@
 
 import { XMLParser } from 'fast-xml-parser';
 import type { IProgramAPIClient, RawProgramData, SyncParams } from './base-api-client';
+import { withRetry } from '@/lib/utils/api-retry';
+import { APIError, ErrorCode } from '@/lib/utils/error-handler';
 
 /**
  * K-Startup API XML 응답 타입
@@ -97,68 +99,92 @@ export class KStartupAPIClient implements IProgramAPIClient {
    * @returns 원본 프로그램 데이터 배열
    */
   async fetchPrograms(params: SyncParams): Promise<RawProgramData[]> {
-    try {
-      // API URL 생성 (getAnnouncementInformation01 엔드포인트)
-      const url = `${this.baseUrl}/kisedKstartupService01/getAnnouncementInformation01?serviceKey=${encodeURIComponent(this.apiKey)}&page=${params.page}&perPage=${params.pageSize}`;
+    console.log(`[KStartupAPI] Fetching programs: page=${params.page}, perPage=${params.pageSize}`);
 
-      console.log(
-        `[KStartupAPI] Fetching programs: page=${params.page}, perPage=${params.pageSize}`
-      );
+    // RetryStrategy로 API 호출 (Exponential Backoff + Jitter)
+    return withRetry(
+      async () => {
+        // API URL 생성 (getAnnouncementInformation01 엔드포인트)
+        const url = `${this.baseUrl}/kisedKstartupService01/getAnnouncementInformation01?serviceKey=${encodeURIComponent(this.apiKey)}&page=${params.page}&perPage=${params.pageSize}`;
 
-      // API 호출
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/xml',
-        },
-      });
+        // API 호출
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/xml',
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(`K-Startup API error: ${response.status} ${response.statusText}`);
-      }
+        if (!response.ok) {
+          // HTTP 상태 코드에 따라 적절한 ErrorCode 사용
+          let errorCode: ErrorCode;
+          if (response.status === 429) {
+            errorCode = ErrorCode.RATE_LIMIT_EXCEEDED;
+          } else if (response.status === 408 || response.status === 504) {
+            errorCode = ErrorCode.API_TIMEOUT;
+          } else if (response.status === 503) {
+            errorCode = ErrorCode.API_UNAVAILABLE;
+          } else {
+            errorCode = ErrorCode.EXTERNAL_API_ERROR;
+          }
 
-      // XML 파싱
-      const xmlText = await response.text();
-      const parser = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: '@_',
-      });
-      const parsed: KStartupXMLResponse = parser.parse(xmlText);
-
-      // XML 응답에서 아이템 추출
-      const items = parsed.results?.data?.item;
-      if (!items) {
-        console.log('[KStartupAPI] No items in response');
-        return [];
-      }
-
-      // 배열로 정규화 (단일 아이템일 경우 배열로 변환)
-      const itemArray = Array.isArray(items) ? items : [items];
-
-      // <col name="...">value</col> 구조를 평탄화
-      const programs: KStartupProgramData[] = itemArray.map(item => {
-        const program: KStartupProgramData = {};
-
-        if (item.col && Array.isArray(item.col)) {
-          item.col.forEach(col => {
-            const name = col['@_name'];
-            const value = col['#text'] || '';
-            if (name) {
-              program[name] = value;
-            }
-          });
+          throw new APIError(
+            errorCode,
+            `[KStartupAPI] API error: ${response.status} ${response.statusText}`,
+            { statusCode: response.status, statusText: response.statusText },
+            response.status
+          );
         }
 
-        return program;
-      });
+        // XML 파싱
+        const xmlText = await response.text();
+        const parser = new XMLParser({
+          ignoreAttributes: false,
+          attributeNamePrefix: '@_',
+        });
+        const parsed: KStartupXMLResponse = parser.parse(xmlText);
 
-      console.log(`[KStartupAPI] Fetched ${programs.length} programs`);
+        // XML 응답에서 아이템 추출
+        const items = parsed.results?.data?.item;
+        if (!items) {
+          console.log('[KStartupAPI] No items in response');
+          return [];
+        }
 
-      return programs as RawProgramData[];
-    } catch (error) {
-      console.error('[KStartupAPI] Error fetching programs:', error);
-      throw error;
-    }
+        // 배열로 정규화 (단일 아이템일 경우 배열로 변환)
+        const itemArray = Array.isArray(items) ? items : [items];
+
+        // <col name="...">value</col> 구조를 평탄화
+        const programs: KStartupProgramData[] = itemArray.map(item => {
+          const program: KStartupProgramData = {};
+
+          if (item.col && Array.isArray(item.col)) {
+            item.col.forEach(col => {
+              const name = col['@_name'];
+              const value = col['#text'] || '';
+              if (name) {
+                program[name] = value;
+              }
+            });
+          }
+
+          return program;
+        });
+
+        console.log(`[KStartupAPI] ✅ Fetched ${programs.length} programs`);
+
+        return programs as RawProgramData[];
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        onRetry: (attempt, delay, error) => {
+          console.warn(`[KStartupAPI] ⚠️ Retry attempt ${attempt}, waiting ${delay}ms`, {
+            error: error.message,
+          });
+        },
+      }
+    );
   }
 
   /**
@@ -343,6 +369,18 @@ export class KStartupAPIClient implements IProgramAPIClient {
       }
     }
 
+    return null;
+  }
+
+  /**
+   * 첨부파일 URL 추출
+   *
+   * @param _raw - 원본 프로그램 데이터
+   * @returns 첨부파일 URL (없으면 null)
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  parseAttachmentUrl(_raw: RawProgramData): string | null {
+    // K-Startup API는 첨부파일 정보를 제공하지 않음
     return null;
   }
 }

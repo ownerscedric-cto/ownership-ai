@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { createErrorResponse, logError } from '@/lib/utils/error-handler';
 
 const prisma = new PrismaClient();
 
@@ -130,20 +131,13 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[GET /api/programs] Error fetching programs:', error);
+    // 에러 로깅 (심각도별 자동 분류)
+    logError(error, { context: 'GET /api/programs', operation: 'fetch' });
 
-    // 에러 응답
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'FETCH_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to fetch programs',
-          details: error instanceof Error ? error.stack : null,
-        },
-      },
-      { status: 500 }
-    );
+    // 표준 에러 응답 생성
+    const errorResponse = createErrorResponse(error);
+
+    return NextResponse.json(errorResponse, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

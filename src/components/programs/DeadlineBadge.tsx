@@ -6,16 +6,78 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from 'lucide-react';
+import { Calendar, Clock, Infinity } from 'lucide-react';
 import { differenceInDays, isPast, isToday, format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import type { Prisma } from '@prisma/client';
 
 interface DeadlineBadgeProps {
   deadline: Date | string | null;
+  rawData?: Prisma.JsonValue;
   className?: string;
 }
 
-export function DeadlineBadge({ deadline, className }: DeadlineBadgeProps) {
+export function DeadlineBadge({ deadline, rawData, className }: DeadlineBadgeProps) {
+  // deadline이 null이고 rawData가 있으면 특수 케이스 확인
+  if (!deadline && rawData) {
+    const data = rawData as Record<string, unknown>;
+    const reqstBeginEndDe = data.reqstBeginEndDe;
+
+    if (reqstBeginEndDe && typeof reqstBeginEndDe === 'string') {
+      const text = reqstBeginEndDe.toLowerCase();
+
+      // 예산 소진시
+      if (text.includes('예산') && text.includes('소진')) {
+        return (
+          <Badge
+            variant="outline"
+            className={`flex items-center gap-1 bg-orange-50 text-orange-700 border-orange-300 ${className || ''}`}
+          >
+            <Clock className="w-3 h-3" />
+            <span>예산 소진시</span>
+          </Badge>
+        );
+      }
+
+      // 상시 접수
+      if (text.includes('상시')) {
+        return (
+          <Badge
+            variant="outline"
+            className={`flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-300 ${className || ''}`}
+          >
+            <Infinity className="w-3 h-3" />
+            <span>상시 모집</span>
+          </Badge>
+        );
+      }
+
+      // 수시 모집
+      if (text.includes('수시')) {
+        return (
+          <Badge
+            variant="outline"
+            className={`flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-300 ${className || ''}`}
+          >
+            <Infinity className="w-3 h-3" />
+            <span>수시 모집</span>
+          </Badge>
+        );
+      }
+
+      // 기타 (세부사업별 상이 등)
+      return (
+        <Badge
+          variant="outline"
+          className={`flex items-center gap-1 bg-gray-100 text-gray-700 border-gray-300 ${className || ''}`}
+        >
+          <Calendar className="w-3 h-3" />
+          <span className="text-xs">{reqstBeginEndDe}</span>
+        </Badge>
+      );
+    }
+  }
+
   if (!deadline) {
     return null;
   }

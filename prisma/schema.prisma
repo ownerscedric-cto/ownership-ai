@@ -91,6 +91,7 @@ model Program {
   budgetRange     String?
   deadline        DateTime?
   sourceUrl       String?
+  attachmentUrl   String? // 첨부파일 URL (기업마당 API만 제공)
   rawData         Json // 원본 데이터 보관 (API별 차이 흡수)
 
   // 날짜 정보 (교차 정렬용)

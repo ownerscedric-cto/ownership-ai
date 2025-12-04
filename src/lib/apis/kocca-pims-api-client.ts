@@ -5,6 +5,8 @@
  */
 
 import type { IProgramAPIClient, RawProgramData, SyncParams } from './base-api-client';
+import { withRetry } from '@/lib/utils/api-retry';
+import { APIError, ErrorCode } from '@/lib/utils/error-handler';
 
 /**
  * KOCCA PIMS API 응답 타입 (실제 응답 구조)
@@ -83,43 +85,69 @@ export class KoccaPIMSAPIClient implements IProgramAPIClient {
    * @returns 원본 프로그램 데이터 배열
    */
   async fetchPrograms(params: SyncParams): Promise<RawProgramData[]> {
-    try {
-      // 조회 시작일 설정 (최근 3년 데이터)
-      const threeYearsAgo = new Date();
-      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-      const viewStartDt = threeYearsAgo.toISOString().split('T')[0].replace(/-/g, '');
+    // 조회 시작일 설정 (최근 3년 데이터)
+    const threeYearsAgo = new Date();
+    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+    const viewStartDt = threeYearsAgo.toISOString().split('T')[0].replace(/-/g, '');
 
-      // API URL 생성
-      const url = `${this.baseUrl}?serviceKey=${encodeURIComponent(this.apiKey)}&pageNo=${params.page}&numOfRows=${params.pageSize}&viewStartDt=${viewStartDt}`;
+    console.log(
+      `[KoccaPIMSAPI] Fetching programs: pageNo=${params.page}, numOfRows=${params.pageSize}`
+    );
 
-      console.log(
-        `[KoccaPIMSAPI] Fetching programs: pageNo=${params.page}, numOfRows=${params.pageSize}`
-      );
+    // RetryStrategy로 API 호출 (Exponential Backoff + Jitter)
+    return withRetry(
+      async () => {
+        // API URL 생성
+        const url = `${this.baseUrl}?serviceKey=${encodeURIComponent(this.apiKey)}&pageNo=${params.page}&numOfRows=${params.pageSize}&viewStartDt=${viewStartDt}`;
 
-      // API 호출
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+        // API 호출
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          // HTTP 상태 코드에 따라 적절한 ErrorCode 사용
+          let errorCode: ErrorCode;
+          if (response.status === 429) {
+            errorCode = ErrorCode.RATE_LIMIT_EXCEEDED;
+          } else if (response.status === 408 || response.status === 504) {
+            errorCode = ErrorCode.API_TIMEOUT;
+          } else if (response.status === 503) {
+            errorCode = ErrorCode.API_UNAVAILABLE;
+          } else {
+            errorCode = ErrorCode.EXTERNAL_API_ERROR;
+          }
+
+          throw new APIError(
+            errorCode,
+            `[KoccaPIMSAPI] API error: ${response.status} ${response.statusText}`,
+            { statusCode: response.status, statusText: response.statusText },
+            response.status
+          );
+        }
+
+        const data: KoccaPIMSResponse = await response.json();
+
+        // 응답 데이터 추출 (실제 응답은 data.INFO.list)
+        const programs = data.INFO?.list || [];
+
+        console.log(`[KoccaPIMSAPI] ✅ Fetched ${programs.length} programs`);
+
+        return programs as RawProgramData[];
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        onRetry: (attempt, delay, error) => {
+          console.warn(`[KoccaPIMSAPI] ⚠️ Retry attempt ${attempt}, waiting ${delay}ms`, {
+            error: error.message,
+          });
         },
-      });
-
-      if (!response.ok) {
-        throw new Error(`KOCCA PIMS API error: ${response.status} ${response.statusText}`);
       }
-
-      const data: KoccaPIMSResponse = await response.json();
-
-      // 응답 데이터 추출 (실제 응답은 data.INFO.list)
-      const programs = data.INFO?.list || [];
-
-      console.log(`[KoccaPIMSAPI] Fetched ${programs.length} programs`);
-
-      return programs as RawProgramData[];
-    } catch (error) {
-      console.error('[KoccaPIMSAPI] Error fetching programs:', error);
-      throw error;
-    }
+    );
   }
 
   /**
@@ -156,6 +184,7 @@ export class KoccaPIMSAPIClient implements IProgramAPIClient {
    * @param raw - 원본 프로그램 데이터
    * @returns 지역 배열
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parseLocation(_raw: RawProgramData): string[] {
     // KOCCA-PIMS API는 지역 정보를 제공하지 않음
     // 콘텐츠 진흥 사업은 대부분 전국 대상
@@ -168,6 +197,7 @@ export class KoccaPIMSAPIClient implements IProgramAPIClient {
    * @param raw - 원본 프로그램 데이터
    * @returns 업종 배열
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parseTargetAudience(_raw: RawProgramData): string[] {
     // KOCCA-PIMS API는 대상 업종 정보를 제공하지 않음
     // 한국콘텐츠진흥원은 콘텐츠 산업이 주 대상
@@ -276,6 +306,18 @@ export class KoccaPIMSAPIClient implements IProgramAPIClient {
       }
     }
 
+    return null;
+  }
+
+  /**
+   * 첨부파일 URL 추출
+   *
+   * @param _raw - 원본 프로그램 데이터
+   * @returns 첨부파일 URL (없으면 null)
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  parseAttachmentUrl(_raw: RawProgramData): string | null {
+    // KOCCA PIMS API는 첨부파일 정보를 제공하지 않음
     return null;
   }
 }

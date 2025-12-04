@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { APIError, ErrorCode, createErrorResponse, logError } from '@/lib/utils/error-handler';
 
 const prisma = new PrismaClient();
 
@@ -35,17 +36,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // 프로그램이 없으면 404 반환
     if (!program) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: `Program with id ${id} not found`,
-            details: null,
-          },
-        },
-        { status: 404 }
-      );
+      const notFoundError = new APIError(ErrorCode.NOT_FOUND, `Program with id ${id} not found`, {
+        programId: id,
+      });
+
+      logError(notFoundError, { context: 'GET /api/programs/[id]', operation: 'fetch', id });
+
+      return NextResponse.json(notFoundError.toResponse(), { status: 404 });
     }
 
     console.log(`[GET /api/programs/${id}] Found program: ${program.title}`);
@@ -60,20 +57,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       { status: 200 }
     );
   } catch (error) {
-    console.error(`[GET /api/programs/[id]] Error fetching program:`, error);
+    // 에러 로깅 (심각도별 자동 분류)
+    logError(error, { context: 'GET /api/programs/[id]', operation: 'fetch' });
 
-    // 에러 응답
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'FETCH_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to fetch program',
-          details: error instanceof Error ? error.stack : null,
-        },
-      },
-      { status: 500 }
-    );
+    // 표준 에러 응답 생성
+    const errorResponse = createErrorResponse(error);
+
+    return NextResponse.json(errorResponse, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

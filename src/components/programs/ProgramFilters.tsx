@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,20 @@ const dataSources = ['전체', '기업마당', 'K-Startup', '한국콘텐츠진�
  * - 필터 초기화
  */
 export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps) {
+  // filters.keyword를 로컬 상태의 초기값으로 사용 (key prop 변경 시 리셋)
   const [keyword, setKeyword] = useState(filters.keyword || '');
+
+  /**
+   * filters.keyword가 변경되면 로컬 상태 동기화
+   * (브라우저 뒤로가기/앞으로가기 시)
+   */
+  useEffect(() => {
+    // 외부에서 filters.keyword가 변경된 경우에만 동기화
+    if (filters.keyword !== keyword) {
+      setKeyword(filters.keyword || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.keyword]);
 
   /**
    * 데이터 소스 필터 변경

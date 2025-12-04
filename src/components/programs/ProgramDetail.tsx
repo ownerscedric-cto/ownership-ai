@@ -6,7 +6,7 @@
 
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import {
@@ -18,7 +18,9 @@ import {
   ChevronLeft,
   DollarSign,
   Clock,
+  Download,
   Database,
+  ChevronDown,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +28,13 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useProgram } from '@/lib/hooks/usePrograms';
 import { AlertCircle } from 'lucide-react';
 import { DeadlineBadge } from './DeadlineBadge';
@@ -56,6 +65,7 @@ const dataSourceColors: Record<string, string> = {
  * - 로딩/에러 상태
  */
 export function ProgramDetail({ id }: ProgramDetailProps) {
+  const router = useRouter();
   const { data: program, isLoading, error } = useProgram(id);
 
   /**
@@ -133,6 +143,50 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
     return dataSource;
   };
 
+  // 첨부파일 URL 배열 추출 함수
+  const parseAttachmentUrls = (): string[] => {
+    // rawData에서 flpthNm 추출 (기업마당만 해당)
+    if (program.dataSource !== '기업마당') {
+      return program.attachmentUrl ? [program.attachmentUrl] : [];
+    }
+
+    const rawData = program.rawData as Record<string, unknown>;
+    const flpthNm = rawData.flpthNm;
+
+    if (!flpthNm || typeof flpthNm !== 'string') {
+      return [];
+    }
+
+    // @ 구분자로 여러 파일 분리
+    return flpthNm
+      .split('@')
+      .map(url => url.trim())
+      .filter(url => url.length > 0)
+      .map(url => {
+        // 프로토콜이 없으면 base URL 추가
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          return url;
+        }
+        return `https://www.bizinfo.go.kr${url}`;
+      });
+  };
+
+  const attachmentUrls = parseAttachmentUrls();
+
+  // 전체 첨부파일 다운로드 핸들러
+  const handleDownloadAll = () => {
+    attachmentUrls.forEach((url, index) => {
+      // 각 파일을 순차적으로 다운로드 (100ms 간격)
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.click();
+      }, index * 100);
+    });
+  };
+
   // 프로그램 설명 포맷팅 함수 (간단한 단락 구분 및 제목 강조)
   const formatDescription = (description: string): string => {
     let formatted = description;
@@ -184,12 +238,10 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
   return (
     <div className="space-y-6">
       {/* 뒤로 가기 버튼 */}
-      <Link href="/programs">
-        <Button variant="ghost" size="sm" className="mb-4">
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          목록으로
-        </Button>
-      </Link>
+      <Button variant="ghost" size="sm" className="mb-4" onClick={() => router.back()}>
+        <ChevronLeft className="w-4 h-4 mr-1" />
+        목록으로
+      </Button>
 
       {/* 메인 정보 카드 */}
       <Card>
@@ -202,7 +254,7 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
               >
                 {normalizeDataSource(program.dataSource)}
               </Badge>
-              <DeadlineBadge deadline={program.deadline} />
+              <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Clock className="w-4 h-4" />
@@ -223,20 +275,76 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
             </div>
           )}
 
-          {/* 공고 바로가기 버튼 */}
-          {program.sourceUrl && (
-            <a
-              href={program.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block"
-            >
-              <Button className="w-full sm:w-auto bg-[#0052CC] hover:bg-[#003d99] text-white font-semibold px-6 py-3 text-base">
-                <ExternalLink className="w-5 h-5 mr-2" />
-                원본 공고 바로가기
-              </Button>
-            </a>
-          )}
+          {/* 공고 바로가기 & 첨부파일 다운로드 버튼 */}
+          <div className="flex flex-wrap gap-3">
+            {program.sourceUrl && (
+              <a
+                href={program.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <Button className="w-full sm:w-auto bg-[#0052CC] hover:bg-[#003d99] text-white font-semibold px-6 py-3 text-base">
+                  <ExternalLink className="w-5 h-5 mr-2" />
+                  공고 바로가기
+                </Button>
+              </a>
+            )}
+
+            {/* 첨부파일 다운로드 버튼 (단일 파일) */}
+            {attachmentUrls.length === 1 && (
+              <a
+                href={attachmentUrls[0]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto border-[#0052CC] text-[#0052CC] hover:bg-[#0052CC] hover:text-white font-semibold px-6 py-3 text-base"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  첨부파일 다운로드
+                </Button>
+              </a>
+            )}
+
+            {/* 첨부파일 다운로드 드롭다운 (다중 파일) */}
+            {attachmentUrls.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto border-[#0052CC] text-[#0052CC] hover:bg-[#0052CC] hover:text-white font-semibold px-6 py-3 text-base"
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    첨부파일 다운로드 ({attachmentUrls.length}개)
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={handleDownloadAll} className="cursor-pointer">
+                    <Download className="w-4 h-4 mr-2" />
+                    <span className="font-semibold">전체 다운로드 ({attachmentUrls.length}개)</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {attachmentUrls.map((url, index) => (
+                    <DropdownMenuItem key={index} asChild>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer flex items-center"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        <span className="text-sm">첨부파일 {index + 1}</span>
+                      </a>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-6">

@@ -367,6 +367,7 @@ export class ProgramSyncOrchestrator {
     const budgetRange = (raw.budgetRange as string) || null;
     const deadline = client.parseDeadline(raw); // ⭐ API 클라이언트가 마감일 추출
     const sourceUrl = client.parseSourceUrl(raw); // ⭐ API 클라이언트가 URL 추출
+    const attachmentUrl = client.parseAttachmentUrl(raw); // ⭐ API 클라이언트가 첨부파일 URL 추출
     const registeredAt = client.parseRegisteredAt(raw); // ⭐ 교차 정렬용
     const startDate = client.parseStartDate(raw); // ⭐ API 클라이언트가 시작일 추출
     const endDate = deadline; // ⭐ endDate는 deadline과 동일
@@ -385,6 +386,7 @@ export class ProgramSyncOrchestrator {
         budgetRange,
         deadline,
         sourceUrl,
+        attachmentUrl, // ⭐ 첨부파일 URL (기업마당 API만 제공)
         registeredAt, // ⭐ 교차 정렬용
         startDate,
         endDate,

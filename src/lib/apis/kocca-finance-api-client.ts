@@ -5,6 +5,8 @@
  */
 
 import type { IProgramAPIClient, RawProgramData, SyncParams } from './base-api-client';
+import { withRetry } from '@/lib/utils/api-retry';
+import { APIError, ErrorCode } from '@/lib/utils/error-handler';
 
 /**
  * KOCCA Finance API 응답 타입 (실제 응답 구조)
@@ -84,57 +86,83 @@ export class KoccaFinanceAPIClient implements IProgramAPIClient {
    * @returns 원본 프로그램 데이터 배열
    */
   async fetchPrograms(params: SyncParams): Promise<RawProgramData[]> {
-    try {
-      // 조회 시작일/종료일 설정 (2020년부터 현재까지 - Finance API는 과거 데이터 보유)
-      const today = new Date();
-      const startDate = new Date('2020-01-01');
+    // 조회 시작일/종료일 설정 (2020년부터 현재까지 - Finance API는 과거 데이터 보유)
+    const today = new Date();
+    const startDate = new Date('2020-01-01');
 
-      const viewStartDt = startDate.toISOString().split('T')[0].replace(/-/g, '');
-      const viewEndDt = today.toISOString().split('T')[0].replace(/-/g, '');
+    const viewStartDt = startDate.toISOString().split('T')[0].replace(/-/g, '');
+    const viewEndDt = today.toISOString().split('T')[0].replace(/-/g, '');
 
-      // API URL 생성 (cate, viewStartDt, viewEndDt 파라미터 추가)
-      const url = `${this.baseUrl}?serviceKey=${encodeURIComponent(this.apiKey)}&cate=a2&pageNo=${params.page}&numOfRows=${params.pageSize}&viewStartDt=${viewStartDt}&viewEndDt=${viewEndDt}`;
+    console.log(
+      `[KoccaFinanceAPI] Fetching programs: pageNo=${params.page}, numOfRows=${params.pageSize}, viewStartDt=${viewStartDt}, viewEndDt=${viewEndDt}`
+    );
 
-      console.log(
-        `[KoccaFinanceAPI] Fetching programs: pageNo=${params.page}, numOfRows=${params.pageSize}, viewStartDt=${viewStartDt}, viewEndDt=${viewEndDt}`
-      );
+    // RetryStrategy로 API 호출 (Exponential Backoff + Jitter)
+    return withRetry(
+      async () => {
+        // API URL 생성 (cate, viewStartDt, viewEndDt 파라미터 추가)
+        const url = `${this.baseUrl}?serviceKey=${encodeURIComponent(this.apiKey)}&cate=a2&pageNo=${params.page}&numOfRows=${params.pageSize}&viewStartDt=${viewStartDt}&viewEndDt=${viewEndDt}`;
 
-      // API 호출
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+        // API 호출
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(`KOCCA Finance API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data: KoccaFinanceResponse = await response.json();
-
-      // 응답 데이터 추출 (실제 응답은 data.INFO.list)
-      const programs = data.INFO?.list || [];
-
-      // 각 프로그램에 link에서 추출한 seq 추가
-      const programsWithSeq = programs.map(program => {
-        // link에서 ID 추출: www.kocca.kr/kocca/bbs/view/B0158960/1846560.do → 1846560
-        if (program.link && typeof program.link === 'string') {
-          const match = program.link.match(/\/(\d+)\.do/);
-          if (match && match[1]) {
-            return { ...program, seq: match[1] };
+        if (!response.ok) {
+          // HTTP 상태 코드에 따라 적절한 ErrorCode 사용
+          let errorCode: ErrorCode;
+          if (response.status === 429) {
+            errorCode = ErrorCode.RATE_LIMIT_EXCEEDED;
+          } else if (response.status === 408 || response.status === 504) {
+            errorCode = ErrorCode.API_TIMEOUT;
+          } else if (response.status === 503) {
+            errorCode = ErrorCode.API_UNAVAILABLE;
+          } else {
+            errorCode = ErrorCode.EXTERNAL_API_ERROR;
           }
+
+          throw new APIError(
+            errorCode,
+            `[KoccaFinanceAPI] API error: ${response.status} ${response.statusText}`,
+            { statusCode: response.status, statusText: response.statusText },
+            response.status
+          );
         }
-        return program;
-      });
 
-      console.log(`[KoccaFinanceAPI] Fetched ${programsWithSeq.length} programs`);
+        const data: KoccaFinanceResponse = await response.json();
 
-      return programsWithSeq as RawProgramData[];
-    } catch (error) {
-      console.error('[KoccaFinanceAPI] Error fetching programs:', error);
-      throw error;
-    }
+        // 응답 데이터 추출 (실제 응답은 data.INFO.list)
+        const programs = data.INFO?.list || [];
+
+        // 각 프로그램에 link에서 추출한 seq 추가
+        const programsWithSeq = programs.map(program => {
+          // link에서 ID 추출: www.kocca.kr/kocca/bbs/view/B0158960/1846560.do → 1846560
+          if (program.link && typeof program.link === 'string') {
+            const match = program.link.match(/\/(\d+)\.do/);
+            if (match && match[1]) {
+              return { ...program, seq: match[1] };
+            }
+          }
+          return program;
+        });
+
+        console.log(`[KoccaFinanceAPI] ✅ Fetched ${programsWithSeq.length} programs`);
+
+        return programsWithSeq as RawProgramData[];
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        onRetry: (attempt, delay, error) => {
+          console.warn(`[KoccaFinanceAPI] ⚠️ Retry attempt ${attempt}, waiting ${delay}ms`, {
+            error: error.message,
+          });
+        },
+      }
+    );
   }
 
   /**
@@ -176,6 +204,7 @@ export class KoccaFinanceAPIClient implements IProgramAPIClient {
    * @param raw - 원본 프로그램 데이터
    * @returns 지역 배열
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parseLocation(_raw: RawProgramData): string[] {
     // KOCCA Finance API는 지역 정보를 제공하지 않음
     // 금융지원은 대부분 전국 대상
@@ -188,6 +217,7 @@ export class KoccaFinanceAPIClient implements IProgramAPIClient {
    * @param raw - 원본 프로그램 데이터
    * @returns 업종 배열
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parseTargetAudience(_raw: RawProgramData): string[] {
     // KOCCA Finance API는 대상 업종 정보를 제공하지 않음
     // 콘텐츠 산업 금융지원이 주 대상
@@ -251,6 +281,7 @@ export class KoccaFinanceAPIClient implements IProgramAPIClient {
    * @param raw - 원본 프로그램 데이터
    * @returns 시작일 (Date 객체 또는 null)
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parseStartDate(_raw: RawProgramData): Date | null {
     // KOCCA Finance API는 시작일 정보를 제공하지 않음
     return null;
@@ -280,6 +311,18 @@ export class KoccaFinanceAPIClient implements IProgramAPIClient {
       }
     }
 
+    return null;
+  }
+
+  /**
+   * 첨부파일 URL 추출
+   *
+   * @param _raw - 원본 프로그램 데이터
+   * @returns 첨부파일 URL (없으면 null)
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  parseAttachmentUrl(_raw: RawProgramData): string | null {
+    // KOCCA Finance API는 첨부파일 정보를 제공하지 않음
     return null;
   }
 }

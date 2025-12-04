@@ -5,6 +5,8 @@
  */
 
 import type { IProgramAPIClient, RawProgramData, SyncParams } from './base-api-client';
+import { withRetry } from '@/lib/utils/api-retry';
+import { APIError, ErrorCode } from '@/lib/utils/error-handler';
 
 /**
  * 기업마당 API 응답 타입
@@ -42,6 +44,7 @@ interface BizinfoProgramData {
   creatPnttm?: string; // 등록일시 (실제 필드명)
   pblancUrl?: string; // 공고 URL
   hashtags?: string; // 해시태그
+  flpthNm?: string; // 첨부파일 경로 (file path name)
   [key: string]: unknown;
 }
 
@@ -108,43 +111,71 @@ export class BizinfoAPIClient implements IProgramAPIClient {
    * @returns 원본 프로그램 데이터 배열
    */
   async fetchPrograms(params: SyncParams): Promise<RawProgramData[]> {
-    try {
-      // API URL 생성 (searchLclasId 없이 전체 분야 조회)
-      const url = `${this.baseUrl}?crtfcKey=${this.apiKey}&dataType=json&searchCnt=${params.pageSize}&pageIndex=${params.page}&pageUnit=${params.pageSize}`;
+    console.log(`[BizinfoAPI] Fetching programs: page=${params.page}, pageSize=${params.pageSize}`);
 
-      console.log(
-        `[BizinfoAPI] Fetching programs: page=${params.page}, pageSize=${params.pageSize}`
-      );
+    // RetryStrategy로 API 호출 (Exponential Backoff + Jitter)
+    return withRetry(
+      async () => {
+        // API URL 생성 (searchLclasId 없이 전체 분야 조회)
+        const url = `${this.baseUrl}?crtfcKey=${this.apiKey}&dataType=json&searchCnt=${params.pageSize}&pageIndex=${params.page}&pageUnit=${params.pageSize}`;
 
-      // API 호출
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+        // API 호출
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          // HTTP 상태 코드에 따라 적절한 ErrorCode 사용
+          let errorCode: ErrorCode;
+          if (response.status === 429) {
+            errorCode = ErrorCode.RATE_LIMIT_EXCEEDED;
+          } else if (response.status === 408 || response.status === 504) {
+            errorCode = ErrorCode.API_TIMEOUT;
+          } else if (response.status === 503) {
+            errorCode = ErrorCode.API_UNAVAILABLE;
+          } else {
+            errorCode = ErrorCode.EXTERNAL_API_ERROR;
+          }
+
+          throw new APIError(
+            errorCode,
+            `[BizinfoAPI] API error: ${response.status} ${response.statusText}`,
+            { statusCode: response.status, statusText: response.statusText },
+            response.status
+          );
+        }
+
+        const data: BizinfoResponse = await response.json();
+
+        // 에러 체크
+        if (data.reqErr) {
+          throw new APIError(
+            ErrorCode.EXTERNAL_API_ERROR,
+            `[BizinfoAPI] API error: ${data.reqErr}`,
+            { errorMessage: data.reqErr }
+          );
+        }
+
+        // 응답 데이터 추출 (실제 응답은 jsonArray)
+        const programs = data.jsonArray || data.result || data.response?.body?.items || [];
+
+        console.log(`[BizinfoAPI] ✅ Fetched ${programs.length} programs from all categories`);
+
+        return programs as RawProgramData[];
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        onRetry: (attempt, delay, error) => {
+          console.warn(`[BizinfoAPI] ⚠️ Retry attempt ${attempt}, waiting ${delay}ms`, {
+            error: error.message,
+          });
         },
-      });
-
-      if (!response.ok) {
-        throw new Error(`[BizinfoAPI] API error: ${response.status} ${response.statusText}`);
       }
-
-      const data: BizinfoResponse = await response.json();
-
-      // 에러 체크
-      if (data.reqErr) {
-        throw new Error(`[BizinfoAPI] API error: ${data.reqErr}`);
-      }
-
-      // 응답 데이터 추출 (실제 응답은 jsonArray)
-      const programs = data.jsonArray || data.result || data.response?.body?.items || [];
-
-      console.log(`[BizinfoAPI] ✅ Fetched ${programs.length} programs from all categories`);
-
-      return programs as RawProgramData[];
-    } catch (error) {
-      console.error('[BizinfoAPI] Error fetching programs:', error);
-      throw error;
-    }
+    );
   }
 
   /**
@@ -327,6 +358,34 @@ export class BizinfoAPIClient implements IProgramAPIClient {
           return date;
         }
       }
+    }
+
+    return null;
+  }
+
+  /**
+   * 첨부파일 URL 추출 (flpthNm 필드 활용)
+   *
+   * @param raw - 원본 프로그램 데이터
+   * @returns 첨부파일 URL (없으면 null)
+   */
+  parseAttachmentUrl(raw: RawProgramData): string | null {
+    const data = raw as BizinfoProgramData;
+
+    if (data.flpthNm && typeof data.flpthNm === 'string') {
+      // 여러 개의 첨부파일이 @ 구분자로 연결된 경우 첫 번째만 사용
+      const firstFile = data.flpthNm.split('@')[0].trim();
+
+      if (!firstFile) {
+        return null;
+      }
+
+      // 이미 프로토콜이 있으면 그대로 반환 (http:// 또는 https://)
+      if (firstFile.startsWith('http://') || firstFile.startsWith('https://')) {
+        return firstFile;
+      }
+      // 상대 경로인 경우 base URL 추가
+      return `https://www.bizinfo.go.kr${firstFile}`;
     }
 
     return null;

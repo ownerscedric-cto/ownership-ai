@@ -19,8 +19,10 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { useProgramsWithMetadata } from '@/lib/hooks/usePrograms';
-import type { ProgramFilters } from '@/lib/types/program';
+import type { ProgramFilters, Program } from '@/lib/types/program';
 import { AlertCircle, FileText } from 'lucide-react';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 
 interface ProgramListProps {
   filters: ProgramFilters;
@@ -40,6 +42,24 @@ interface ProgramListProps {
  */
 export function ProgramList({ filters, onPageChange }: ProgramListProps) {
   const { data, isLoading, error } = useProgramsWithMetadata(filters);
+
+  /**
+   * 등록일 기준으로 프로그램 그룹핑
+   */
+  const groupProgramsByDate = (programs: Program[]) => {
+    const groups: Record<string, Program[]> = {};
+
+    programs.forEach(program => {
+      const dateKey = format(new Date(program.registeredAt), 'yy.MM.dd', { locale: ko });
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(program);
+    });
+
+    // 날짜별로 정렬 (최신순)
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  };
 
   /**
    * 로딩 상태 - Skeleton UI
@@ -90,6 +110,9 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
   const { data: programs, metadata } = data;
   const totalPages = Math.ceil(metadata.total / metadata.limit);
   const currentPage = metadata.page;
+
+  // 프로그램을 날짜별로 그룹핑
+  const groupedPrograms = groupProgramsByDate(programs);
 
   /**
    * 페이지네이션 범위 계산 (현재 페이지 기준 ±2)
@@ -152,10 +175,24 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
         )}
       </div>
 
-      {/* 프로그램 카드 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {programs.map(program => (
-          <ProgramCard key={program.id} program={program} />
+      {/* 프로그램 카드 - 날짜별 그룹핑 */}
+      <div className="space-y-8">
+        {groupedPrograms.map(([date, datePrograms]) => (
+          <div key={date}>
+            {/* 날짜 구분선 */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex-1 border-t-2 border-gray-300"></div>
+              <span className="text-lg font-semibold text-gray-700">{date}</span>
+              <div className="flex-1 border-t-2 border-gray-300"></div>
+            </div>
+
+            {/* 해당 날짜의 프로그램 그리드 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {datePrograms.map(program => (
+                <ProgramCard key={program.id} program={program} />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 

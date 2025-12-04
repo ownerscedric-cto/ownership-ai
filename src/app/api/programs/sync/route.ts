@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ProgramSyncOrchestrator } from '@/lib/sync/program-sync-orchestrator';
+import { createErrorResponse, logError } from '@/lib/utils/error-handler';
 
 /**
  * POST /api/programs/sync
@@ -23,6 +24,7 @@ import { ProgramSyncOrchestrator } from '@/lib/sync/program-sync-orchestrator';
  * - data: { total, succeeded, failed, programCount, results }
  * - metadata: null
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function POST(_request: NextRequest) {
   try {
     console.log('[POST /api/programs/sync] Starting manual sync...');
@@ -50,19 +52,12 @@ export async function POST(_request: NextRequest) {
       await orchestrator.dispose();
     }
   } catch (error) {
-    console.error('[POST /api/programs/sync] Error during sync:', error);
+    // 에러 로깅 (심각도별 자동 분류)
+    logError(error, { context: 'POST /api/programs/sync', operation: 'sync' });
 
-    // 에러 응답
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'SYNC_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to sync programs',
-          details: error instanceof Error ? error.stack : null,
-        },
-      },
-      { status: 500 }
-    );
+    // 표준 에러 응답 생성
+    const errorResponse = createErrorResponse(error);
+
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
