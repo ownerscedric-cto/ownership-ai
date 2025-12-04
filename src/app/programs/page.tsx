@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProgramFilters } from '@/components/programs/ProgramFilters';
@@ -14,7 +14,7 @@ import { ProgramList } from '@/components/programs/ProgramList';
 import type { ProgramFilters as FilterType } from '@/lib/types/program';
 
 /**
- * 정부지원사업 프로그램 목록 페이지
+ * 정부지원사업 프로그램 목록 페이지 내용
  *
  * 기능:
  * - 프로그램 필터 (데이터 소스, 키워드)
@@ -22,7 +22,7 @@ import type { ProgramFilters as FilterType } from '@/lib/types/program';
  * - 페이지네이션
  * - URL 쿼리 파라미터로 상태 관리 (뒤로가기/앞으로가기/새로고침 지원)
  */
-export default function ProgramsPage() {
+function ProgramsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -138,5 +138,19 @@ export default function ProgramsPage() {
         <ProgramList filters={filters} onPageChange={handlePageChange} />
       </div>
     </AppLayout>
+  );
+}
+
+/**
+ * 정부지원사업 프로그램 목록 페이지
+ * Suspense로 감싸서 useSearchParams() 사용 가능하게 함
+ */
+export default function ProgramsPage() {
+  return (
+    <Suspense
+      fallback={<div className="h-screen flex items-center justify-center">로딩 중...</div>}
+    >
+      <ProgramsPageContent />
+    </Suspense>
   );
 }
