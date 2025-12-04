@@ -38,6 +38,7 @@ import {
 import { useProgram } from '@/lib/hooks/usePrograms';
 import { AlertCircle } from 'lucide-react';
 import { DeadlineBadge } from './DeadlineBadge';
+import { AddToWatchlistButton } from './AddToWatchlistButton';
 
 interface ProgramDetailProps {
   id: string;
@@ -275,7 +276,7 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
             </div>
           )}
 
-          {/* 공고 바로가기 & 첨부파일 다운로드 버튼 */}
+          {/* 공고 바로가기 & 첨부파일 다운로드 & 관심 목록 추가 버튼 */}
           <div className="flex flex-wrap gap-3">
             {program.sourceUrl && (
               <a
@@ -290,6 +291,9 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
                 </Button>
               </a>
             )}
+
+            {/* 관심 목록 추가 버튼 */}
+            <AddToWatchlistButton programId={program.id} programTitle={program.title} />
 
             {/* 첨부파일 다운로드 버튼 (단일 파일) */}
             {attachmentUrls.length === 1 && (

@@ -16,7 +16,7 @@ interface CustomerSidebarProps {
   customers: Customer[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onViewChange?: (customerId: string, view: 'detail' | 'progress') => void;
+  onViewChange?: (customerId: string, view: 'detail' | 'progress' | 'matching') => void;
   isLoading?: boolean;
 }
 
@@ -99,13 +99,16 @@ export function CustomerSidebar({
                         기본 정보
                       </button>
 
-                      {/* 매칭 결과 버튼 (Phase 4 이후) */}
+                      {/* 매칭 결과 버튼 */}
                       <button
-                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2 text-gray-400"
-                        disabled
+                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2"
+                        onClick={() => {
+                          onSelect(customer.id);
+                          onViewChange?.(customer.id, 'matching');
+                        }}
                       >
                         <Target className="h-3 w-3" />
-                        매칭 결과 (준비중)
+                        매칭 결과
                       </button>
 
                       {/* 사업진행현황 버튼 */}

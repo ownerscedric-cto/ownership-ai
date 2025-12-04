@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ReactQueryProvider } from '@/lib/react-query';
+import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
   title: 'Ownership AI - 컨설턴트 관리 플랫폼',
@@ -31,6 +32,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ReactQueryProvider>{children}</ReactQueryProvider>
+        <Toaster />
       </body>
     </html>
   );

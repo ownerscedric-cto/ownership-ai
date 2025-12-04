@@ -64,6 +64,9 @@ model Customer {
   // Phase 4에서 MatchingResult 관계 추가 예정
   // matchingResults MatchingResult[]
 
+  // 관심 프로그램 목록 (다대다 관계)
+  watchlist CustomerProgram[]
+
   @@index([userId])
   @@index([businessNumber])
   @@index([businessType])
@@ -109,6 +112,9 @@ model Program {
   // Phase 4에서 MatchingResult 관계 추가 예정
   // matchingResults MatchingResult[]
 
+  // 관심 등록한 고객들 (다대다 관계)
+  watchers CustomerProgram[]
+
   // 복합 인덱스 (검색 성능 향상)
   @@unique([dataSource, sourceApiId]) // 중복 방지
   @@index([registeredAt(sort: Desc)]) // 등록일 내림차순 정렬 (교차 노출용) ⭐
@@ -137,4 +143,25 @@ model SyncMetadata {
   @@index([dataSource])
   @@index([lastSyncedAt])
   @@map("sync_metadata")
+}
+
+// 고객-프로그램 관심 목록 (다대다 중간 테이블)
+model CustomerProgram {
+  id String @id @default(uuid())
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId String
+
+  // 추가 정보
+  addedAt DateTime @default(now()) // 관심 목록 추가 시간
+  notes   String? // 메모
+
+  @@unique([customerId, programId]) // 한 고객당 같은 프로그램 한 번만
+  @@index([customerId])
+  @@index([programId])
+  @@index([addedAt])
+  @@map("customer_programs")
 }

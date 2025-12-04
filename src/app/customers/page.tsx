@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { CustomerSidebar } from '@/components/customers/CustomerSidebar';
 import { CustomerDetailPanel } from '@/components/customers/CustomerDetailPanel';
 import { CustomerProgressPanel } from '@/components/customers/CustomerProgressPanel';
+import { CustomerMatchingPanel } from '@/components/customers/CustomerMatchingPanel';
 import { CustomerDialog } from '@/components/customers/CustomerDialog';
 import { Button } from '@/components/ui/button';
 import { useCustomers, useDeleteCustomer } from '@/hooks/useCustomers';
@@ -19,8 +20,8 @@ function CustomersPageContent() {
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(selectedIdFromUrl);
 
-  // 뷰 상태 관리 ('detail' | 'progress')
-  const [currentView, setCurrentView] = useState<'detail' | 'progress'>('detail');
+  // 뷰 상태 관리 ('detail' | 'progress' | 'matching')
+  const [currentView, setCurrentView] = useState<'detail' | 'progress' | 'matching'>('detail');
 
   // Dialog 상태 관리
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -90,7 +91,7 @@ function CustomersPageContent() {
   };
 
   // 뷰 전환 핸들러
-  const handleViewChange = (customerId: string, view: 'detail' | 'progress') => {
+  const handleViewChange = (customerId: string, view: 'detail' | 'progress' | 'matching') => {
     setSelectedCustomerId(customerId);
     setCurrentView(view);
     router.push(`/customers?selected=${customerId}`, { scroll: false });
@@ -143,7 +144,7 @@ function CustomersPageContent() {
             isLoading={isLoading}
           />
 
-          {/* 오른쪽: 패널 (상세 정보 또는 사업진행현황) */}
+          {/* 오른쪽: 패널 (상세 정보 또는 매칭 결과 또는 사업진행현황) */}
           {currentView === 'detail' ? (
             <CustomerDetailPanel
               customer={selectedCustomer}
@@ -151,6 +152,8 @@ function CustomersPageContent() {
               onEdit={handleEditCustomer}
               onDelete={handleDelete}
             />
+          ) : currentView === 'matching' ? (
+            <CustomerMatchingPanel customer={selectedCustomer} isLoading={isLoading} />
           ) : (
             <CustomerProgressPanel customer={selectedCustomer} isLoading={isLoading} />
           )}
