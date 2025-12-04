@@ -39,6 +39,7 @@ import { useProgram } from '@/lib/hooks/usePrograms';
 import { AlertCircle } from 'lucide-react';
 import { DeadlineBadge } from './DeadlineBadge';
 import { AddToWatchlistButton } from './AddToWatchlistButton';
+import { decodeHtmlEntities, formatDescription } from '@/lib/utils/html';
 
 interface ProgramDetailProps {
   id: string;
@@ -128,13 +129,6 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
     ? format(new Date(program.endDate), 'yyyy.MM.dd', { locale: ko })
     : null;
 
-  // HTML 엔티티 디코딩 헬퍼 함수
-  const decodeHtmlEntities = (text: string): string => {
-    const textarea = document.createElement('textarea');
-    textarea.innerHTML = text;
-    return textarea.value;
-  };
-
   // 데이터 소스 이름 정규화 함수
   // KOCCA-PIMS, KOCCA-Finance → 한국콘텐츠진흥원
   const normalizeDataSource = (dataSource: string): string => {
@@ -186,54 +180,6 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
         link.click();
       }, index * 100);
     });
-  };
-
-  // 프로그램 설명 포맷팅 함수 (간단한 단락 구분 및 제목 강조)
-  const formatDescription = (description: string): string => {
-    let formatted = description;
-
-    // 0. \n 문자열을 실제 줄바꿈으로 변환 (DB에 문자열로 저장된 경우)
-    formatted = formatted.replace(/\\n/g, '\n');
-
-    // 1. 섹션 제목 강조 및 뒤에 줄바꿈 추가
-    formatted = formatted.replace(
-      /(^|\n)([가-힣\s]{2,30}):/gm,
-      '$1<strong class="block text-lg font-bold text-gray-900 mt-6 mb-1 pb-2 border-b border-gray-300">$2</strong>\n'
-    );
-
-    // 2. [서브섹션] 강조
-    formatted = formatted.replace(
-      /(\[[\w가-힣\s]+\])/g,
-      '<span class="font-semibold text-[#0052CC]">$1</span>'
-    );
-
-    // 3. KOCCA 깨진 링크 수정
-    // 패턴: (http://example.com" target="_blank" rel="noopener noreferrer" title="새창 열기">http://example.com)
-    // → (<a href="http://example.com" target="_blank" rel="noopener noreferrer">http://example.com</a>)
-    formatted = formatted.replace(
-      /\((https?:\/\/[^\s"]+)" target="_blank"[^>]*>([^)]+)\)/g,
-      '(<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#0052CC] hover:underline break-all">$2</a>)'
-    );
-
-    // 괄호 없는 경우도 처리
-    formatted = formatted.replace(
-      /(https?:\/\/[^\s"]+)" target="_blank"[^>]*>([^\s<]+)/g,
-      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#0052CC] hover:underline break-all">$2</a>'
-    );
-
-    // 4. 일반 URL을 링크로 변환 (아직 링크가 아닌 URL만)
-    formatted = formatted.replace(
-      /(?<!href=")(https?:\/\/[^\s<"]+)(?!")/g,
-      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#0052CC] hover:underline break-all">$1</a>'
-    );
-
-    // 5. 이메일 주소 강조
-    formatted = formatted.replace(
-      /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
-      '<span class="text-[#0052CC]">$1</span>'
-    );
-
-    return formatted;
   };
 
   return (

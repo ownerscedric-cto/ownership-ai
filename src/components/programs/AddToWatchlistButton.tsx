@@ -57,6 +57,7 @@ export function AddToWatchlistButton({ programId, programTitle }: AddToWatchlist
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSelect={handleSelectCustomer}
+        programId={programId}
       />
     </>
   );

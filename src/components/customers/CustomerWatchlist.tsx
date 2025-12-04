@@ -18,6 +18,7 @@ import {
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { truncateText } from '@/lib/utils/html';
 
 interface CustomerWatchlistProps {
   customerId: string;
@@ -101,7 +102,7 @@ export function CustomerWatchlist({ customerId }: CustomerWatchlistProps) {
           <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600 text-lg font-medium mb-2">아직 관심 프로그램이 없습니다</p>
           <p className="text-gray-500 text-sm mb-4">
-            프로그램 상세 페이지에서 &quot;관심 목록에 추가&quot; 버튼을 눌러보세요
+            프로그램 상세 페이지에서 &apos;관심 목록에 추가&apos; 버튼을 눌러보세요
           </p>
           <Link href="/programs">
             <Button variant="default">
@@ -173,7 +174,9 @@ function WatchlistProgramCard({ item, onRemove, isRemoving }: WatchlistProgramCa
           </Link>
 
           {program.description && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">{program.description}</p>
+            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+              {truncateText(program.description, 150)}
+            </p>
           )}
 
           {/* 메타 정보 */}

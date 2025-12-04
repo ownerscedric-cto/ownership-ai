@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { DeadlineBadge } from './DeadlineBadge';
 import type { Program } from '@/lib/types/program';
+import { decodeHtmlEntities, truncateText } from '@/lib/utils/html';
 
 interface ProgramCardProps {
   program: Program;
@@ -51,29 +52,8 @@ const dataSourceColors: Record<string, string> = {
 export function ProgramCard({ program }: ProgramCardProps) {
   const router = useRouter();
 
-  // HTML 엔티티 디코딩 헬퍼 함수
-  const decodeHtmlEntities = (text: string): string => {
-    const textarea = document.createElement('textarea');
-    textarea.innerHTML = text;
-    return textarea.value;
-  };
-
-  // HTML 태그 제거 헬퍼 함수
-  const stripHtml = (html: string): string => {
-    return html
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  };
-
-  // 설명 최대 길이 제한 (모바일에서 너무 길지 않도록) - HTML 엔티티 디코딩 → HTML 태그 제거
-  const truncatedDescription = program.description
-    ? (() => {
-        const decoded = decodeHtmlEntities(program.description);
-        const plainText = stripHtml(decoded);
-        return plainText.length > 150 ? `${plainText.slice(0, 150)}...` : plainText;
-      })()
-    : null;
+  // 설명 최대 길이 제한 (모바일에서 너무 길지 않도록)
+  const truncatedDescription = program.description ? truncateText(program.description, 150) : null;
 
   // 대상 업종/지역 최대 3개만 표시
   const displayedAudiences = program.targetAudience.slice(0, 3);

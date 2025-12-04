@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, CheckCircle2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,16 +17,61 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useIsInWatchlist } from '@/lib/hooks/useWatchlist';
 import type { Customer } from '@prisma/client';
 
 interface CustomerSelectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (customer: Customer) => void;
+  programId: string;
 }
 
-export function CustomerSelectDialog({ open, onOpenChange, onSelect }: CustomerSelectDialogProps) {
+/**
+ * Individual customer list item with watchlist status badge
+ */
+interface CustomerListItemProps {
+  customer: Customer;
+  programId: string;
+  onSelect: (customer: Customer) => void;
+}
+
+function CustomerListItem({ customer, programId, onSelect }: CustomerListItemProps) {
+  const isInWatchlist = useIsInWatchlist(customer.id, programId);
+
+  return (
+    <button
+      onClick={() => onSelect(customer)}
+      className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-[#0052CC] hover:bg-gray-50 transition-all"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-gray-900">{customer.name}</div>
+          <div className="text-sm text-gray-600 mt-1">{customer.businessNumber}</div>
+          {customer.industry && (
+            <div className="text-xs text-gray-500 mt-1">{customer.industry}</div>
+          )}
+        </div>
+
+        {isInWatchlist && (
+          <Badge variant="secondary" className="text-green-600 border-green-200 flex-shrink-0">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            등록됨
+          </Badge>
+        )}
+      </div>
+    </button>
+  );
+}
+
+export function CustomerSelectDialog({
+  open,
+  onOpenChange,
+  onSelect,
+  programId,
+}: CustomerSelectDialogProps) {
   const [search, setSearch] = useState('');
 
   // Fetch all customers with pagination
@@ -85,17 +130,12 @@ export function CustomerSelectDialog({ open, onOpenChange, onSelect }: CustomerS
           {!isLoading && !error && customers.length > 0 && (
             <div className="space-y-2">
               {customers.map(customer => (
-                <button
+                <CustomerListItem
                   key={customer.id}
-                  onClick={() => handleSelect(customer)}
-                  className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-[#0052CC] hover:bg-gray-50 transition-all"
-                >
-                  <div className="font-medium text-gray-900">{customer.name}</div>
-                  <div className="text-sm text-gray-600 mt-1">{customer.businessNumber}</div>
-                  {customer.industry && (
-                    <div className="text-xs text-gray-500 mt-1">{customer.industry}</div>
-                  )}
-                </button>
+                  customer={customer}
+                  programId={programId}
+                  onSelect={handleSelect}
+                />
               ))}
             </div>
           )}
