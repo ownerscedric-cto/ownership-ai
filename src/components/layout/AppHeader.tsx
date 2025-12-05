@@ -89,8 +89,8 @@ export function AppHeader({ user }: AppHeaderProps) {
               <span className="text-[var(--text-primary)] font-medium">{userName}</span>
             </div>
             <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              로그아웃
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">로그아웃</span>
             </Button>
           </div>
         </div>

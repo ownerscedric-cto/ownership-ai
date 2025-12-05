@@ -63,9 +63,9 @@ export function CustomerDetailPanel({
   }
 
   return (
-    <div className="flex-1 bg-white overflow-y-auto">
+    <div className="flex-1 bg-white flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-white border-b px-8 py-6">
+      <div className="flex-shrink-0 bg-white border-b px-8 py-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{customer.name}</h1>
@@ -105,7 +105,7 @@ export function CustomerDetailPanel({
       </div>
 
       {/* 상세 정보 */}
-      <div className="px-8 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
         {/* 사업자 정보 */}
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">

@@ -77,9 +77,9 @@ export function CustomerMatchingPanel({
   }
 
   return (
-    <div className="flex-1 bg-white overflow-y-auto">
+    <div className="flex-1 bg-white flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-white border-b px-8 py-6">
+      <div className="flex-shrink-0 bg-white border-b px-8 py-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">매칭 결과</h1>
@@ -93,7 +93,7 @@ export function CustomerMatchingPanel({
       </div>
 
       {/* 탭 컨텐츠 */}
-      <div className="px-8 py-6">
+      <div className="flex-1 overflow-y-auto px-8 py-6">
         <Tabs value={activeSubtab} onValueChange={handleSubtabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="ai-matching" className="flex items-center gap-2">

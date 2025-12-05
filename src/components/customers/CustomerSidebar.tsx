@@ -36,14 +36,14 @@ export function CustomerSidebar({
 
   if (isLoading) {
     return (
-      <div className="w-80 border-r bg-gray-50 flex items-center justify-center">
+      <div className="w-full lg:w-80 border-r bg-gray-50 flex items-center justify-center h-full">
         <p className="text-gray-500">로딩 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-80 border-r bg-gray-50 flex flex-col h-full">
+    <div className="w-full lg:w-80 border-r bg-gray-50 flex flex-col h-full">
       {/* 검색 바 */}
       <div className="p-4 border-b bg-white sticky top-0 z-10">
         <div className="relative">

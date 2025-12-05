@@ -45,9 +45,9 @@ export function CustomerProgressPanel({ customer, isLoading = false }: CustomerP
   }
 
   return (
-    <div className="flex-1 bg-white overflow-y-auto">
+    <div className="flex-1 bg-white flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-white border-b px-8 py-6">
+      <div className="flex-shrink-0 bg-white border-b px-8 py-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">사업진행현황</h1>
@@ -55,7 +55,7 @@ export function CustomerProgressPanel({ customer, isLoading = false }: CustomerP
           </div>
 
           {/* 진행 상태 요약 */}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 lg:flex-row">
             <Badge variant="outline" className="text-blue-600 border-blue-200">
               <TrendingUp className="h-3 w-3 mr-1" />
               진행중 0건
@@ -69,7 +69,7 @@ export function CustomerProgressPanel({ customer, isLoading = false }: CustomerP
       </div>
 
       {/* 상세 정보 */}
-      <div className="px-8 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
         {/* Phase 4 준비 안내 */}
         <section>
           <div className="border rounded-lg p-6 bg-blue-50 border-blue-200">
