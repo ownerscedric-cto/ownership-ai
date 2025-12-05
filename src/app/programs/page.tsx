@@ -120,17 +120,17 @@ function ProgramsPageContent() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
-        {/* 헤더 */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900">정부지원사업</h1>
-          <p className="text-gray-600">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6 sm:space-y-8">
+        {/* 헤더 (모바일 최적화) */}
+        <div className="space-y-1 sm:space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">정부지원사업</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             다양한 정부지원사업 프로그램을 한눈에 확인하고 검색해보세요.
           </p>
         </div>
 
-        {/* 필터 섹션 */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        {/* 필터 섹션 (모바일 최적화) */}
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <ProgramFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
 

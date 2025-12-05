@@ -9,11 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Infinity } from 'lucide-react';
 import { differenceInDays, isPast, isToday, format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import type { Prisma } from '@prisma/client';
 
 interface DeadlineBadgeProps {
   deadline: Date | string | null;
-  rawData?: Prisma.JsonValue;
+  rawData?: unknown;
   className?: string;
 }
 

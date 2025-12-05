@@ -1,6 +1,6 @@
 /**
  * @file ProgramFilters.tsx
- * @description 프로그램 필터 컴포넌트
+ * @description 프로그램 필터 컴포넌트 (모바일 최적화)
  * Phase 3: 정부지원사업 UI 컴포넌트
  */
 
@@ -11,8 +11,8 @@ import { Search, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ProgramFilters as FilterType } from '@/lib/types/program';
+import { cn } from '@/lib/utils';
 
 interface ProgramFiltersProps {
   filters: FilterType;
@@ -20,7 +20,7 @@ interface ProgramFiltersProps {
 }
 
 /**
- * 데이터 소스 목록
+ * 데이터 소스 목록 (확장 가능)
  */
 const dataSources = ['전체', '기업마당', 'K-Startup', '한국콘텐츠진흥원'] as const;
 
@@ -99,29 +99,31 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
 
   return (
     <div className="space-y-4">
-      {/* 데이터 소스 필터 (Tabs) */}
+      {/* 데이터 소스 필터 (반응형 그리드, 확장 가능) */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
           <Filter className="w-4 h-4" />
           데이터 소스
         </h3>
-        <Tabs
-          value={filters.dataSource || '전체'}
-          onValueChange={handleDataSourceChange}
-          className="w-full"
-        >
-          <TabsList className="w-full grid grid-cols-5 h-auto gap-1 bg-gray-100 p-1">
-            {dataSources.map(source => (
-              <TabsTrigger
-                key={source}
-                value={source}
-                className="text-xs sm:text-sm py-2 data-[state=active]:bg-[#0052CC] data-[state=active]:text-white"
-              >
-                {source}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {dataSources.map(source => (
+            <button
+              key={source}
+              type="button"
+              onClick={() => handleDataSourceChange(source)}
+              className={cn(
+                'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
+                'border border-gray-200 hover:border-[#0052CC]',
+                'focus:outline-none focus:ring-2 focus:ring-[#0052CC] focus:ring-offset-1',
+                filters.dataSource === source || (!filters.dataSource && source === '전체')
+                  ? 'bg-[#0052CC] text-white border-[#0052CC]'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              {source}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 키워드 검색 */}
@@ -150,8 +152,13 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
               </button>
             )}
           </div>
-          <Button type="submit" className="bg-[#0052CC] hover:bg-[#003d99]">
-            검색
+          <Button
+            type="submit"
+            className="bg-[#0052CC] hover:bg-[#003d99] px-3 sm:px-4"
+            aria-label="검색"
+          >
+            <Search className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">검색</span>
           </Button>
         </form>
       </div>
