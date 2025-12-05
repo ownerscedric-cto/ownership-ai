@@ -240,6 +240,89 @@
   - Support keyboard navigation (Tab, Enter, Escape, Arrow keys)
   - Test with screen readers (VoiceOver, NVDA)
 
+### Customer Management Page Architecture
+
+**⚠️ IMPORTANT**: There are TWO different customer-related pages with distinct purposes and architectures.
+
+#### 1. ERP-Style Customer Management Page (`/app/customers/page.tsx`)
+
+**Primary Interface**: Main customer management system with split-view layout
+
+**Architecture**:
+
+- **Layout**: Sidebar (CustomerSidebar) + Dynamic Panel (right side)
+- **View States**: Controlled by `currentView` state ('detail' | 'matching' | 'progress')
+- **Panel Components**:
+  - `CustomerDetailPanel` - Shows customer basic information (기본정보 탭)
+    - Location: [src/components/customers/CustomerDetailPanel.tsx](src/components/customers/CustomerDetailPanel.tsx)
+    - Sections: 사업자 정보, 니즈 정보, 연락처 정보, 메모
+    - Header actions: Edit, Delete buttons
+  - `CustomerMatchingPanel` - Shows AI matching and watchlist (매칭 결과 탭)
+    - Location: [src/components/customers/CustomerMatchingPanel.tsx](src/components/customers/CustomerMatchingPanel.tsx)
+    - Tabs: AI 매칭 (default), 관심목록
+    - Contains: MatchButton, MatchingResults, CustomerWatchlist
+  - `CustomerProgressPanel` - Shows business progress (사업진행현황 탭)
+    - Location: [src/components/customers/CustomerProgressPanel.tsx](src/components/customers/CustomerProgressPanel.tsx)
+
+**Usage**: This is the **MAIN** customer management interface referenced when discussing:
+
+- "고객 관리 페이지"
+- "ERP 형식의 고객 관리"
+- Split-view or panel-based customer management
+
+**Code Pattern**:
+
+```typescript
+{currentView === 'detail' ? (
+  <CustomerDetailPanel customer={selectedCustomer} ... />
+) : currentView === 'matching' ? (
+  <CustomerMatchingPanel customer={selectedCustomer} ... />
+) : (
+  <CustomerProgressPanel customer={selectedCustomer} ... />
+)}
+```
+
+#### 2. Individual Customer Detail Page (`/app/customers/[id]/page.tsx`)
+
+**Purpose**: Standalone page for viewing a single customer's complete information
+
+**Architecture**:
+
+- **Layout**: Full-page layout with back button
+- **Component**: Uses `CustomerDetail` component (different from `CustomerDetailPanel`)
+  - Location: [src/components/customers/CustomerDetail.tsx](src/components/customers/CustomerDetail.tsx)
+- **Use Cases**:
+  - Direct customer links from external sources
+  - Detailed customer profile view
+  - Printable customer information
+
+**Differentiation**:
+
+- This is **NOT** the ERP-style management page
+- Cannot switch between tabs (detail/matching/progress)
+- Displays all information on a single scrollable page
+
+#### Development Guidelines
+
+When modifying customer management features:
+
+1. **Confirm Target Page**: Always clarify which page is being referenced
+   - "고객 관리 페이지" or "ERP 형식" → `/app/customers/page.tsx` (panel-based)
+   - "고객 상세 페이지" or direct link → `/app/customers/[id]/page.tsx` (standalone)
+
+2. **Component Location**:
+   - Panel components are in `/components/customers/*Panel.tsx`
+   - Detail component is in `/components/customers/CustomerDetail.tsx`
+
+3. **State Management**:
+   - ERP page uses `currentView` state to switch between panels
+   - Individual page has no view switching
+
+4. **Common Mistakes**:
+   - ❌ Modifying `CustomerDetail.tsx` when ERP page changes are needed
+   - ❌ Adding tabs to individual customer page
+   - ❌ Confusing panel components with standalone components
+
 ### Design System & UI Standards
 
 - **UI Framework**: TailwindCSS + shadcn/ui for consistent, customizable components

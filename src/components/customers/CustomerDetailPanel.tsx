@@ -246,17 +246,6 @@ export function CustomerDetailPanel({
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{customer.notes}</p>
           </section>
         )}
-
-        {/* 매칭 결과 프리뷰 (Phase 4 이후) */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            매칭 결과
-          </h2>
-          <div className="border rounded-lg p-6 text-center text-gray-400">
-            <p className="text-sm">Phase 4에서 매칭 기능이 추가됩니다</p>
-          </div>
-        </section>
       </div>
     </div>
   );

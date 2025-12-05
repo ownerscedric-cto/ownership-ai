@@ -61,8 +61,8 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Phase 4에서 MatchingResult 관계 추가 예정
-  // matchingResults MatchingResult[]
+  // 매칭 결과 관계
+  matchingResults MatchingResult[]
 
   // 관심 프로그램 목록 (다대다 관계)
   watchlist CustomerProgram[]
@@ -109,8 +109,8 @@ model Program {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Phase 4에서 MatchingResult 관계 추가 예정
-  // matchingResults MatchingResult[]
+  // 매칭 결과 관계
+  matchingResults MatchingResult[]
 
   // 관심 등록한 고객들 (다대다 관계)
   watchers CustomerProgram[]
@@ -164,4 +164,34 @@ model CustomerProgram {
   @@index([programId])
   @@index([addedAt])
   @@map("customer_programs")
+}
+
+// 매칭 결과 모델 (Phase 4: 업종/키워드/지역 기반 매칭)
+model MatchingResult {
+  id String @id @default(uuid())
+
+  // 고객-프로그램 관계
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId String
+
+  // 매칭 점수 (0-100점)
+  score Float // 업종(30) + 지역(30) + 키워드(최대 40)
+
+  // 매칭 상세 정보
+  matchedIndustry Boolean  // 업종 일치 여부
+  matchedLocation Boolean  // 지역 일치 여부
+  matchedKeywords String[] // 일치한 키워드 목록
+
+  // 메타데이터
+  createdAt DateTime @default(now())
+
+  @@unique([customerId, programId]) // 고객-프로그램 조합 중복 방지
+  @@index([customerId])
+  @@index([programId])
+  @@index([score(sort: Desc)]) // 점수 내림차순 정렬
+  @@index([createdAt(sort: Desc)]) // 생성일 내림차순 정렬
+  @@map("matching_results")
 }

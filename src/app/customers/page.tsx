@@ -17,11 +17,22 @@ function CustomersPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const selectedIdFromUrl = useMemo(() => searchParams.get('selected'), [searchParams]);
+  const tabFromUrl = useMemo(
+    () => searchParams.get('tab') as 'detail' | 'progress' | 'matching' | null,
+    [searchParams]
+  );
+  const subtabFromUrl = useMemo(
+    () => searchParams.get('subtab') as 'ai-matching' | 'watchlist' | null,
+    [searchParams]
+  );
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(selectedIdFromUrl);
 
   // 뷰 상태 관리 ('detail' | 'progress' | 'matching')
-  const [currentView, setCurrentView] = useState<'detail' | 'progress' | 'matching'>('detail');
+  // URL에서 탭 정보를 읽어 초기값 설정
+  const [currentView, setCurrentView] = useState<'detail' | 'progress' | 'matching'>(
+    tabFromUrl || 'detail'
+  );
 
   // Dialog 상태 관리
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -31,7 +42,7 @@ function CustomersPageContent() {
   const { data, isLoading, error } = useCustomers({});
   const deleteCustomerMutation = useDeleteCustomer();
 
-  // URL 파라미터와 동기화
+  // URL 파라미터와 동기화 (고객 ID)
   useEffect(() => {
     if (selectedIdFromUrl && selectedIdFromUrl !== selectedCustomerId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -39,11 +50,19 @@ function CustomersPageContent() {
     }
   }, [selectedIdFromUrl, selectedCustomerId]);
 
+  // URL 파라미터와 동기화 (탭)
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== currentView) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentView(tabFromUrl);
+    }
+  }, [tabFromUrl, currentView]);
+
   // 고객 선택 시 URL 업데이트 (항상 기본 정보로 리셋)
   const handleSelectCustomer = (id: string) => {
     setSelectedCustomerId(id);
     setCurrentView('detail'); // 새 고객 선택 시 항상 기본 정보로 리셋
-    router.push(`/customers?selected=${id}`, { scroll: false });
+    router.push(`/customers?selected=${id}&tab=detail`, { scroll: false });
   };
 
   // 고객 삭제
@@ -94,7 +113,7 @@ function CustomersPageContent() {
   const handleViewChange = (customerId: string, view: 'detail' | 'progress' | 'matching') => {
     setSelectedCustomerId(customerId);
     setCurrentView(view);
-    router.push(`/customers?selected=${customerId}`, { scroll: false });
+    router.push(`/customers?selected=${customerId}&tab=${view}`, { scroll: false });
   };
 
   return (
@@ -153,7 +172,11 @@ function CustomersPageContent() {
               onDelete={handleDelete}
             />
           ) : currentView === 'matching' ? (
-            <CustomerMatchingPanel customer={selectedCustomer} isLoading={isLoading} />
+            <CustomerMatchingPanel
+              customer={selectedCustomer}
+              isLoading={isLoading}
+              defaultSubtab={subtabFromUrl || 'ai-matching'}
+            />
           ) : (
             <CustomerProgressPanel customer={selectedCustomer} isLoading={isLoading} />
           )}

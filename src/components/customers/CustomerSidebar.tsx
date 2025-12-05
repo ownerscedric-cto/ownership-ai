@@ -65,7 +65,7 @@ export function CustomerSidebar({
             <p className="text-gray-500 text-sm">검색 결과가 없습니다</p>
           </div>
         ) : (
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full" value={selectedId || undefined}>
             {filteredCustomers.map(customer => (
               <AccordionItem key={customer.id} value={customer.id} className="border-b-0">
                 <div

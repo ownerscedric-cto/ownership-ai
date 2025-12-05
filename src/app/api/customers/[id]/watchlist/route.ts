@@ -79,26 +79,43 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return errorResponse('ALREADY_IN_WATCHLIST', 'Program already in watchlist', 409);
     }
 
-    // Add to watchlist
-    const watchlistItem = await prisma.customerProgram.create({
-      data: {
-        customerId: id,
-        programId,
-        notes: notes || null,
-      },
-      include: {
-        program: {
-          select: {
-            id: true,
-            title: true,
-            dataSource: true,
-            deadline: true,
-            targetAudience: true,
-            targetLocation: true,
+    // Add to watchlist and update preferred keywords
+    const [watchlistItem] = await prisma.$transaction([
+      // 1. Add to watchlist
+      prisma.customerProgram.create({
+        data: {
+          customerId: id,
+          programId,
+          notes: notes || null,
+        },
+        include: {
+          program: {
+            select: {
+              id: true,
+              title: true,
+              dataSource: true,
+              deadline: true,
+              targetAudience: true,
+              targetLocation: true,
+            },
           },
         },
-      },
-    });
+      }),
+      // 2. Update customer's preferred keywords
+      prisma.customer.update({
+        where: { id },
+        data: {
+          preferredKeywords: {
+            set: Array.from(
+              new Set([
+                ...customer.preferredKeywords,
+                ...program.keywords, // Add program's keywords to preferred keywords
+              ])
+            ).slice(0, 100), // Limit to 100 keywords to prevent excessive growth
+          },
+        },
+      }),
+    ]);
 
     return successResponse(watchlistItem, undefined, 201);
   } catch (error) {

@@ -2,7 +2,6 @@
 
 import { use } from 'react';
 import { CustomerDetail } from '@/components/customers/CustomerDetail';
-import { CustomerWatchlist } from '@/components/customers/CustomerWatchlist';
 import { useCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -108,11 +107,6 @@ export default function CustomerPage({ params }: CustomerPageProps) {
 
         {/* 고객 상세 정보 */}
         <CustomerDetail customer={customer} />
-
-        {/* 관심 목록 */}
-        <div className="mt-8">
-          <CustomerWatchlist customerId={id} />
-        </div>
       </div>
     </AppLayout>
   );
