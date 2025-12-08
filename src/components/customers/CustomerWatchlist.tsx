@@ -5,10 +5,12 @@
  * @description Display customer's watchlist programs
  */
 
-import { Star, Trash2, ExternalLink, Calendar, Tag } from 'lucide-react';
+import { Star, Trash2, ExternalLink, Tag, Building2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DeadlineBadge } from '@/components/programs/DeadlineBadge';
 import { toast } from 'sonner';
 import {
   useWatchlist,
@@ -18,7 +20,26 @@ import {
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { truncateText } from '@/lib/utils/html';
+import { truncateText, decodeHtmlEntities } from '@/lib/utils/html';
+
+/**
+ * 데이터 소스 이름 정규화 함수
+ */
+const normalizeDataSource = (dataSource: string): string => {
+  if (dataSource === 'KOCCA-PIMS' || dataSource === 'KOCCA-Finance') {
+    return '한국콘텐츠진흥원';
+  }
+  return dataSource;
+};
+
+/**
+ * 데이터 소스별 Badge 색상 매핑
+ */
+const dataSourceColors: Record<string, string> = {
+  기업마당: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+  'K-Startup': 'bg-green-100 text-green-800 hover:bg-green-200',
+  한국콘텐츠진흥원: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
+};
 
 interface CustomerWatchlistProps {
   customerId: string;
@@ -126,8 +147,8 @@ export function CustomerWatchlist({ customerId }: CustomerWatchlistProps) {
         </Badge>
       </div>
 
-      {/* 프로그램 카드 리스트 */}
-      <div className="space-y-4">
+      {/* 프로그램 카드 그리드 (한 줄에 3개) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {watchlist.items.map(item => (
           <WatchlistProgramCard
             key={item.id}
@@ -150,75 +171,115 @@ interface WatchlistProgramCardProps {
 function WatchlistProgramCard({ item, onRemove, isRemoving }: WatchlistProgramCardProps) {
   const { program, addedAt, notes } = item;
 
+  // 설명 최대 길이 제한
+  const truncatedDescription = program.description ? truncateText(program.description, 150) : null;
+
+  // 대상 업종/지역 최대 3개만 표시
+  const displayedAudiences = program.targetAudience.slice(0, 3);
+  const remainingAudiencesCount = Math.max(0, program.targetAudience.length - 3);
+
+  const displayedLocations = program.targetLocation.slice(0, 3);
+  const remainingLocationsCount = Math.max(0, program.targetLocation.length - 3);
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-[#0052CC] transition-all">
-      <div className="flex items-start justify-between gap-4">
-        {/* 프로그램 정보 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="outline" className="text-xs">
-              {program.dataSource}
-            </Badge>
-            {program.category && (
-              <Badge variant="secondary" className="text-xs">
-                <Tag className="w-3 h-3 mr-1" />
-                {program.category}
-              </Badge>
-            )}
-          </div>
-
-          <Link href={`/programs/${program.id}`} className="block group mb-2">
-            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[#0052CC] transition-colors line-clamp-2">
-              {program.title}
-            </h3>
-          </Link>
-
-          {program.description && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-              {truncateText(program.description, 150)}
-            </p>
-          )}
-
-          {/* 메타 정보 */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-            {program.deadline && (
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  마감:{' '}
-                  {format(new Date(program.deadline), 'yyyy.MM.dd', {
-                    locale: ko,
-                  })}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <span>
-                추가:{' '}
-                {format(new Date(addedAt), 'yyyy.MM.dd', {
-                  locale: ko,
-                })}
-              </span>
-            </div>
-          </div>
-
-          {/* 메모 */}
-          {notes && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-700">
-                <span className="font-medium">메모:</span> {notes}
-              </p>
-            </div>
-          )}
+    <Card className="transition-all duration-200 hover:shadow-md hover:border-[#0052CC]/50">
+      <CardHeader className="space-y-2">
+        {/* 데이터 소스 Badge + 마감일 Badge */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <Badge
+            className={
+              dataSourceColors[normalizeDataSource(program.dataSource)] ||
+              'bg-gray-100 text-gray-800'
+            }
+          >
+            {normalizeDataSource(program.dataSource)}
+          </Badge>
+          <DeadlineBadge deadline={program.deadline} />
         </div>
 
+        {/* 제목 */}
+        <Link href={`/programs/${program.id}`} className="block group">
+          <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-[#0052CC] transition-colors line-clamp-2">
+            {decodeHtmlEntities(program.title)}
+          </CardTitle>
+        </Link>
+
+        {/* 카테고리 */}
+        {program.category && (
+          <div className="flex items-center gap-1 text-sm text-gray-600">
+            <Tag className="w-4 h-4" />
+            <span>{program.category}</span>
+          </div>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {/* 설명 */}
+        {truncatedDescription && (
+          <CardDescription className="text-sm text-gray-600 line-clamp-2">
+            {truncatedDescription}
+          </CardDescription>
+        )}
+
+        {/* 대상 업종 */}
+        {displayedAudiences.length > 0 && (
+          <div className="flex items-start gap-2">
+            <Building2 className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+            <div className="flex flex-wrap gap-1">
+              {displayedAudiences.map((audience, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {decodeHtmlEntities(audience)}
+                </Badge>
+              ))}
+              {remainingAudiencesCount > 0 && (
+                <Badge variant="outline" className="text-xs text-gray-500">
+                  +{remainingAudiencesCount}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 대상 지역 */}
+        {displayedLocations.length > 0 && (
+          <div className="flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+            <div className="flex flex-wrap gap-1">
+              {displayedLocations.map((location, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {decodeHtmlEntities(location)}
+                </Badge>
+              ))}
+              {remainingLocationsCount > 0 && (
+                <Badge variant="outline" className="text-xs text-gray-500">
+                  +{remainingLocationsCount}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 추가일 */}
+        <div className="flex items-center gap-1 text-sm text-gray-500">
+          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+          <span>추가: {format(new Date(addedAt), 'yyyy.MM.dd', { locale: ko })}</span>
+        </div>
+
+        {/* 메모 */}
+        {notes && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold text-amber-800">💡 메모:</span> {notes}
+            </p>
+          </div>
+        )}
+
         {/* 액션 버튼 */}
-        <div className="flex flex-col gap-2">
-          <Link href={`/programs/${program.id}`}>
+        <div className="flex gap-2 pt-2">
+          <Link href={`/programs/${program.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full">
               <ExternalLink className="w-4 h-4 mr-1" />
-              상세
+              상세 보기
             </Button>
           </Link>
           <Button
@@ -226,12 +287,13 @@ function WatchlistProgramCard({ item, onRemove, isRemoving }: WatchlistProgramCa
             size="sm"
             onClick={() => onRemove(program.id, program.title)}
             disabled={isRemoving}
+            className="flex-1"
           >
             <Trash2 className="w-4 h-4 mr-1" />
             삭제
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
