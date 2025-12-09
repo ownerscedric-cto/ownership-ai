@@ -57,12 +57,6 @@ export function formatProgramsToText(
       lines.push(`   - 분야: ${program.category}`);
     }
 
-    // 지원내용 (description 요약)
-    if (program.description) {
-      const summary = truncateDescription(program.description, 100);
-      lines.push(`   - 지원내용: ${summary}`);
-    }
-
     // 상세보기 링크 (원본 공공데이터 URL)
     if (program.sourceUrl) {
       lines.push(`   - 상세보기: ${program.sourceUrl}`);
@@ -92,25 +86,4 @@ function normalizeDataSource(dataSource: string): string {
     return '한국콘텐츠진흥원';
   }
   return dataSource;
-}
-
-/**
- * 설명 텍스트 요약
- */
-function truncateDescription(description: string, maxLength: number): string {
-  // HTML 엔티티 디코딩
-  const decoded = decodeHtmlEntities(description);
-
-  // HTML 태그 제거
-  const withoutTags = decoded.replace(/<[^>]*>/g, '');
-
-  // 공백 정리
-  const cleaned = withoutTags.replace(/\s+/g, ' ').trim();
-
-  // 길이 제한
-  if (cleaned.length <= maxLength) {
-    return cleaned;
-  }
-
-  return cleaned.slice(0, maxLength) + '...';
 }
