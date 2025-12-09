@@ -42,3 +42,8 @@ next-env.d.ts
 
 /src/generated/prisma
 .env*.local
+
+# SQL migration files (Supabase manual migrations)
+migration_*.sql
+*.sql
+!prisma/schema.prisma
