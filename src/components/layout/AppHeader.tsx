@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/common/Button';
-import { LogOut, User, Home, Users, FileText } from 'lucide-react';
+import { LogOut, User, Home, Users, FileText, GraduationCap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -79,6 +79,18 @@ export function AppHeader({ user }: AppHeaderProps) {
                 <FileText className="w-4 h-4" />
                 <span>정부지원사업</span>
               </Link>
+
+              <Link
+                href="/education"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/education')
+                    ? 'bg-blue-50 text-[var(--primary-blue)] font-medium'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>교육 센터</span>
+              </Link>
             </nav>
           </div>
 
@@ -131,6 +143,18 @@ export function AppHeader({ user }: AppHeaderProps) {
           >
             <FileText className="w-4 h-4" />
             <span>정부지원사업</span>
+          </Link>
+
+          <Link
+            href="/education"
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+              isActive('/education')
+                ? 'bg-blue-50 text-[var(--primary-blue)] font-medium'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>교육 센터</span>
           </Link>
         </nav>
       </div>
