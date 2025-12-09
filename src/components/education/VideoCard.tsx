@@ -22,9 +22,9 @@ export function VideoCard({ video }: VideoCardProps) {
 
   return (
     <Link href={`/education/videos/${video.id}`}>
-      <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden">
+      <Card className="h-full flex flex-col hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden">
         {/* 썸네일 */}
-        <div className="relative aspect-video bg-gray-200">
+        <div className="relative aspect-video bg-gray-200 flex-shrink-0">
           {video.thumbnailUrl ? (
             <img
               src={video.thumbnailUrl}
@@ -45,22 +45,26 @@ export function VideoCard({ video }: VideoCardProps) {
           )}
         </div>
 
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex flex-col flex-grow">
           {/* 카테고리 */}
-          <Badge variant="secondary" className="mb-2">
-            {video.category}
+          <Badge variant="secondary" className="mb-2 w-fit">
+            {video.category.name}
           </Badge>
 
           {/* 제목 */}
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{video.title}</h3>
+          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
+            {video.title}
+          </h3>
 
           {/* 설명 */}
           {video.description && (
-            <p className="text-sm text-gray-600 mb-3 line-clamp-2">{video.description}</p>
+            <p className="text-sm text-gray-600 mb-3 line-clamp-2 min-h-[2.5rem]">
+              {video.description}
+            </p>
           )}
 
           {/* 조회수 */}
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500 mt-auto">
             <Eye className="w-4 h-4" />
             <span>조회수 {video.viewCount.toLocaleString()}</span>
           </div>

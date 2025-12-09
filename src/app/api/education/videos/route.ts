@@ -69,17 +69,30 @@ export async function GET(request: NextRequest) {
     const filters = educationVideoFilterSchema.parse(queryParams);
 
     // 2. Prisma where 조건 구성
-    const where: Prisma.EducationVideoWhereInput = {
-      ...(filters.category && { category: filters.category }),
-      ...(filters.videoType && { videoType: filters.videoType }),
-      ...(filters.search && {
-        OR: [
-          { title: { contains: filters.search, mode: 'insensitive' } },
-          { description: { contains: filters.search, mode: 'insensitive' } },
-          { tags: { has: filters.search } }, // 태그 배열 검색
-        ],
-      }),
-    };
+    const where: Prisma.EducationVideoWhereInput = {};
+
+    // 카테고리 필터링 (relation을 통한 검색)
+    if (filters.category) {
+      where.category = {
+        is: {
+          name: filters.category,
+        },
+      };
+    }
+
+    // 비디오 타입 필터링
+    if (filters.videoType) {
+      where.videoType = filters.videoType;
+    }
+
+    // 검색어 필터링
+    if (filters.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+        { tags: { has: filters.search } }, // 태그 배열 검색
+      ];
+    }
 
     // 3. 정렬 조건
     const orderBy: Prisma.EducationVideoOrderByWithRelationInput = {
@@ -97,6 +110,9 @@ export async function GET(request: NextRequest) {
         orderBy,
         skip,
         take,
+        include: {
+          category: true, // 카테고리 relation 포함
+        },
       }),
       prisma.educationVideo.count({ where }),
     ]);

@@ -7,9 +7,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
 
-    // 비디오 조회
+    // 비디오 조회 (category relation 포함)
     const video = await prisma.educationVideo.findUnique({
       where: { id },
+      include: {
+        category: true,
+      },
     });
 
     if (!video) {
@@ -33,13 +36,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params;
 
-    // 조회수 증가
+    // 조회수 증가 (category relation 포함)
     const video = await prisma.educationVideo.update({
       where: { id },
       data: {
         viewCount: {
           increment: 1,
         },
+      },
+      include: {
+        category: true,
       },
     });
 

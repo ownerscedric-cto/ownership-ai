@@ -28,9 +28,7 @@ export const createEducationVideoSchema = z.object({
   // 기본 정보 (필수)
   title: z.string().min(1, '제목은 필수입니다').max(200, '제목은 200자 이하여야 합니다'),
   description: z.string().max(1000, '설명은 1000자 이하여야 합니다').optional(),
-  category: z.enum(['개요', '분야별', '신청서작성', '성공사례'], {
-    message: '유효한 카테고리를 선택해주세요',
-  }),
+  categoryId: z.string().min(1, '카테고리를 선택해주세요'),
 
   // 비디오 정보 (필수)
   videoUrl: z.string().url('올바른 URL 형식이 아닙니다'),
@@ -50,7 +48,7 @@ export const createEducationVideoSchema = z.object({
 export const updateEducationVideoSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(1000).optional(),
-  category: z.enum(['개요', '분야별', '신청서작성', '성공사례']).optional(),
+  categoryId: z.string().min(1).optional(),
   videoUrl: z.string().url().optional(),
   videoType: z.enum(['youtube', 'vimeo', 'file']).optional(),
   thumbnailUrl: z.string().url().optional(),

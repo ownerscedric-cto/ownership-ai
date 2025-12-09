@@ -4,11 +4,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // Types
 // ============================================
 
+export interface VideoCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface EducationVideo {
   id: string;
   title: string;
   description: string | null;
-  category: string;
+  category: VideoCategory; // Changed from string to VideoCategory relation
+  categoryId: string;
   videoUrl: string;
   videoType: string;
   thumbnailUrl: string | null;

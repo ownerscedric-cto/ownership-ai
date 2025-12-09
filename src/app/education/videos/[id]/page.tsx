@@ -113,7 +113,7 @@ export default function VideoDetailPage() {
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <Badge variant="secondary">{video.category}</Badge>
+              <Badge variant="secondary">{video.category.name}</Badge>
               {video.duration && (
                 <div className="flex items-center gap-1 text-sm text-gray-600">
                   <Clock className="w-4 h-4" />

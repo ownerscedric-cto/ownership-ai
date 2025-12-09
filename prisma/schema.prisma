@@ -196,6 +196,23 @@ model MatchingResult {
   @@map("matching_results")
 }
 
+// 비디오 카테고리 (Phase 5: VOD 및 교육 콘텐츠)
+model VideoCategory {
+  id String @id @default(uuid())
+
+  name        String   @unique // 카테고리 이름 (예: "개요", "분야별", "신청서작성")
+  description String? // 카테고리 설명
+  order       Int      @default(0) // 정렬 순서
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 관계: 이 카테고리를 사용하는 비디오들
+  videos EducationVideo[]
+
+  @@index([order])
+  @@map("video_categories")
+}
+
 // 교육 비디오 콘텐츠 (Phase 5: VOD 및 교육 콘텐츠)
 model EducationVideo {
   id String @id @default(uuid())
@@ -203,7 +220,10 @@ model EducationVideo {
   // 기본 정보
   title       String
   description String?
-  category    String // "개요", "분야별", "신청서작성", "성공사례"
+
+  // 카테고리 관계
+  category   VideoCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId String
 
   // 비디오 정보
   videoUrl     String // YouTube URL, Vimeo URL, 또는 Supabase Storage URL
@@ -217,7 +237,7 @@ model EducationVideo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([category])
+  @@index([categoryId])
   @@index([videoType])
   @@index([createdAt(sort: Desc)])
   @@map("education_videos")
