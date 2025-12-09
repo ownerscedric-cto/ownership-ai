@@ -5,7 +5,7 @@
  * @description Display customer's watchlist programs
  */
 
-import { Star, Trash2, ExternalLink, Tag, Building2, MapPin } from 'lucide-react';
+import { Star, Trash2, ExternalLink, Tag, Building2, MapPin, Copy, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +21,8 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { truncateText, decodeHtmlEntities } from '@/lib/utils/html';
+import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
+import { useState } from 'react';
 
 /**
  * 데이터 소스 이름 정규화 함수
@@ -43,11 +45,13 @@ const dataSourceColors: Record<string, string> = {
 
 interface CustomerWatchlistProps {
   customerId: string;
+  customerName?: string;
 }
 
-export function CustomerWatchlist({ customerId }: CustomerWatchlistProps) {
+export function CustomerWatchlist({ customerId, customerName }: CustomerWatchlistProps) {
   const { data: watchlist, isLoading, error } = useWatchlist(customerId);
   const removeFromWatchlist = useRemoveFromWatchlist();
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleRemove = async (programId: string, programTitle: string) => {
     if (!confirm(`"${programTitle}"을 관심 목록에서 삭제하시겠습니까?`)) {
@@ -68,6 +72,41 @@ export function CustomerWatchlist({ customerId }: CustomerWatchlistProps) {
 
       toast.error('삭제 실패', {
         description: errorMessage,
+      });
+    }
+  };
+
+  const handleCopyToClipboard = async () => {
+    if (!watchlist || watchlist.items.length === 0) {
+      toast.error('복사할 프로그램이 없습니다', {
+        description: '관심 목록에 프로그램을 추가해주세요.',
+      });
+      return;
+    }
+
+    try {
+      // 프로그램 목록을 텍스트로 변환
+      const text = formatProgramsToText(watchlist.items, {
+        customerName,
+        includeHeader: true,
+        includeFooter: true,
+      });
+
+      // 클립보드에 복사
+      await navigator.clipboard.writeText(text);
+
+      // 복사 성공 상태
+      setIsCopied(true);
+      toast.success('클립보드에 복사했습니다! 📋', {
+        description: `${watchlist.items.length}개의 프로그램을 복사했습니다.`,
+      });
+
+      // 2초 후 복사 아이콘 리셋
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+      toast.error('복사에 실패했습니다', {
+        description: '다시 시도해주세요.',
       });
     }
   };
@@ -139,12 +178,35 @@ export function CustomerWatchlist({ customerId }: CustomerWatchlistProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       {/* 헤더 */}
-      <div className="flex items-center gap-2 mb-6">
-        <Star className="w-6 h-6 text-[#0052CC]" />
-        <h2 className="text-2xl font-semibold text-gray-900">관심 목록</h2>
-        <Badge variant="secondary" className="ml-2">
-          {watchlist.total}개
-        </Badge>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Star className="w-6 h-6 text-[#0052CC]" />
+          <h2 className="text-2xl font-semibold text-gray-900">관심 목록</h2>
+          <Badge variant="secondary" className="ml-2">
+            {watchlist.total}개
+          </Badge>
+        </div>
+
+        {/* 텍스트 복사 버튼 */}
+        <Button
+          onClick={handleCopyToClipboard}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={watchlist.items.length === 0}
+        >
+          {isCopied ? (
+            <>
+              <CheckCheck className="w-4 h-4 text-green-600" />
+              복사됨!
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              텍스트 복사
+            </>
+          )}
+        </Button>
       </div>
 
       {/* 프로그램 카드 그리드 (한 줄에 3개) */}

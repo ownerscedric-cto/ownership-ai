@@ -113,7 +113,7 @@ export function CustomerMatchingPanel({
 
           {/* 관심목록 탭 */}
           <TabsContent value="watchlist" className="mt-6">
-            <CustomerWatchlist customerId={customer.id} />
+            <CustomerWatchlist customerId={customer.id} customerName={customer.name} />
           </TabsContent>
         </Tabs>
       </div>

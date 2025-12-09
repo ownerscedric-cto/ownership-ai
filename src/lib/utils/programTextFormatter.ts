@@ -1,0 +1,115 @@
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import type { WatchlistProgram } from '@/lib/hooks/useWatchlist';
+import { decodeHtmlEntities } from './html';
+
+interface FormatOptions {
+  customerName?: string;
+  includeHeader?: boolean;
+  includeFooter?: boolean;
+}
+
+/**
+ * 관심 목록 프로그램들을 공유 가능한 텍스트로 변환
+ *
+ * @param programs - 관심 목록 프로그램 배열
+ * @param options - 포맷 옵션
+ * @returns 공유 가능한 텍스트
+ */
+export function formatProgramsToText(
+  programs: WatchlistProgram[],
+  options: FormatOptions = {}
+): string {
+  const { customerName, includeHeader = true, includeFooter = true } = options;
+
+  const lines: string[] = [];
+
+  // 헤더
+  if (includeHeader) {
+    if (customerName) {
+      lines.push(`📢 ${customerName}님께 추천하는 정부지원사업\n`);
+    } else {
+      lines.push(`📢 추천 정부지원사업\n`);
+    }
+  }
+
+  // 프로그램 목록
+  programs.forEach((item, index) => {
+    const { program } = item;
+
+    // 번호. 제목
+    lines.push(`${index + 1}. ${decodeHtmlEntities(program.title)}`);
+
+    // 지원기관 (dataSource)
+    const dataSource = normalizeDataSource(program.dataSource);
+    lines.push(`   - 지원기관: ${dataSource}`);
+
+    // 신청기한
+    if (program.deadline) {
+      const deadlineText = format(new Date(program.deadline), 'yyyy년 MM월 dd일', {
+        locale: ko,
+      });
+      lines.push(`   - 신청기한: ${deadlineText}`);
+    }
+
+    // 카테고리
+    if (program.category) {
+      lines.push(`   - 분야: ${program.category}`);
+    }
+
+    // 지원내용 (description 요약)
+    if (program.description) {
+      const summary = truncateDescription(program.description, 100);
+      lines.push(`   - 지원내용: ${summary}`);
+    }
+
+    // 상세보기 링크 (내부 링크 - 추후 도메인 설정 시 변경)
+    const detailUrl = `https://yourdomain.com/programs/${program.id}`;
+    lines.push(`   - 상세보기: ${detailUrl}`);
+
+    // 프로그램 간 구분선
+    if (index < programs.length - 1) {
+      lines.push('');
+    }
+  });
+
+  // 푸터
+  if (includeFooter) {
+    lines.push('');
+    lines.push('---');
+    lines.push('문의사항이 있으시면 언제든 연락주세요! 😊');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * 데이터 소스 이름 정규화
+ */
+function normalizeDataSource(dataSource: string): string {
+  if (dataSource === 'KOCCA-PIMS' || dataSource === 'KOCCA-Finance') {
+    return '한국콘텐츠진흥원';
+  }
+  return dataSource;
+}
+
+/**
+ * 설명 텍스트 요약
+ */
+function truncateDescription(description: string, maxLength: number): string {
+  // HTML 엔티티 디코딩
+  const decoded = decodeHtmlEntities(description);
+
+  // HTML 태그 제거
+  const withoutTags = decoded.replace(/<[^>]*>/g, '');
+
+  // 공백 정리
+  const cleaned = withoutTags.replace(/\s+/g, ' ').trim();
+
+  // 길이 제한
+  if (cleaned.length <= maxLength) {
+    return cleaned;
+  }
+
+  return cleaned.slice(0, maxLength) + '...';
+}
