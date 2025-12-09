@@ -63,9 +63,10 @@ export function formatProgramsToText(
       lines.push(`   - 지원내용: ${summary}`);
     }
 
-    // 상세보기 링크 (내부 링크 - 추후 도메인 설정 시 변경)
-    const detailUrl = `https://yourdomain.com/programs/${program.id}`;
-    lines.push(`   - 상세보기: ${detailUrl}`);
+    // 상세보기 링크 (원본 공공데이터 URL)
+    if (program.sourceUrl) {
+      lines.push(`   - 상세보기: ${program.sourceUrl}`);
+    }
 
     // 프로그램 간 구분선
     if (index < programs.length - 1) {
