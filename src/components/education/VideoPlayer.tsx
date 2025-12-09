@@ -1,10 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import dynamic from 'next/dynamic';
-
-const ReactPlayer = dynamic(() => import('react-player').then(mod => mod.default), { ssr: false });
-
 interface VideoPlayerProps {
   url: string;
   thumbnailUrl?: string | null;
@@ -13,32 +8,40 @@ interface VideoPlayerProps {
 
 /**
  * 비디오 플레이어 컴포넌트
- * - react-player 사용 (YouTube, Vimeo, 로컬 파일 지원)
+ * - YouTube iframe 직접 사용
  * - 반응형 16:9 비율
  */
-export function VideoPlayer({ url, thumbnailUrl, title }: VideoPlayerProps) {
-  const [playing, setPlaying] = useState(false);
+export function VideoPlayer({ url }: VideoPlayerProps) {
+  // YouTube URL에서 비디오 ID 추출
+  const getYouTubeVideoId = (url: string): string | null => {
+    // https://www.youtube.com/watch?v=VIDEO_ID
+    const match = url.match(/[?&]v=([^&]+)/);
+    return match ? match[1] : null;
+  };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const Player = ReactPlayer as any;
+  const videoId = getYouTubeVideoId(url);
+
+  if (!videoId) {
+    return (
+      <div className="relative aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="text-center text-white p-4">
+          <p className="text-lg font-medium mb-2">비디오 URL 오류</p>
+          <p className="text-sm text-gray-400">올바른 YouTube URL이 아닙니다</p>
+          <p className="text-sm text-gray-400 mt-2">URL: {url}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-      <Player
-        url={url}
-        width="100%"
-        height="100%"
-        playing={playing}
-        controls
-        light={thumbnailUrl || undefined}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
+      <iframe
+        src={`https://www.youtube.com/embed/${videoId}`}
+        title="YouTube video player"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="absolute inset-0 w-full h-full"
       />
-      {!playing && !thumbnailUrl && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50">
-          <p className="text-white text-lg font-medium">{title || '비디오 로딩 중...'}</p>
-        </div>
-      )}
     </div>
   );
 }

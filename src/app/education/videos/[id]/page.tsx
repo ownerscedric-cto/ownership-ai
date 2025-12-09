@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { VideoPlayer } from '@/components/education/VideoPlayer';
 import { useEducationVideo, useIncrementVideoViewCount } from '@/hooks/useEducation';
@@ -25,12 +25,16 @@ export default function VideoDetailPage() {
   const { data, isLoading, error } = useEducationVideo(videoId);
   const incrementViewCount = useIncrementVideoViewCount();
 
+  // 조회수 증가 추적 (중복 방지)
+  const hasIncrementedRef = useRef(false);
+
   // 조회수 증가 (최초 1회만)
   useEffect(() => {
-    if (videoId && data?.success) {
+    if (videoId && data?.success && !hasIncrementedRef.current) {
       incrementViewCount.mutate(videoId);
+      hasIncrementedRef.current = true;
     }
-  }, [videoId, data?.success]);
+  }, [videoId, data?.success, incrementViewCount]);
 
   // 로딩 상태
   if (isLoading) {
