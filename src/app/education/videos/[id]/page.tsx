@@ -9,11 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Clock, ArrowLeft, Tag } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { hasViewedContent, addViewedContentId } from '@/lib/cookies';
+
+const VIEWED_VIDEOS_COOKIE = 'viewed_education_videos';
 
 /**
  * 교육 비디오 상세 페이지
  * - VideoPlayer 통합
- * - 조회수 자동 증가
+ * - 조회수 자동 증가 (쿠키 기반 중복 방지)
  * - 비디오 정보 표시
  */
 export default function VideoDetailPage() {
@@ -28,10 +31,20 @@ export default function VideoDetailPage() {
   // 조회수 증가 추적 (중복 방지)
   const hasIncrementedRef = useRef(false);
 
-  // 조회수 증가 (최초 1회만)
+  // 조회수 증가 (쿠키 기반 중복 방지 - 24시간)
   useEffect(() => {
     if (videoId && data?.success && !hasIncrementedRef.current) {
-      incrementViewCount.mutate(videoId);
+      // 쿠키 확인: 이미 조회한 비디오인지 체크
+      const alreadyViewed = hasViewedContent(VIEWED_VIDEOS_COOKIE, videoId);
+
+      if (!alreadyViewed) {
+        // 조회수 증가 API 호출
+        incrementViewCount.mutate(videoId);
+
+        // 쿠키에 추가 (24시간 TTL)
+        addViewedContentId(VIEWED_VIDEOS_COOKIE, videoId, 1);
+      }
+
       hasIncrementedRef.current = true;
     }
   }, [videoId, data?.success, incrementViewCount]);

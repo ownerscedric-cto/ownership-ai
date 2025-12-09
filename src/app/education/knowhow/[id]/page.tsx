@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
@@ -10,12 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, User, ArrowLeft, Tag } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { hasViewedContent, addViewedContentId } from '@/lib/cookies';
 import 'highlight.js/styles/github.css';
+
+const VIEWED_KNOWHOW_COOKIE = 'viewed_knowhow';
 
 /**
  * 노하우 상세 페이지
  * - Markdown 렌더링
- * - 조회수 자동 증가
+ * - 조회수 자동 증가 (쿠키 기반 중복 방지)
  * - 노하우 정보 표시
  */
 export default function KnowHowDetailPage() {
@@ -27,12 +30,26 @@ export default function KnowHowDetailPage() {
   const { data, isLoading, error } = useKnowHow(knowhowId);
   const incrementViewCount = useIncrementKnowHowViewCount();
 
-  // 조회수 증가 (최초 1회만)
+  // 조회수 증가 추적 (중복 방지)
+  const hasIncrementedRef = useRef(false);
+
+  // 조회수 증가 (쿠키 기반 중복 방지 - 24시간)
   useEffect(() => {
-    if (knowhowId && data?.success) {
-      incrementViewCount.mutate(knowhowId);
+    if (knowhowId && data?.success && !hasIncrementedRef.current) {
+      // 쿠키 확인: 이미 조회한 노하우인지 체크
+      const alreadyViewed = hasViewedContent(VIEWED_KNOWHOW_COOKIE, knowhowId);
+
+      if (!alreadyViewed) {
+        // 조회수 증가 API 호출
+        incrementViewCount.mutate(knowhowId);
+
+        // 쿠키에 추가 (24시간 TTL)
+        addViewedContentId(VIEWED_KNOWHOW_COOKIE, knowhowId, 1);
+      }
+
+      hasIncrementedRef.current = true;
     }
-  }, [knowhowId, data?.success]);
+  }, [knowhowId, data?.success, incrementViewCount]);
 
   // 로딩 상태
   if (isLoading) {
