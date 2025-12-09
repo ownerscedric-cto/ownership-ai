@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma';
 /**
  * GET /api/education/resources/[id] - 자료 상세 조회
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const resource = await prisma.resource.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!resource) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       data: resource,
     });
   } catch (error) {
-    console.error(`GET /api/education/resources/${params.id} error:`, error);
+    console.error(`GET /api/education/resources/[id] error:`, error);
 
     return NextResponse.json(
       {

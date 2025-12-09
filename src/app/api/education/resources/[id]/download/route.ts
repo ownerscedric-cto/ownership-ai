@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma';
 /**
  * GET /api/education/resources/[id]/download - 자료 다운로드 (다운로드 카운트 증가)
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     // 다운로드 카운트 증가
     const resource = await prisma.resource.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         downloadCount: { increment: 1 },
       },
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // 파일 URL로 리다이렉트
     return NextResponse.redirect(resource.fileUrl);
   } catch (error) {
-    console.error(`GET /api/education/resources/${params.id}/download error:`, error);
+    console.error(`GET /api/education/resources/[id]/download error:`, error);
 
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(

@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma';
 /**
  * GET /api/education/knowhow/[id] - 노하우 상세 조회
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const knowhow = await prisma.knowHow.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!knowhow) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       data: knowhow,
     });
   } catch (error) {
-    console.error(`GET /api/education/knowhow/${params.id} error:`, error);
+    console.error(`GET /api/education/knowhow/[id] error:`, error);
 
     return NextResponse.json(
       {
@@ -46,10 +47,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 /**
  * PATCH /api/education/knowhow/[id] - 노하우 조회수 증가
  */
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const knowhow = await prisma.knowHow.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         viewCount: { increment: 1 },
       },
@@ -60,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       data: knowhow,
     });
   } catch (error) {
-    console.error(`PATCH /api/education/knowhow/${params.id} error:`, error);
+    console.error(`PATCH /api/education/knowhow/[id] error:`, error);
 
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(
