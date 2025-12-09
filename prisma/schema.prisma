@@ -32,24 +32,24 @@ model Invitation {
 
 // 고객 관리 모델
 model Customer {
-  id String @id @default(uuid())
+  id     String @id @default(uuid())
   userId String // 컨설턴트 ID (Supabase Auth UID)
 
   // 사업자 정보
-  businessNumber String @unique // 사업자등록번호 (10자리, 필수)
-  businessType String // 'INDIVIDUAL' | 'CORPORATE' (개인사업자 | 법인사업자)
+  businessNumber  String  @unique // 사업자등록번호 (10자리, 필수)
+  businessType    String // 'INDIVIDUAL' | 'CORPORATE' (개인사업자 | 법인사업자)
   corporateNumber String? // 법인등록번호 (13자리, 법인사업자만 해당)
-  name String // 사업자명/상호
+  name            String // 사업자명/상호
 
   // 기업 정보
-  industry String?
+  industry    String?
   companySize String?
-  location String?
-  budget Int?
+  location    String?
+  budget      Int?
 
   // 니즈 정보
-  challenges String[]
-  goals String[]
+  challenges        String[]
+  goals             String[]
   preferredKeywords String[] @default([]) // 영업자가 선택한 프로그램 기반 학습된 키워드
 
   // 연락처 정보
@@ -57,7 +57,7 @@ model Customer {
   contactPhone String?
 
   // 기타
-  notes String?
+  notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -85,17 +85,17 @@ model Program {
   sourceApiId String // 각 API에서 제공하는 원본 ID
 
   // 기본 정보
-  title           String
-  description     String? // 프로그램 설명
-  category        String?
-  targetAudience  String[] // 대상 업종
-  targetLocation  String[] // 대상 지역
-  keywords        String[] // 키워드 배열
-  budgetRange     String?
-  deadline        DateTime?
-  sourceUrl       String?
-  attachmentUrl   String? // 첨부파일 URL (기업마당 API만 제공)
-  rawData         Json // 원본 데이터 보관 (API별 차이 흡수)
+  title          String
+  description    String? // 프로그램 설명
+  category       String?
+  targetAudience String[] // 대상 업종
+  targetLocation String[] // 대상 지역
+  keywords       String[] // 키워드 배열
+  budgetRange    String?
+  deadline       DateTime?
+  sourceUrl      String?
+  attachmentUrl  String? // 첨부파일 URL (기업마당 API만 제공)
+  rawData        Json // 원본 데이터 보관 (API별 차이 흡수)
 
   // 날짜 정보 (교차 정렬용)
   registeredAt DateTime // 등록일 (교차 정렬의 핵심 필드) ⭐
@@ -181,8 +181,8 @@ model MatchingResult {
   score Float // 업종(30) + 지역(30) + 키워드(최대 40)
 
   // 매칭 상세 정보
-  matchedIndustry Boolean  // 업종 일치 여부
-  matchedLocation Boolean  // 지역 일치 여부
+  matchedIndustry Boolean // 업종 일치 여부
+  matchedLocation Boolean // 지역 일치 여부
   matchedKeywords String[] // 일치한 키워드 목록
 
   // 메타데이터
@@ -194,4 +194,77 @@ model MatchingResult {
   @@index([score(sort: Desc)]) // 점수 내림차순 정렬
   @@index([createdAt(sort: Desc)]) // 생성일 내림차순 정렬
   @@map("matching_results")
+}
+
+// 교육 비디오 콘텐츠 (Phase 5: VOD 및 교육 콘텐츠)
+model EducationVideo {
+  id String @id @default(uuid())
+
+  // 기본 정보
+  title       String
+  description String?
+  category    String // "개요", "분야별", "신청서작성", "성공사례"
+
+  // 비디오 정보
+  videoUrl     String // YouTube URL, Vimeo URL, 또는 Supabase Storage URL
+  videoType    String  @default("youtube") // "youtube", "vimeo", "file"
+  thumbnailUrl String?
+  duration     Int? // 초 단위
+
+  // 메타데이터
+  viewCount Int      @default(0)
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([videoType])
+  @@index([createdAt(sort: Desc)])
+  @@map("education_videos")
+}
+
+// 노하우 아카이브 (Phase 5: VOD 및 교육 콘텐츠)
+model KnowHow {
+  id String @id @default(uuid())
+
+  // 기본 정보
+  title    String
+  content  String  @db.Text // Markdown 지원
+  category String // "업종별", "사업별", "팁", "주의사항"
+  author   String?
+
+  // 메타데이터
+  tags      String[]
+  viewCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([createdAt(sort: Desc)])
+  @@map("knowhow")
+}
+
+// 자료실 - 템플릿, 체크리스트, 참고 문서 (Phase 5: VOD 및 교육 콘텐츠)
+model Resource {
+  id String @id @default(uuid())
+
+  // 기본 정보
+  title       String
+  description String?
+  type        String // "template", "checklist", "document"
+
+  // 파일 정보
+  fileUrl  String // Supabase Storage URL
+  fileName String
+  fileSize Int? // bytes
+
+  // 메타데이터
+  downloadCount Int      @default(0)
+  tags          String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([type])
+  @@index([createdAt(sort: Desc)])
+  @@map("resources")
 }

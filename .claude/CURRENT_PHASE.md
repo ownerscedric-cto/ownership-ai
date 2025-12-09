@@ -1,15 +1,16 @@
-# Current Phase: Phase 4 - 업종/키워드/지역 매칭 시스템 (Week 7-8) 🎯
+# Current Phase: Phase 5 - 교육 콘텐츠 및 VOD 제공 페이지 🎬
 
-**목표**: 고객 정보 기반 최적 프로그램 추천 알고리즘 개발 (규칙 기반 매칭)
+**목표**: 컨설턴트 전문성 향상을 위한 교육 콘텐츠 시스템 구축
 
-**전체 진행 상황**: Phase 4 / 9 Phases 🚀 **Phase 4 시작!**
+**전체 진행 상황**: Phase 5 / 9 Phases 🚀 **Phase 5 시작!**
 
-**이전 Phase**: ✅ Phase 3 완료 (다중 API 통합, 프로그램 UI, 관심 목록)
+**이전 Phase**: ✅ Phase 4 완료 (업종/키워드/지역 매칭 시스템)
 
-**Phase 4 진행 현황**: 🎉 **Phase 4 완료!**
+**Phase 5 진행 현황**: 🔄 **ISSUE-25 완료, ISSUE-26 진행 준비**
 
-- ✅ ISSUE-08: 업종/키워드/지역 기반 매칭 로직 구현 (완료)
-- ✅ ISSUE-09: 매칭 결과 UI 개발 (완료)
+- ✅ ISSUE-25: 교육 콘텐츠 데이터 모델 및 API 구현 (완료)
+- ⏳ ISSUE-26: VOD 플레이어 및 교육 콘텐츠 UI 개발 (대기)
+- ⏳ ISSUE-27: 노하우 아카이브 및 자료실 구현 (대기)
 
 ---
 
@@ -46,9 +47,296 @@
 - ✅ useWatchlist, useAddToWatchlist, useRemoveFromWatchlist hooks
 - ✅ POST /api/customers/[id]/watchlist (관심 목록 추가/삭제)
 
+**Phase 3 추가 개선 (2025-01-21)** ✅
+
+- ✅ Vercel Cron Job 설정 (매일 새벽 2시 자동 동기화)
+  - vercel.json cron 설정 (0 17 \* \* \* = UTC 17:00 = KST 02:00)
+  - CRON_SECRET 인증 추가
+  - GET /api/cron/sync-programs 엔드포인트 활용
+- ✅ CustomerWatchlist UI 개선
+  - Grid 레이아웃 적용 (모바일 1열, 태블릿 2열, 데스크탑 3열)
+  - ProgramCard 스타일 통일 (shadcn/ui Card 컴포넌트)
+  - 데이터 소스 컬러풀 Badge, DeadlineBadge 추가
+- ✅ Next.js 보안 업데이트
+  - 16.0.3 → 16.0.7 업데이트
+  - CVE-2025-66478 Critical 취약점 해결
+  - Vercel 배포 에러 해결
+
 ---
 
-## 📋 Phase 4 ISSUE 목록
+## 📋 Phase 5 ISSUE 목록
+
+### 📋 ISSUE-25: 교육 콘텐츠 데이터 모델 및 API 구현
+
+**상태**: ✅ 완료 (2025-01-21)
+**목표**: VOD 콘텐츠, 노하우 아카이브, 자료실을 위한 데이터베이스 모델 및 CRUD API 개발
+**의존성**: ✅ Phase 4 완료
+**완료 기간**: 1일
+**난이도**: 중
+
+**핵심 기술**:
+
+- **Prisma 스키마**: EducationVideo, KnowHow, Resource 모델
+- **Supabase Storage**: 비디오 파일 및 자료 저장
+- **CRUD API**: 교육 콘텐츠 관리 엔드포인트
+- **파일 업로드**: 비디오, 문서 파일 업로드 처리
+
+**작업 내용**:
+
+1. **Prisma 스키마 작성**:
+
+   ```prisma
+   // 교육 비디오 콘텐츠
+   model EducationVideo {
+     id            String   @id @default(uuid())
+     title         String
+     description   String?
+     category      String   // "개요", "분야별", "신청서작성", "성공사례"
+     videoUrl      String   // YouTube URL, Vimeo URL, 또는 Supabase Storage URL
+     videoType     String   @default("youtube") // "youtube", "vimeo", "file"
+     thumbnailUrl  String?
+     duration      Int?     // 초 단위
+     viewCount     Int      @default(0)
+     tags          String[]
+     createdAt     DateTime @default(now())
+     updatedAt     DateTime @updatedAt
+
+     @@index([category])
+     @@index([videoType])
+     @@index([createdAt(sort: Desc)])
+   }
+
+   // 노하우 아카이브
+   model KnowHow {
+     id          String   @id @default(uuid())
+     title       String
+     content     String   @db.Text // Markdown 지원
+     category    String   // "업종별", "사업별", "팁", "주의사항"
+     author      String?
+     tags        String[]
+     viewCount   Int      @default(0)
+     createdAt   DateTime @default(now())
+     updatedAt   DateTime @updatedAt
+
+     @@index([category])
+     @@index([createdAt(sort: Desc)])
+   }
+
+   // 자료실 (템플릿, 체크리스트, 참고 문서)
+   model Resource {
+     id          String   @id @default(uuid())
+     title       String
+     description String?
+     type        String   // "template", "checklist", "document"
+     fileUrl     String   // Supabase Storage URL
+     fileName    String
+     fileSize    Int?     // bytes
+     downloadCount Int    @default(0)
+     tags        String[]
+     createdAt   DateTime @default(now())
+     updatedAt   DateTime @updatedAt
+
+     @@index([type])
+     @@index([createdAt(sort: Desc)])
+   }
+   ```
+
+2. **Supabase Storage 버킷 생성**:
+   - `education-videos` (비디오 파일)
+   - `resources` (문서, 템플릿 파일)
+   - Public 접근 설정
+
+3. **CRUD API 엔드포인트 작성**:
+   - `POST /api/education/videos` (비디오 생성)
+   - `GET /api/education/videos` (비디오 목록 조회)
+   - `GET /api/education/videos/[id]` (비디오 상세 조회)
+   - `PATCH /api/education/videos/[id]` (조회수 증가)
+   - `POST /api/education/knowhow` (노하우 생성)
+   - `GET /api/education/knowhow` (노하우 목록 조회)
+   - `GET /api/education/knowhow/[id]` (노하우 상세 조회)
+   - `POST /api/education/resources` (자료 업로드)
+   - `GET /api/education/resources` (자료 목록 조회)
+   - `GET /api/education/resources/[id]/download` (다운로드 + 카운트 증가)
+
+4. **파일 업로드 처리**:
+   - Supabase Storage 연동
+   - 파일 크기 제한 (비디오: 500MB, 문서: 50MB)
+   - MIME 타입 검증
+
+**완료 조건**:
+
+- [x] Prisma 스키마 작성 및 마이그레이션
+- [x] Supabase 마이그레이션 실행 (education_videos, knowhow, resources)
+- [x] 교육 비디오 CRUD API 완성
+- [x] 노하우 아카이브 CRUD API 완성
+- [x] 자료실 CRUD API 완성
+- [x] Zod 검증 스키마 완성
+- [x] RLS 정책 적용 (Public Read, Authenticated Write)
+- [x] TypeScript 타입 체크 통과
+
+**구현된 API**:
+
+- `POST /api/education/videos` - 비디오 생성
+- `GET /api/education/videos` - 비디오 목록 조회 (페이지네이션, 필터링)
+- `GET /api/education/videos/[id]` - 비디오 상세 조회
+- `PATCH /api/education/videos/[id]` - 조회수 증가
+- `POST /api/education/knowhow` - 노하우 생성
+- `GET /api/education/knowhow` - 노하우 목록 조회
+- `GET /api/education/knowhow/[id]` - 노하우 상세 조회
+- `PATCH /api/education/knowhow/[id]` - 조회수 증가
+- `POST /api/education/resources` - 자료 생성
+- `GET /api/education/resources` - 자료 목록 조회
+- `GET /api/education/resources/[id]` - 자료 상세 조회
+- `GET /api/education/resources/[id]/download` - 다운로드 + 카운트 증가
+
+---
+
+### 📋 ISSUE-26: VOD 플레이어 및 교육 콘텐츠 UI 개발
+
+**상태**: ⏳ 대기
+**목표**: 교육 비디오 시청 및 콘텐츠 탐색을 위한 UI 컴포넌트 개발
+**의존성**: ✅ ISSUE-25 완료 후 시작 가능
+**예상 기간**: 7일
+**난이도**: 중
+
+**작업 내용**:
+
+1. **비디오 플레이어 라이브러리 선택 및 설치**:
+
+   ```bash
+   npm install react-player
+   ```
+
+   - react-player (YouTube, Vimeo, 로컬 파일 지원)
+   - 또는 Plyr (커스텀 컨트롤)
+
+2. **교육 콘텐츠 페이지 작성**:
+   - `/app/education/page.tsx` (교육 메인 페이지)
+   - `/app/education/videos/page.tsx` (비디오 목록)
+   - `/app/education/videos/[id]/page.tsx` (비디오 상세 + 플레이어)
+   - `/app/education/knowhow/page.tsx` (노하우 아카이브)
+   - `/app/education/knowhow/[id]/page.tsx` (노하우 상세)
+   - `/app/education/resources/page.tsx` (자료실)
+
+3. **컴포넌트 작성**:
+   - `/components/education/VideoPlayer.tsx` (비디오 플레이어)
+   - `/components/education/VideoCard.tsx` (비디오 카드)
+   - `/components/education/VideoList.tsx` (비디오 목록)
+   - `/components/education/KnowHowCard.tsx` (노하우 카드)
+   - `/components/education/ResourceCard.tsx` (자료 카드)
+   - `/components/education/CategoryFilter.tsx` (카테고리 필터)
+
+4. **React Query 설정**:
+   - useEducationVideos hook (비디오 목록 조회)
+   - useEducationVideo hook (비디오 상세 조회)
+   - useKnowHow hook (노하우 조회)
+   - useResources hook (자료 조회)
+   - useIncrementViewCount mutation (조회수 증가)
+   - useDownloadResource mutation (다운로드)
+
+5. **디자인 시스템 적용**:
+   - Primary Blue (#0052CC) - 재생 버튼, 액션 버튼
+   - TailwindCSS Grid 레이아웃 (비디오 2열, 노하우 3열)
+   - 모바일 반응형 (sm, md, lg breakpoints)
+   - Skeleton UI (로딩 상태)
+
+**완료 조건**:
+
+- [ ] 비디오 플레이어 통합 (재생, 일시정지, 볼륨, 전체화면)
+- [ ] 교육 메인 페이지 완성
+- [ ] 비디오 목록 및 상세 페이지 완성
+- [ ] 노하우 아카이브 페이지 완성
+- [ ] 자료실 페이지 완성
+- [ ] 카테고리 필터링 동작 확인
+- [ ] 조회수/다운로드 카운트 동작 확인
+- [ ] 모바일 반응형 확인
+
+---
+
+### 📋 ISSUE-27: 노하우 아카이브 및 자료실 구현
+
+**상태**: ⏳ 대기
+**목표**: Markdown 기반 노하우 콘텐츠 및 파일 다운로드 기능 개발
+**의존성**: ✅ ISSUE-26 완료 후 시작 가능
+**예상 기간**: 3일
+**난이도**: 하
+
+**작업 내용**:
+
+1. **Markdown 렌더러 설치**:
+
+   ```bash
+   npm install react-markdown rehype-highlight
+   ```
+
+2. **노하우 콘텐츠 렌더링**:
+   - Markdown → HTML 변환
+   - 코드 하이라이팅 적용
+   - 이미지 삽입 지원
+
+3. **자료 다운로드 기능**:
+   - 다운로드 버튼 클릭 → Supabase Storage에서 파일 다운로드
+   - 다운로드 카운트 증가
+   - 파일명 한글 지원
+
+4. **검색 기능**:
+   - 제목, 태그 기반 검색
+   - 카테고리별 필터링
+
+**완료 조건**:
+
+- [ ] Markdown 렌더링 동작 확인
+- [ ] 파일 다운로드 동작 확인
+- [ ] 검색 및 필터링 동작 확인
+
+---
+
+## 🎯 Phase 5 시작 가이드
+
+### ✅ 준비사항 체크리스트
+
+**Phase 4 완료 확인**:
+
+- ✅ 매칭 시스템 완성
+- ✅ 매칭 결과 UI 완성
+
+**Phase 5 준비사항**:
+
+- [ ] Supabase Storage 활성화
+- [ ] 비디오 파일 준비 (테스트용)
+- [ ] 템플릿 파일 준비 (테스트용)
+
+---
+
+### 🚀 Phase 5 시작 명령어
+
+**준비 완료! 바로 시작 가능**:
+
+1. **"ISSUE-25 시작해줘"** - Prisma 스키마 작성부터 시작
+2. **"교육 콘텐츠 모델부터 만들자"** - 데이터베이스 모델 작성
+3. **"Supabase Storage 설정해줘"** - 스토리지 버킷 생성
+
+---
+
+## 📊 Phase 5 예상 완료 시점
+
+**총 예상 기간**: 15일 (3주)
+
+- ISSUE-25: 5일 (데이터 모델 + API)
+- ISSUE-26: 7일 (UI 개발)
+- ISSUE-27: 3일 (노하우 + 자료실)
+
+**성공 기준**:
+
+- ✅ 비디오 콘텐츠 재생 가능
+- ✅ 카테고리별 필터링 동작
+- ✅ 노하우 Markdown 렌더링 정상
+- ✅ 자료 다운로드 기능 정상
+- ✅ 모바일 반응형 지원
+
+---
+
+## 📋 Phase 4 ISSUE 목록 (완료)
 
 ### 📋 ISSUE-08: 업종/키워드/지역 기반 매칭 로직 구현
 
@@ -262,6 +550,7 @@
 
 ---
 
-**마지막 업데이트**: 2025-12-04
+**마지막 업데이트**: 2025-01-21
 **Phase 4 완료일**: 2025-12-04
-**다음 단계**: Phase 5 (LLM 기반 상담 노트 분석) 준비
+**Phase 5 시작일**: 2025-01-21
+**다음 단계**: ISSUE-25 (교육 콘텐츠 데이터 모델 및 API 구현)
