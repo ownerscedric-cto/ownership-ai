@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { CategoryManager } from '@/components/admin/CategoryManager';
+import { VideoCategoryManager } from '@/components/admin/VideoCategoryManager';
 
 /**
  * 비디오 카테고리 관리 페이지
@@ -22,7 +22,7 @@ export default function AdminVideoCategoriesPage() {
       </div>
 
       {/* Category Manager */}
-      <CategoryManager />
+      <VideoCategoryManager />
     </div>
   );
 }

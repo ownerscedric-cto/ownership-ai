@@ -18,25 +18,38 @@ import { Label } from '@/components/ui/label';
 import { Plus, Pencil, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface VideoCategory {
+interface GenericCategory {
   id: string;
   name: string;
   description: string | null;
   order: number;
-  _count: {
-    videos: number;
-  };
+  _count?: Record<string, number>;
+}
+
+interface GenericCategoryManagerProps {
+  apiEndpoint: string;
+  queryKey: string[];
+  maxCount: number;
+  entityName: string;
+  countFieldName?: string;
 }
 
 /**
- * 카테고리 관리 컴포넌트
+ * 제네릭 카테고리 관리 컴포넌트
+ * 다양한 카테고리 타입(비디오, 노하우 등)에 재사용 가능
  */
-export function CategoryManager() {
+export function GenericCategoryManager({
+  apiEndpoint,
+  queryKey,
+  maxCount,
+  entityName,
+  countFieldName,
+}: GenericCategoryManagerProps) {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<VideoCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<GenericCategory | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -44,10 +57,10 @@ export function CategoryManager() {
   });
 
   // 카테고리 목록 조회
-  const { data: categories, isLoading } = useQuery<VideoCategory[]>({
-    queryKey: ['admin', 'categories'],
+  const { data: categories, isLoading } = useQuery<GenericCategory[]>({
+    queryKey,
     queryFn: async () => {
-      const res = await fetch('/api/admin/education/categories');
+      const res = await fetch(apiEndpoint);
       const json = await res.json();
       if (!json.success) throw new Error(json.error.message);
       return json.data;
@@ -57,7 +70,7 @@ export function CategoryManager() {
   // 카테고리 생성
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await fetch('/api/admin/education/categories', {
+      const res = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -67,7 +80,7 @@ export function CategoryManager() {
       return json.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      queryClient.invalidateQueries({ queryKey });
       toast.success('카테고리가 추가되었습니다.');
       setIsCreateDialogOpen(false);
       resetForm();
@@ -83,7 +96,7 @@ export function CategoryManager() {
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       if (!selectedCategory) throw new Error('No category selected');
-      const res = await fetch(`/api/admin/education/categories/${selectedCategory.id}`, {
+      const res = await fetch(`${apiEndpoint}/${selectedCategory.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -93,7 +106,7 @@ export function CategoryManager() {
       return json.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      queryClient.invalidateQueries({ queryKey });
       toast.success('카테고리가 수정되었습니다.');
       setIsEditDialogOpen(false);
       resetForm();
@@ -108,7 +121,7 @@ export function CategoryManager() {
   // 카테고리 삭제
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/education/categories/${id}`, {
+      const res = await fetch(`${apiEndpoint}/${id}`, {
         method: 'DELETE',
       });
       const json = await res.json();
@@ -116,7 +129,7 @@ export function CategoryManager() {
       return json;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      queryClient.invalidateQueries({ queryKey });
       toast.success('카테고리가 삭제되었습니다.');
       setIsDeleteDialogOpen(false);
       setSelectedCategory(null);
@@ -134,11 +147,16 @@ export function CategoryManager() {
   };
 
   const handleCreate = () => {
+    // 최대 개수 체크
+    if (categories && categories.length >= maxCount) {
+      toast.error(`카테고리는 최대 ${maxCount}개까지 생성할 수 있습니다.`);
+      return;
+    }
     setIsCreateDialogOpen(true);
     resetForm();
   };
 
-  const handleEdit = (category: VideoCategory) => {
+  const handleEdit = (category: GenericCategory) => {
     setSelectedCategory(category);
     setFormData({
       name: category.name,
@@ -148,7 +166,7 @@ export function CategoryManager() {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (category: VideoCategory) => {
+  const handleDelete = (category: GenericCategory) => {
     setSelectedCategory(category);
     setIsDeleteDialogOpen(true);
   };
@@ -169,6 +187,12 @@ export function CategoryManager() {
     }
   };
 
+  // countFieldName이 있을 때 카운트 값 가져오기
+  const getCount = (category: GenericCategory): number => {
+    if (!countFieldName || !category._count) return 0;
+    return category._count[countFieldName] || 0;
+  };
+
   if (isLoading) {
     return <div className="text-center py-8">로딩 중...</div>;
   }
@@ -178,7 +202,7 @@ export function CategoryManager() {
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">
-          카테고리 목록 ({categories?.length || 0}개)
+          카테고리 목록 ({categories?.length || 0}개 / 최대 {maxCount}개)
         </h2>
         <Button onClick={handleCreate} className="bg-[#0052CC] hover:bg-[#003d99]">
           <Plus className="w-4 h-4 mr-2" />
@@ -200,7 +224,11 @@ export function CategoryManager() {
                   )}
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                     <span>정렬 순서: {category.order}</span>
-                    <span>비디오 {category._count.videos}개</span>
+                    {countFieldName && (
+                      <span>
+                        {entityName} {getCount(category)}개
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -213,7 +241,7 @@ export function CategoryManager() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleDelete(category)}
-                  disabled={category._count.videos > 0}
+                  disabled={countFieldName ? getCount(category) > 0 : false}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -236,7 +264,7 @@ export function CategoryManager() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>카테고리 추가</DialogTitle>
-            <DialogDescription>새로운 비디오 카테고리를 추가합니다.</DialogDescription>
+            <DialogDescription>새로운 {entityName} 카테고리를 추가합니다.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitCreate}>
             <div className="space-y-4 py-4">

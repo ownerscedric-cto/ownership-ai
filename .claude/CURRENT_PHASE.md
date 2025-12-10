@@ -6,11 +6,12 @@
 
 **이전 Phase**: ✅ Phase 4 완료 (업종/키워드/지역 매칭 시스템)
 
-**Phase 5 진행 현황**: 🔄 **ISSUE-26 완료, ISSUE-27 진행 준비**
+**Phase 5 진행 현황**: 🔄 **ISSUE-26 완료, ISSUE-28 시작 준비**
 
 - ✅ ISSUE-25: 교육 콘텐츠 데이터 모델 및 API 구현 (완료)
 - ✅ ISSUE-26: VOD 플레이어 및 교육 콘텐츠 UI 개발 (완료)
-- ⏳ ISSUE-27: 노하우 아카이브 및 자료실 구현 (대기)
+- ⏳ ISSUE-27: 노하우 아카이브 및 자료실 구현 (보류 - Markdown 기반 콘텐츠)
+- 🆕 ISSUE-28: 노하우 커뮤니티 게시판 구현 (시작 준비)
 
 ---
 
@@ -269,11 +270,17 @@
 
 ### 📋 ISSUE-27: 노하우 아카이브 및 자료실 구현
 
-**상태**: ⏳ 대기
+**상태**: ⏳ 보류 (ISSUE-28로 대체)
 **목표**: Markdown 기반 노하우 콘텐츠 및 파일 다운로드 기능 개발
 **의존성**: ✅ ISSUE-26 완료 후 시작 가능
 **예상 기간**: 3일
 **난이도**: 하
+
+**보류 사유**:
+
+- 사용자가 더 활성화된 커뮤니티 게시판 형식을 선호
+- ISSUE-28 (노하우 커뮤니티 게시판)로 대체하여 진행
+- 이후 필요시 Markdown 기능 추가 가능
 
 **작업 내용**:
 
@@ -302,6 +309,261 @@
 - [ ] Markdown 렌더링 동작 확인
 - [ ] 파일 다운로드 동작 확인
 - [ ] 검색 및 필터링 동작 확인
+
+---
+
+### 📋 ISSUE-28: 노하우 커뮤니티 게시판 구현 🆕
+
+**상태**: 🆕 시작 준비
+**목표**: 전체 회원 참여형 커뮤니티 게시판 및 관리자 공지/이벤트 시스템 구현
+**의존성**: ✅ ISSUE-26 완료 후 시작 가능
+**예상 기간**: 7일
+**난이도**: 중상
+
+**핵심 기능**:
+
+**1. 공개 커뮤니티 게시판 (`/education/knowhow`)**:
+
+- 전체 회원이 자유롭게 게시글 작성
+- 파일 및 이미지 업로드 기능
+- 댓글 시스템으로 소통 활성화
+- 카테고리별 필터링 (최대 20개 카테고리)
+
+**2. 관리자 게시판 (`/admin/education/knowhow`)**:
+
+- 공지사항 및 이벤트성 글 작성
+- 시간 기반 노출 설정 (시작일/종료일)
+- 이미지 포함 지원
+- 게시글 우선 노출 (공지/이벤트 상단 고정)
+
+**3. 카테고리 시스템**:
+
+- 비디오 카테고리와 동일한 패턴 재사용
+- KnowHowCategory 모델 (최대 20개 제한)
+- 관리자 전용 카테고리 관리 UI
+
+**작업 내용**:
+
+1. **Prisma 스키마 작성**:
+
+   ```prisma
+   // 노하우 커뮤니티 카테고리
+   model KnowHowCategory {
+     id          String   @id @default(uuid())
+     name        String   @unique
+     description String?
+     order       Int      @default(0)
+     createdAt   DateTime @default(now())
+     updatedAt   DateTime @updatedAt
+
+     posts KnowHowPost[]
+
+     @@index([order])
+     @@map("knowhow_categories")
+   }
+
+   // 노하우 커뮤니티 게시글
+   model KnowHowPost {
+     id String @id @default(uuid())
+
+     // 작성자 정보
+     userId     String // Supabase Auth UID
+     authorName String // 작성자 이름 (비정규화)
+
+     // 카테고리 관계
+     category   KnowHowCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+     categoryId String
+
+     // 게시글 정보
+     title   String
+     content String @db.Text
+
+     // 첨부 파일 (이미지, 파일)
+     imageUrls String[] @default([]) // Supabase Storage URLs
+     fileUrls  String[] @default([]) // Supabase Storage URLs
+     fileNames String[] @default([]) // 원본 파일명 보관
+
+     // 관리자 전용 필드
+     isAnnouncement Boolean   @default(false) // 공지사항 여부
+     isEvent        Boolean   @default(false) // 이벤트 여부
+     isPinned       Boolean   @default(false) // 상단 고정 여부
+     startDate      DateTime? // 노출 시작일 (관리자 게시글)
+     endDate        DateTime? // 노출 종료일 (관리자 게시글)
+
+     // 메타데이터
+     viewCount Int      @default(0)
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+
+     // 댓글 관계
+     comments KnowHowComment[]
+
+     @@index([userId])
+     @@index([categoryId])
+     @@index([isAnnouncement])
+     @@index([isEvent])
+     @@index([isPinned])
+     @@index([createdAt(sort: Desc)])
+     @@map("knowhow_posts")
+   }
+
+   // 노하우 커뮤니티 댓글
+   model KnowHowComment {
+     id String @id @default(uuid())
+
+     // 게시글 관계
+     post   KnowHowPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+     postId String
+
+     // 작성자 정보
+     userId     String // Supabase Auth UID
+     authorName String // 작성자 이름 (비정규화)
+
+     // 댓글 정보
+     content String @db.Text
+
+     // 메타데이터
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+
+     @@index([postId])
+     @@index([userId])
+     @@index([createdAt(sort: Desc)])
+     @@map("knowhow_comments")
+   }
+   ```
+
+2. **API 엔드포인트 작성**:
+
+   **카테고리 관리 (관리자 전용)**:
+   - `POST /api/admin/education/knowhow-categories` (카테고리 생성, 최대 20개 제한)
+   - `GET /api/admin/education/knowhow-categories` (카테고리 목록)
+   - `PATCH /api/admin/education/knowhow-categories/[id]` (카테고리 수정)
+   - `DELETE /api/admin/education/knowhow-categories/[id]` (카테고리 삭제)
+
+   **게시글 관리 (일반 회원)**:
+   - `POST /api/education/knowhow/posts` (게시글 작성, 파일/이미지 업로드)
+   - `GET /api/education/knowhow/posts` (게시글 목록, 페이지네이션, 필터링)
+   - `GET /api/education/knowhow/posts/[id]` (게시글 상세 + 댓글)
+   - `PATCH /api/education/knowhow/posts/[id]` (게시글 수정, 작성자만)
+   - `DELETE /api/education/knowhow/posts/[id]` (게시글 삭제, 작성자만)
+   - `PATCH /api/education/knowhow/posts/[id]/view` (조회수 증가)
+
+   **관리자 게시글 관리**:
+   - `POST /api/admin/education/knowhow/posts` (공지/이벤트 작성, 기간 설정)
+   - `GET /api/admin/education/knowhow/posts` (관리자 게시글 목록)
+   - `PATCH /api/admin/education/knowhow/posts/[id]` (공지/이벤트 수정)
+   - `DELETE /api/admin/education/knowhow/posts/[id]` (공지/이벤트 삭제)
+
+   **댓글 관리**:
+   - `POST /api/education/knowhow/posts/[id]/comments` (댓글 작성)
+   - `GET /api/education/knowhow/posts/[id]/comments` (댓글 목록)
+   - `DELETE /api/education/knowhow/posts/[postId]/comments/[commentId]` (댓글 삭제, 작성자만)
+
+   **파일 업로드**:
+   - `POST /api/education/knowhow/upload` (이미지/파일 업로드, Supabase Storage)
+
+3. **공개 페이지 작성**:
+
+   **메인 페이지** (`/app/education/knowhow/page.tsx`):
+   - 게시글 목록 (카드 또는 테이블 형식)
+   - 공지/이벤트 상단 고정
+   - 카테고리 필터
+   - 검색 기능
+   - 글쓰기 버튼
+
+   **게시글 상세 페이지** (`/app/education/knowhow/[id]/page.tsx`):
+   - 게시글 내용 표시
+   - 첨부 파일/이미지 표시 및 다운로드
+   - 댓글 목록 및 작성 폼
+   - 수정/삭제 버튼 (작성자만)
+
+   **게시글 작성/수정 페이지** (`/app/education/knowhow/write/page.tsx`, `/app/education/knowhow/[id]/edit/page.tsx`):
+   - 제목, 내용 입력
+   - 카테고리 선택
+   - 파일/이미지 업로드 (드래그 앤 드롭)
+   - 미리보기 기능
+
+4. **관리자 페이지 작성**:
+
+   **관리자 메인 페이지** (`/app/admin/education/knowhow/page.tsx`):
+   - 게시글 목록 (모든 게시글 관리)
+   - 카테고리 관리 UI
+   - 공지/이벤트 작성 버튼
+   - 통계 대시보드 (총 게시글 수, 총 댓글 수, 카테고리별 게시글 수)
+
+   **공지/이벤트 작성 페이지** (`/app/admin/education/knowhow/write/page.tsx`):
+   - 일반 게시글 작성 폼 + 추가 옵션
+   - 공지사항/이벤트 선택
+   - 노출 기간 설정 (시작일/종료일)
+   - 상단 고정 여부
+   - 이미지 업로드
+
+5. **컴포넌트 작성**:
+
+   **공개 페이지 컴포넌트**:
+   - `/components/knowhow/PostList.tsx` (게시글 목록)
+   - `/components/knowhow/PostCard.tsx` (게시글 카드)
+   - `/components/knowhow/PostDetail.tsx` (게시글 상세)
+   - `/components/knowhow/PostForm.tsx` (게시글 작성/수정 폼)
+   - `/components/knowhow/CommentList.tsx` (댓글 목록)
+   - `/components/knowhow/CommentForm.tsx` (댓글 작성 폼)
+   - `/components/knowhow/FileUploader.tsx` (파일/이미지 업로드)
+   - `/components/knowhow/CategoryFilter.tsx` (카테고리 필터)
+
+   **관리자 페이지 컴포넌트**:
+   - `/components/admin/knowhow/AdminPostList.tsx` (관리자 게시글 목록)
+   - `/components/admin/knowhow/AdminPostForm.tsx` (공지/이벤트 작성 폼)
+   - `/components/admin/knowhow/KnowHowCategoryManager.tsx` (카테고리 관리)
+
+6. **React Query 설정**:
+   - `useKnowHowPosts` (게시글 목록 조회)
+   - `useKnowHowPost` (게시글 상세 조회)
+   - `useCreateKnowHowPost` (게시글 작성)
+   - `useUpdateKnowHowPost` (게시글 수정)
+   - `useDeleteKnowHowPost` (게시글 삭제)
+   - `useComments` (댓글 목록 조회)
+   - `useCreateComment` (댓글 작성)
+   - `useDeleteComment` (댓글 삭제)
+   - `useKnowHowCategories` (카테고리 목록 조회)
+   - `useUploadFile` (파일 업로드)
+
+7. **Zod 검증 스키마 작성** (`/src/lib/validations/knowhow.ts`):
+   - `createKnowHowCategorySchema`
+   - `updateKnowHowCategorySchema`
+   - `createKnowHowPostSchema`
+   - `updateKnowHowPostSchema`
+   - `createCommentSchema`
+   - `knowHowPostFilterSchema` (페이지네이션, 정렬, 필터링)
+
+8. **TypeScript 타입 정의**:
+   - `KnowHowCategory` 인터페이스
+   - `KnowHowPost` 인터페이스
+   - `KnowHowComment` 인터페이스
+   - API 응답 타입
+
+**완료 조건**:
+
+- [ ] Prisma 스키마 작성 및 마이그레이션 (KnowHowCategory, KnowHowPost, KnowHowComment)
+- [ ] 카테고리 CRUD API 완성 (20개 제한 포함)
+- [ ] 게시글 CRUD API 완성 (일반 회원용)
+- [ ] 관리자 게시글 API 완성 (공지/이벤트, 기간 설정)
+- [ ] 댓글 시스템 API 완성
+- [ ] 파일/이미지 업로드 API 완성 (Supabase Storage)
+- [ ] 공개 커뮤니티 페이지 완성 (/education/knowhow)
+- [ ] 게시글 상세 페이지 완성 (댓글 포함)
+- [ ] 게시글 작성/수정 페이지 완성
+- [ ] 관리자 페이지 완성 (/admin/education/knowhow)
+- [ ] 카테고리 관리 UI 완성
+- [ ] React Query hooks 완성
+- [ ] Zod 검증 스키마 완성
+- [ ] TypeScript 타입 체크 통과
+- [ ] 모바일 반응형 확인
+- [ ] 빌드 성공
+
+**예상 기간**: 7일
+**난이도**: 중상
+**기술 스택**: Prisma, Supabase Storage, React Query, shadcn/ui, TailwindCSS, Zod
 
 ---
 
