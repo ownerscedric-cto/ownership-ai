@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { prisma } from '@/lib/prisma';
 import {
   createEducationVideoSchema,
   educationVideoFilterSchema,
@@ -8,7 +7,6 @@ import {
 } from '@/lib/validations/education';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { ZodError } from 'zod';
-import type { Prisma } from '@prisma/client';
 
 // POST /api/education/videos - 교육 비디오 생성
 export async function POST(request: NextRequest) {
@@ -31,11 +29,27 @@ export async function POST(request: NextRequest) {
     const validatedData: CreateEducationVideoInput = createEducationVideoSchema.parse(body);
 
     // 4. 교육 비디오 생성
-    const video = await prisma.educationVideo.create({
-      data: validatedData,
-    });
+    const { data: video, error: createError } = await supabase
+      .from('education_videos')
+      .insert({
+        title: validatedData.title,
+        description: validatedData.description,
+        categoryId: validatedData.categoryId,
+        videoUrl: validatedData.videoUrl,
+        videoType: validatedData.videoType || 'youtube',
+        thumbnailUrl: validatedData.thumbnailUrl,
+        duration: validatedData.duration,
+        tags: validatedData.tags || [],
+      })
+      .select('*')
+      .single();
 
-    // 5. 성공 응답
+    if (createError) {
+      console.error('비디오 생성 실패:', createError);
+      return errorResponse(ErrorCode.INTERNAL_ERROR, '교육 비디오 생성에 실패했습니다', null, 500);
+    }
+
+    // 5. 성공 응답 (Supabase 테이블이 이미 camelCase이므로 변환 불필요)
     return successResponse(video, undefined, 201);
   } catch (error) {
     // Zod 유효성 검증 에러
@@ -67,62 +81,56 @@ export async function GET(request: NextRequest) {
     const queryParams = Object.fromEntries(searchParams.entries());
 
     const filters = educationVideoFilterSchema.parse(queryParams);
+    const supabase = await createClient();
 
-    // 2. Prisma where 조건 구성
-    const where: Prisma.EducationVideoWhereInput = {};
+    let query = supabase.from('education_videos').select(`
+      *,
+      category:video_categories!education_videos_categoryId_fkey(*)
+    `, { count: 'exact' });
 
-    // 카테고리 필터링 (relation을 통한 검색)
+    // 2. 필터링 조건
     if (filters.category) {
-      where.category = {
-        is: {
-          name: filters.category,
-        },
-      };
+      // category name으로 필터링하기 위해 categoryId를 먼저 조회
+      const { data: categoryData } = await supabase
+        .from('video_categories')
+        .select('id')
+        .eq('name', filters.category)
+        .single();
+
+      if (categoryData) {
+        query = query.eq('categoryId', categoryData.id);
+      }
     }
 
-    // 비디오 타입 필터링
     if (filters.videoType) {
-      where.videoType = filters.videoType;
+      query = query.eq('videoType', filters.videoType);
     }
 
-    // 검색어 필터링
     if (filters.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { tags: { has: filters.search } }, // 태그 배열 검색
-      ];
+      query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
     }
 
-    // 3. 정렬 조건
-    const orderBy: Prisma.EducationVideoOrderByWithRelationInput = {
-      [filters.sortBy]: filters.sortOrder,
-    };
+    // 3. 정렬 (Supabase 테이블이 camelCase이므로 그대로 사용)
+    query = query.order(filters.sortBy, { ascending: filters.sortOrder === 'asc' });
 
-    // 4. 페이지네이션 계산
-    const skip = (filters.page - 1) * filters.limit;
-    const take = filters.limit;
+    // 4. 페이지네이션
+    const from = (filters.page - 1) * filters.limit;
+    const to = from + filters.limit - 1;
+    query = query.range(from, to);
 
-    // 5. 데이터 조회 (병렬 처리)
-    const [videos, total] = await Promise.all([
-      prisma.educationVideo.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        include: {
-          category: true, // 카테고리 relation 포함
-        },
-      }),
-      prisma.educationVideo.count({ where }),
-    ]);
+    const { data: videos, error: videosError, count } = await query;
 
-    // 6. 성공 응답
-    return successResponse(videos, {
-      total,
+    if (videosError) {
+      console.error('비디오 목록 조회 실패:', videosError);
+      return errorResponse(ErrorCode.INTERNAL_ERROR, '교육 비디오 목록 조회에 실패했습니다', null, 500);
+    }
+
+    // 5. 성공 응답 (Supabase 테이블이 이미 camelCase이므로 변환 불필요)
+    return successResponse(videos || [], {
+      total: count || 0,
       page: filters.page,
       limit: filters.limit,
-      totalPages: Math.ceil(total / filters.limit),
+      totalPages: Math.ceil((count || 0) / filters.limit),
     });
   } catch (error) {
     // Zod 유효성 검증 에러

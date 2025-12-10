@@ -1,7 +1,6 @@
 import { Users, GraduationCap, Mail, Database, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { prisma } from '@/lib/prisma';
 
 /**
  * Admin Dashboard - 통계 및 요약 정보
@@ -9,10 +8,23 @@ import { prisma } from '@/lib/prisma';
 export default async function AdminDashboardPage() {
   // 통계 데이터 수집 (순차 실행으로 connection pool 타임아웃 방지)
   const usersResult = await supabaseAdmin.auth.admin.listUsers();
-  const videosCount = await prisma.educationVideo.count();
-  const knowhowCount = await prisma.knowHow.count();
-  const resourcesCount = await prisma.resource.count();
-  const invitationsCount = await prisma.invitation.count();
+
+  // Supabase count queries
+  const { count: videosCount } = await supabaseAdmin
+    .from('education_videos')
+    .select('*', { count: 'exact', head: true });
+
+  const { count: knowhowCount } = await supabaseAdmin
+    .from('knowhow_posts')
+    .select('*', { count: 'exact', head: true });
+
+  const { count: resourcesCount } = await supabaseAdmin
+    .from('resources')
+    .select('*', { count: 'exact', head: true });
+
+  const { count: invitationsCount } = await supabaseAdmin
+    .from('invitations')
+    .select('*', { count: 'exact', head: true });
 
   const users = usersResult.data.users || [];
   const stats = {
@@ -21,6 +33,10 @@ export default async function AdminDashboardPage() {
     consultantUsers: users.filter(
       u => !u.app_metadata?.role || u.app_metadata?.role === 'consultant'
     ).length,
+    videosCount: videosCount || 0,
+    knowhowCount: knowhowCount || 0,
+    resourcesCount: resourcesCount || 0,
+    invitationsCount: invitationsCount || 0,
   };
 
   return (
@@ -54,7 +70,7 @@ export default async function AdminDashboardPage() {
             <GraduationCap className="w-5 h-5 text-[#0052CC]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{videosCount}</div>
+            <div className="text-3xl font-bold text-gray-900">{stats.videosCount}</div>
             <p className="text-xs text-gray-500 mt-2">등록된 비디오 콘텐츠</p>
           </CardContent>
         </Card>
@@ -66,7 +82,7 @@ export default async function AdminDashboardPage() {
             <Database className="w-5 h-5 text-[#0052CC]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{knowhowCount}</div>
+            <div className="text-3xl font-bold text-gray-900">{stats.knowhowCount}</div>
             <p className="text-xs text-gray-500 mt-2">노하우 아카이브</p>
           </CardContent>
         </Card>
@@ -78,7 +94,7 @@ export default async function AdminDashboardPage() {
             <FileText className="w-5 h-5 text-[#0052CC]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{resourcesCount}</div>
+            <div className="text-3xl font-bold text-gray-900">{stats.resourcesCount}</div>
             <p className="text-xs text-gray-500 mt-2">다운로드 자료</p>
           </CardContent>
         </Card>
@@ -90,7 +106,7 @@ export default async function AdminDashboardPage() {
             <Mail className="w-5 h-5 text-[#0052CC]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{invitationsCount}</div>
+            <div className="text-3xl font-bold text-gray-900">{stats.invitationsCount}</div>
             <p className="text-xs text-gray-500 mt-2">대기 중인 초대</p>
           </CardContent>
         </Card>

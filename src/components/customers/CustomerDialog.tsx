@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 import {
   Dialog,
   DialogContent,

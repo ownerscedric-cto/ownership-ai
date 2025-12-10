@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { VideoForm } from '@/components/admin/VideoForm';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 interface AdminEditVideoPageProps {
   params: Promise<{ id: string }>;
@@ -15,9 +15,11 @@ export default async function AdminEditVideoPage({ params }: AdminEditVideoPageP
   const { id } = await params;
 
   // Fetch video
-  const video = await prisma.educationVideo.findUnique({
-    where: { id },
-  });
+  const { data: video } = await supabaseAdmin
+    .from('education_videos')
+    .select('*')
+    .eq('id', id)
+    .single();
 
   if (!video) {
     notFound();

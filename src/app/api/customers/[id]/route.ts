@@ -1,10 +1,8 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { prisma } from '@/lib/prisma';
 import { updateCustomerSchema, type UpdateCustomerInput } from '@/lib/validations/customer';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { ZodError } from 'zod';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 // GET /api/customers/[id] - 고객 상세 조회
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -23,12 +21,14 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 
     // 2. 고객 조회
-    const customer = await prisma.customer.findUnique({
-      where: { id },
-    });
+    const { data: customer, error: fetchError } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .single();
 
     // 3. 존재 여부 확인
-    if (!customer) {
+    if (fetchError || !customer) {
       return errorResponse(ErrorCode.NOT_FOUND, '고객을 찾을 수 없습니다', null, 404);
     }
 
@@ -62,11 +62,13 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     }
 
     // 2. 고객 존재 여부 및 권한 체크
-    const existingCustomer = await prisma.customer.findUnique({
-      where: { id },
-    });
+    const { data: existingCustomer, error: fetchError } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (!existingCustomer) {
+    if (fetchError || !existingCustomer) {
       return errorResponse(ErrorCode.NOT_FOUND, '고객을 찾을 수 없습니다', null, 404);
     }
 
@@ -79,10 +81,27 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     const validatedData: UpdateCustomerInput = updateCustomerSchema.parse(body);
 
     // 4. 고객 정보 수정
-    const updatedCustomer = await prisma.customer.update({
-      where: { id },
-      data: validatedData,
-    });
+    const { data: updatedCustomer, error: updateError } = await supabase
+      .from('customers')
+      .update(validatedData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      // 중복 에러 (unique constraint violation)
+      if (updateError.code === '23505') {
+        return errorResponse(
+          ErrorCode.DUPLICATE_ENTRY,
+          '이미 등록된 사업자등록번호입니다',
+          { field: 'businessNumber' },
+          400
+        );
+      }
+
+      console.error('Customer update error:', updateError);
+      return errorResponse(ErrorCode.INTERNAL_ERROR, '고객 수정 중 오류가 발생했습니다', null, 500);
+    }
 
     // 5. 성공 응답
     return successResponse(updatedCustomer);
@@ -95,18 +114,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         error.issues,
         400
       );
-    }
-
-    // Prisma 중복 에러
-    if (error instanceof PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        return errorResponse(
-          ErrorCode.DUPLICATE_ENTRY,
-          '이미 등록된 사업자등록번호입니다',
-          { field: 'businessNumber' },
-          400
-        );
-      }
     }
 
     // 서버 에러
@@ -132,11 +139,13 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
 
     // 2. 고객 존재 여부 및 권한 체크
-    const existingCustomer = await prisma.customer.findUnique({
-      where: { id },
-    });
+    const { data: existingCustomer, error: fetchError } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (!existingCustomer) {
+    if (fetchError || !existingCustomer) {
       return errorResponse(ErrorCode.NOT_FOUND, '고객을 찾을 수 없습니다', null, 404);
     }
 
@@ -145,9 +154,15 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
 
     // 3. 고객 삭제
-    await prisma.customer.delete({
-      where: { id },
-    });
+    const { error: deleteError } = await supabase
+      .from('customers')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Customer deletion error:', deleteError);
+      return errorResponse(ErrorCode.INTERNAL_ERROR, '고객 삭제 중 오류가 발생했습니다', null, 500);
+    }
 
     // 4. 성공 응답
     return successResponse({ message: '고객이 성공적으로 삭제되었습니다' });

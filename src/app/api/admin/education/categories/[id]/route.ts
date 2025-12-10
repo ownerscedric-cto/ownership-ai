@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 /**
@@ -24,11 +24,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const { id } = await params;
+    const supabase = await createClient();
 
     // 카테고리 존재 확인
-    const existingCategory = await prisma.videoCategory.findUnique({
-      where: { id },
-    });
+    const { data: existingCategory } = await supabase
+      .from('video_categories')
+      .select('*')
+      .eq('id', id)
+      .single();
 
     if (!existingCategory) {
       return NextResponse.json(
@@ -49,9 +52,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // 이름 변경 시 중복 체크
     if (validatedData.name && validatedData.name !== existingCategory.name) {
-      const duplicateCategory = await prisma.videoCategory.findUnique({
-        where: { name: validatedData.name },
-      });
+      const { data: duplicateCategory } = await supabase
+        .from('video_categories')
+        .select('*')
+        .eq('name', validatedData.name)
+        .single();
 
       if (duplicateCategory) {
         return NextResponse.json(
@@ -68,10 +73,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // 카테고리 업데이트
-    const updatedCategory = await prisma.videoCategory.update({
-      where: { id },
-      data: validatedData,
-    });
+    const { data: updatedCategory, error: updateError } = await supabase
+      .from('video_categories')
+      .update(validatedData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('카테고리 수정 실패:', updateError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to update category',
+            details: updateError.message,
+          },
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -113,29 +135,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
  * DELETE /api/admin/education/categories/[id] - 카테고리 삭제
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Admin 권한 체크
-  const authResult = await requireAdmin(request);
+  const authResult = await requireAdmin(_request);
   if (!authResult.success) {
     return authResult.response;
   }
 
   try {
     const { id } = await params;
+    const supabase = await createClient();
 
     // 카테고리 존재 확인
-    const category = await prisma.videoCategory.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            videos: true,
-          },
-        },
-      },
-    });
+    const { data: category } = await supabase
+      .from('video_categories')
+      .select('*')
+      .eq('id', id)
+      .single();
 
     if (!category) {
       return NextResponse.json(
@@ -150,8 +168,14 @@ export async function DELETE(
       );
     }
 
+    // 카테고리에 연결된 비디오 개수 확인
+    const { count } = await supabase
+      .from('education_videos')
+      .select('*', { count: 'exact', head: true })
+      .eq('category', category.name);
+
     // 카테고리에 연결된 비디오가 있으면 삭제 불가
-    if (category._count.videos > 0) {
+    if (count && count > 0) {
       return NextResponse.json(
         {
           success: false,
@@ -159,7 +183,7 @@ export async function DELETE(
             code: 'CATEGORY_IN_USE',
             message: '이 카테고리를 사용하는 비디오가 있어 삭제할 수 없습니다.',
             details: {
-              videoCount: category._count.videos,
+              videoCount: count,
             },
           },
         },
@@ -168,9 +192,25 @@ export async function DELETE(
     }
 
     // 카테고리 삭제
-    await prisma.videoCategory.delete({
-      where: { id },
-    });
+    const { error: deleteError } = await supabase
+      .from('video_categories')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('카테고리 삭제 실패:', deleteError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to delete category',
+            details: deleteError.message,
+          },
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

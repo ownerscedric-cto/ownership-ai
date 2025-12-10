@@ -5,10 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { createClient } from '@/lib/supabase/server';
 import { APIError, ErrorCode, createErrorResponse, logError } from '@/lib/utils/error-handler';
-
-const prisma = new PrismaClient();
 
 /**
  * GET /api/programs/[id]
@@ -26,16 +24,19 @@ const prisma = new PrismaClient();
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const supabase = await createClient();
 
     console.log(`[GET /api/programs/${id}] Fetching program details...`);
 
     // 프로그램 조회
-    const program = await prisma.program.findUnique({
-      where: { id },
-    });
+    const { data: program, error: fetchError } = await supabase
+      .from('programs')
+      .select('*')
+      .eq('id', id)
+      .single();
 
     // 프로그램이 없으면 404 반환
-    if (!program) {
+    if (fetchError || !program) {
       const notFoundError = new APIError(ErrorCode.NOT_FOUND, `Program with id ${id} not found`, {
         programId: id,
       });
@@ -64,7 +65,5 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const errorResponse = createErrorResponse(error);
 
     return NextResponse.json(errorResponse, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

@@ -11,11 +11,9 @@
  * - 상위 50개 프로그램 선택
  */
 
-import { PrismaClient } from '@prisma/client';
+import { createClient } from '@/lib/supabase/server';
 import { MATCHING_CONFIG } from '@/lib/types/matching';
 import type { MatchingOptions, MatchingScoreBreakdown } from '@/lib/types/matching';
-
-const prisma = new PrismaClient();
 
 /**
  * 고객의 업종과 프로그램의 대상 업종이 일치하는지 확인
@@ -176,54 +174,37 @@ export async function runMatching(options: MatchingOptions) {
     forceRefresh = false,
   } = options;
 
-  // 1. 고객 정보 조회
-  const customer = await prisma.customer.findUnique({
-    where: { id: customerId },
-    select: {
-      id: true,
-      industry: true,
-      location: true,
-      challenges: true,
-      goals: true,
-      preferredKeywords: true,
-    },
-  });
+  const supabase = await createClient();
 
-  if (!customer) {
+  // 1. 고객 정보 조회
+  const { data: customer, error: customerError } = await supabase
+    .from('customers')
+    .select('id, industry, location, challenges, goals, preferredKeywords')
+    .eq('id', customerId)
+    .single();
+
+  if (customerError || !customer) {
     throw new Error(`Customer not found: ${customerId}`);
   }
 
   // 2. 기존 매칭 결과 삭제 (forceRefresh = true인 경우)
   if (forceRefresh) {
-    await prisma.matchingResult.deleteMany({
-      where: { customerId },
-    });
+    await supabase
+      .from('matching_results')
+      .delete()
+      .eq('customerId', customerId);
   }
 
   // 3. 모든 활성 프로그램 조회
-  const programs = await prisma.program.findMany({
-    where: {
-      syncStatus: 'active',
-    },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      category: true,
-      targetAudience: true,
-      targetLocation: true,
-      keywords: true,
-      budgetRange: true,
-      deadline: true,
-      sourceUrl: true,
-      dataSource: true,
-    },
-  });
+  const { data: programs } = await supabase
+    .from('programs')
+    .select('id, title, description, category, targetAudience, targetLocation, keywords, budgetRange, deadline, sourceUrl, dataSource')
+    .eq('syncStatus', 'active');
 
   // 4. 각 프로그램에 대해 매칭 점수 계산
   const matchingResults = [];
 
-  for (const program of programs) {
+  for (const program of programs || []) {
     // 업종 일치 여부
     const matchedIndustry = matchIndustry(customer.industry, program.targetAudience);
 
@@ -265,52 +246,43 @@ export async function runMatching(options: MatchingOptions) {
   const topResults = matchingResults.slice(0, maxResults);
 
   // 6. DB에 매칭 결과 저장 (upsert)
-  await prisma.$transaction(
-    topResults.map(result =>
-      prisma.matchingResult.upsert({
-        where: {
-          customerId_programId: {
-            customerId: result.customerId,
-            programId: result.programId,
-          },
-        },
-        update: {
-          score: result.score,
-          matchedIndustry: result.matchedIndustry,
-          matchedLocation: result.matchedLocation,
-          matchedKeywords: result.matchedKeywords,
-        },
-        create: result,
-      })
-    )
-  );
+  // Supabase에서는 upsert를 직접 지원하므로 간단하게 처리
+  for (const result of topResults) {
+    await supabase
+      .from('matching_results')
+      .upsert({
+        customerId: result.customerId,
+        programId: result.programId,
+        score: result.score,
+        matchedIndustry: result.matchedIndustry,
+        matchedLocation: result.matchedLocation,
+        matchedKeywords: result.matchedKeywords,
+      }, {
+        onConflict: 'customerId,programId'
+      });
+  }
 
   // 7. 저장된 매칭 결과 조회 (프로그램 상세 정보 포함)
-  const savedResults = await prisma.matchingResult.findMany({
-    where: {
-      customerId,
-    },
-    orderBy: {
-      score: 'desc',
-    },
-    include: {
-      program: {
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          category: true,
-          targetAudience: true,
-          targetLocation: true,
-          keywords: true,
-          budgetRange: true,
-          deadline: true,
-          sourceUrl: true,
-          dataSource: true,
-        },
-      },
-    },
-  });
+  const { data: savedResults } = await supabase
+    .from('matching_results')
+    .select(`
+      *,
+      program:programs (
+        id,
+        title,
+        description,
+        category,
+        targetAudience,
+        targetLocation,
+        keywords,
+        budgetRange,
+        deadline,
+        sourceUrl,
+        dataSource
+      )
+    `)
+    .eq('customerId', customerId)
+    .order('score', { ascending: false });
 
-  return savedResults;
+  return savedResults || [];
 }

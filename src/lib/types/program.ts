@@ -1,13 +1,11 @@
 /**
  * @file program.ts
- * @description Program 관련 TypeScript 타입 정의
- * Phase 3: 정부지원사업 UI 컴포넌트
+ * @description Program 및 공용 타입 정의
+ * Supabase Database Schema Types
  */
 
-import type { Prisma } from '@prisma/client';
-
 /**
- * Program 타입 (Prisma에서 자동 생성)
+ * Program 타입 (Supabase Database)
  */
 export type Program = {
   id: string;
@@ -23,7 +21,7 @@ export type Program = {
   deadline: Date | null;
   sourceUrl: string | null;
   attachmentUrl: string | null;
-  rawData: Prisma.JsonValue;
+  rawData: Record<string, unknown> | null;
   registeredAt: Date;
   startDate: Date | null;
   endDate: Date | null;
@@ -32,6 +30,48 @@ export type Program = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+/**
+ * Customer 타입 (Supabase Database)
+ */
+export interface Customer {
+  id: string;
+  userId: string;
+  businessNumber: string;
+  businessType: string;
+  corporateNumber: string | null;
+  name: string;
+  industry: string;
+  companySize: string | null;
+  location: string;
+  budget: number | null;
+  challenges: string[];
+  goals: string[];
+  preferredKeywords: string[];
+  contactEmail: string | null;
+  contactPhone: string | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * EducationVideo 타입 (Supabase Database)
+ */
+export interface EducationVideo {
+  id: string;
+  title: string;
+  description: string | null;
+  categoryId: string;
+  videoUrl: string;
+  videoType: string;
+  thumbnailUrl: string | null;
+  duration: number | null;
+  viewCount: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 /**
  * Program 필터 파라미터

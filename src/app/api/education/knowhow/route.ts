@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { createKnowHowSchema, knowHowFilterSchema } from '@/lib/validations/education';
 import { z } from 'zod';
 
@@ -12,43 +12,64 @@ export async function GET(request: NextRequest) {
     const filters = knowHowFilterSchema.parse(searchParams);
 
     const { page, limit, sortBy, sortOrder, category, search } = filters;
-    const skip = (page - 1) * limit;
+    const supabase = await createClient();
+
+    let query = supabase.from('knowhow').select('*', { count: 'exact' });
 
     // WHERE 조건
-    const where: {
-      category?: string;
-      OR?: Array<{
-        title?: { contains: string; mode: 'insensitive' };
-        content?: { contains: string; mode: 'insensitive' };
-      }>;
-    } = {};
-    if (category) where.category = category;
+    if (category) {
+      query = query.eq('category', category);
+    }
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { content: { contains: search, mode: 'insensitive' } },
-      ];
+      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     }
 
-    // 데이터 조회
-    const [knowhows, total] = await Promise.all([
-      prisma.knowHow.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { [sortBy]: sortOrder },
-      }),
-      prisma.knowHow.count({ where }),
-    ]);
+    // 정렬
+    const sortColumn = sortBy === 'createdAt' ? 'created_at' : sortBy === 'viewCount' ? 'view_count' : sortBy;
+    query = query.order(sortColumn, { ascending: sortOrder === 'asc' });
+
+    // 페이지네이션
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    const { data: knowhows, error: knowhowsError, count } = await query;
+
+    if (knowhowsError) {
+      console.error('노하우 목록 조회 실패:', knowhowsError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to fetch knowhow list',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // camelCase 변환
+    const formattedKnowHows = (knowhows || []).map((knowhow) => ({
+      id: knowhow.id,
+      title: knowhow.title,
+      content: knowhow.content,
+      category: knowhow.category,
+      author: knowhow.author,
+      tags: knowhow.tags,
+      viewCount: knowhow.view_count,
+      createdAt: knowhow.created_at,
+      updatedAt: knowhow.updated_at,
+    }));
 
     return NextResponse.json({
       success: true,
-      data: knowhows,
+      data: formattedKnowHows,
       metadata: {
-        total,
+        total: count || 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((count || 0) / limit),
       },
     });
   } catch (error) {
@@ -88,15 +109,51 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = createKnowHowSchema.parse(body);
+    const supabase = await createClient();
 
-    const knowhow = await prisma.knowHow.create({
-      data: validated,
-    });
+    const { data: knowhow, error: createError } = await supabase
+      .from('knowhow')
+      .insert({
+        title: validated.title,
+        content: validated.content,
+        category: validated.category,
+        author: validated.author,
+        tags: validated.tags || [],
+      })
+      .select('*')
+      .single();
+
+    if (createError) {
+      console.error('노하우 생성 실패:', createError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create knowhow',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // camelCase 변환
+    const formattedKnowHow = {
+      id: knowhow.id,
+      title: knowhow.title,
+      content: knowhow.content,
+      category: knowhow.category,
+      author: knowhow.author,
+      tags: knowhow.tags,
+      viewCount: knowhow.view_count,
+      createdAt: knowhow.created_at,
+      updatedAt: knowhow.updated_at,
+    };
 
     return NextResponse.json(
       {
         success: true,
-        data: knowhow,
+        data: formattedKnowHow,
       },
       { status: 201 }
     );

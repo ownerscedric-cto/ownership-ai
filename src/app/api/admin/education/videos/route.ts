@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 /**
@@ -28,25 +28,64 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const supabase = await createClient();
+
     // 2. Request body validation
     const body = await request.json();
     const validatedData = createVideoSchema.parse(body);
 
-    // 3. 비디오 생성
-    const video = await prisma.educationVideo.create({
-      data: {
+    // 3. 카테고리 존재 확인 및 이름 가져오기
+    const { data: category, error: categoryError } = await supabase
+      .from('video_categories')
+      .select('name')
+      .eq('id', validatedData.categoryId)
+      .single();
+
+    if (categoryError || !category) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'CATEGORY_NOT_FOUND',
+            message: '카테고리를 찾을 수 없습니다.',
+          },
+        },
+        { status: 404 }
+      );
+    }
+
+    // 4. 비디오 생성 (category는 TEXT 필드이므로 카테고리 이름 저장)
+    const { data: video, error: createError } = await supabase
+      .from('education_videos')
+      .insert({
         title: validatedData.title,
-        description: validatedData.description || null,
-        categoryId: validatedData.categoryId,
+        description: validatedData.description,
+        category: category.name, // 카테고리 이름 저장
         videoUrl: validatedData.videoUrl,
         videoType: validatedData.videoType,
-        thumbnailUrl: validatedData.thumbnailUrl || null,
-        duration: validatedData.duration || null,
+        thumbnailUrl: validatedData.thumbnailUrl,
+        duration: validatedData.duration,
         tags: validatedData.tags,
-      },
-    });
+      })
+      .select()
+      .single();
 
-    // 4. 성공 응답
+    if (createError) {
+      console.error('비디오 생성 실패:', createError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create video',
+            details: createError.message,
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // 5. 성공 응답
     return NextResponse.json(
       {
         success: true,

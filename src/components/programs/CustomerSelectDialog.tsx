@@ -20,7 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useIsInWatchlist } from '@/lib/hooks/useWatchlist';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 
 interface CustomerSelectDialogProps {
   open: boolean;

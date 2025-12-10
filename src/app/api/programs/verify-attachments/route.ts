@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 /**
  * GET /api/programs/verify-attachments
@@ -8,68 +8,54 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     // 전체 통계
-    const total = await prisma.program.count({
-      where: { dataSource: '기업마당' },
-    });
+    const { count: total } = await supabaseAdmin
+      .from('programs')
+      .select('*', { count: 'exact', head: true })
+      .eq('dataSource', '기업마당');
 
-    const withAttachment = await prisma.program.count({
-      where: {
-        dataSource: '기업마당',
-        attachmentUrl: { not: null },
-      },
-    });
+    const { count: withAttachment } = await supabaseAdmin
+      .from('programs')
+      .select('*', { count: 'exact', head: true })
+      .eq('dataSource', '기업마당')
+      .not('attachmentUrl', 'is', null);
 
-    const withoutAttachment = total - withAttachment;
+    const withoutAttachment = (total || 0) - (withAttachment || 0);
 
     // 샘플 데이터 조회 (attachmentUrl이 있는 것 5개)
-    const samplesWithAttachment = await prisma.program.findMany({
-      where: {
-        dataSource: '기업마당',
-        attachmentUrl: { not: null },
-      },
-      select: {
-        id: true,
-        title: true,
-        attachmentUrl: true,
-        rawData: true,
-      },
-      take: 5,
-    });
+    const { data: samplesWithAttachment } = await supabaseAdmin
+      .from('programs')
+      .select('id, title, attachmentUrl, rawData')
+      .eq('dataSource', '기업마당')
+      .not('attachmentUrl', 'is', null)
+      .limit(5);
 
     // 샘플 데이터 조회 (attachmentUrl이 없는 것 5개)
-    const samplesWithoutAttachment = await prisma.program.findMany({
-      where: {
-        dataSource: '기업마당',
-        attachmentUrl: null,
-      },
-      select: {
-        id: true,
-        title: true,
-        attachmentUrl: true,
-        rawData: true,
-      },
-      take: 5,
-    });
+    const { data: samplesWithoutAttachment } = await supabaseAdmin
+      .from('programs')
+      .select('id, title, attachmentUrl, rawData')
+      .eq('dataSource', '기업마당')
+      .is('attachmentUrl', null)
+      .limit(5);
 
     return NextResponse.json({
       success: true,
       data: {
         statistics: {
-          total,
-          withAttachment,
+          total: total || 0,
+          withAttachment: withAttachment || 0,
           withoutAttachment,
         },
-        samplesWithAttachment: samplesWithAttachment.map(p => ({
+        samplesWithAttachment: (samplesWithAttachment || []).map((p: { id: string; title: string; attachmentUrl: string | null; rawData: Record<string, unknown> }) => ({
           id: p.id,
           title: p.title,
           attachmentUrl: p.attachmentUrl,
-          rawFlpthNm: (p.rawData as Record<string, unknown>).flpthNm,
+          rawFlpthNm: p.rawData.flpthNm,
         })),
-        samplesWithoutAttachment: samplesWithoutAttachment.map(p => ({
+        samplesWithoutAttachment: (samplesWithoutAttachment || []).map((p: { id: string; title: string; attachmentUrl: string | null; rawData: Record<string, unknown> }) => ({
           id: p.id,
           title: p.title,
           attachmentUrl: p.attachmentUrl,
-          rawFlpthNm: (p.rawData as Record<string, unknown>).flpthNm,
+          rawFlpthNm: p.rawData.flpthNm,
         })),
       },
     });

@@ -80,7 +80,6 @@ export async function GET(request: NextRequest) {
         { status: 200 }
       );
     } finally {
-      // Prisma 연결 해제
       await orchestrator.dispose();
     }
   } catch (error) {

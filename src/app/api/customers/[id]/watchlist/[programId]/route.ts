@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { errorResponse } from '@/lib/api/response';
 
 /**
@@ -18,6 +18,7 @@ export async function DELETE(
 ) {
   try {
     const { id, programId } = await params;
+    const supabase = await createClient();
 
     // Validate parameters
     if (!id || typeof id !== 'string') {
@@ -29,46 +30,50 @@ export async function DELETE(
     }
 
     // Check if customer exists
-    const customer = await prisma.customer.findUnique({
-      where: { id },
-    });
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('id', id)
+      .single();
 
-    if (!customer) {
+    if (customerError || !customer) {
       return errorResponse('CUSTOMER_NOT_FOUND', 'Customer not found', 404);
     }
 
     // Check if program exists
-    const program = await prisma.program.findUnique({
-      where: { id: programId },
-    });
+    const { data: program, error: programError } = await supabase
+      .from('programs')
+      .select('id')
+      .eq('id', programId)
+      .single();
 
-    if (!program) {
+    if (programError || !program) {
       return errorResponse('PROGRAM_NOT_FOUND', 'Program not found', 404);
     }
 
     // Check if in watchlist
-    const watchlistItem = await prisma.customerProgram.findUnique({
-      where: {
-        customerId_programId: {
-          customerId: id,
-          programId,
-        },
-      },
-    });
+    const { data: watchlistItem } = await supabase
+      .from('customer_programs')
+      .select('*')
+      .eq('customerId', id)
+      .eq('programId', programId)
+      .single();
 
     if (!watchlistItem) {
       return errorResponse('NOT_IN_WATCHLIST', 'Program not found in watchlist', 404);
     }
 
     // Remove from watchlist
-    await prisma.customerProgram.delete({
-      where: {
-        customerId_programId: {
-          customerId: id,
-          programId,
-        },
-      },
-    });
+    const { error: deleteError } = await supabase
+      .from('customer_programs')
+      .delete()
+      .eq('customerId', id)
+      .eq('programId', programId);
+
+    if (deleteError) {
+      console.error('[DELETE /api/customers/[id]/watchlist/[programId]] Delete error:', deleteError);
+      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to remove from watchlist', 500);
+    }
 
     return NextResponse.json({ success: true, message: 'Removed from watchlist' }, { status: 204 });
   } catch (error) {

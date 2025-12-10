@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 
 interface CustomerListProps {
   customers: Customer[];

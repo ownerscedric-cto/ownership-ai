@@ -229,3 +229,211 @@ export function useDownloadResource() {
     },
   });
 }
+
+// ============================================
+// File Upload
+// ============================================
+
+export interface UploadFileResponse {
+  success: boolean;
+  data: {
+    fileName: string;
+    url: string;
+    size: number;
+    type: string;
+  };
+}
+
+export function useUploadFile() {
+  return useMutation({
+    mutationFn: async ({ file, type }: { file: File; type: 'image' | 'document' }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to upload file');
+      }
+
+      return res.json() as Promise<UploadFileResponse>;
+    },
+  });
+}
+
+// ============================================
+// KnowHow Community (노하우 커뮤니티)
+// ============================================
+
+export interface KnowHowCategory {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface KnowHowPost {
+  id: string;
+  title: string;
+  content: string;
+  authorName: string;
+  userId: string;
+  categoryId: string;
+  viewCount: number;
+  isPinned: boolean;
+  isAnnouncement: boolean;
+  isEvent: boolean;
+  createdAt: string;
+  updatedAt: string;
+  category: KnowHowCategory;
+  _count: {
+    comments: number;
+  };
+}
+
+export interface KnowHowComment {
+  id: string;
+  content: string;
+  authorName: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useKnowHowPosts(params?: {
+  categoryId?: string;
+  isAnnouncement?: boolean;
+  isEvent?: boolean;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const queryParams = new URLSearchParams();
+  if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
+  if (params?.isAnnouncement !== undefined)
+    queryParams.append('isAnnouncement', params.isAnnouncement.toString());
+  if (params?.isEvent !== undefined) queryParams.append('isEvent', params.isEvent.toString());
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+  return useQuery<ListResponse<KnowHowPost>>({
+    queryKey: ['knowhowPosts', params],
+    queryFn: async () => {
+      const res = await fetch(`/api/education/knowhow/posts?${queryParams}`);
+      if (!res.ok) throw new Error('Failed to fetch knowhow posts');
+      return res.json();
+    },
+  });
+}
+
+export function useKnowHowPost(id: string) {
+  return useQuery<DetailResponse<KnowHowPost>>({
+    queryKey: ['knowhowPost', id],
+    queryFn: async () => {
+      const res = await fetch(`/api/education/knowhow/posts/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch knowhow post');
+      return res.json();
+    },
+    enabled: !!id,
+  });
+}
+
+export function useIncrementKnowHowPostViewCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/education/knowhow/posts/${id}/view`, {
+        method: 'PATCH',
+      });
+      if (!res.ok) throw new Error('Failed to increment view count');
+      return res.json();
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowPost', id] });
+      queryClient.invalidateQueries({ queryKey: ['knowhowPosts'] });
+    },
+  });
+}
+
+// 댓글 조회
+export function useKnowHowComments(postId: string) {
+  return useQuery<DetailResponse<KnowHowComment[]>>({
+    queryKey: ['knowhowComments', postId],
+    queryFn: async () => {
+      const res = await fetch(`/api/education/knowhow/posts/${postId}/comments`);
+      if (!res.ok) throw new Error('Failed to fetch comments');
+      return res.json();
+    },
+    enabled: !!postId,
+  });
+}
+
+// 댓글 작성
+export function useCreateKnowHowComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, content, authorName }: { postId: string; content: string; authorName: string }) => {
+      const res = await fetch(`/api/education/knowhow/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content, authorName }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to create comment');
+      }
+      return res.json();
+    },
+    onSuccess: (_, { postId }) => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowComments', postId] });
+      queryClient.invalidateQueries({ queryKey: ['knowhowPost', postId] });
+    },
+  });
+}
+
+// 게시글 작성
+export function useCreateKnowHowPost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { title: string; content: string; categoryId: string }) => {
+      const res = await fetch('/api/education/knowhow/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to create post');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowPosts'] });
+    },
+  });
+}
+
+// 카테고리 목록 조회
+export function useKnowHowCategories() {
+  return useQuery<DetailResponse<KnowHowCategory[]>>({
+    queryKey: ['knowhowCategories'],
+    queryFn: async () => {
+      const res = await fetch('/api/education/knowhow/categories');
+      if (!res.ok) throw new Error('Failed to fetch categories');
+      return res.json();
+    },
+  });
+}

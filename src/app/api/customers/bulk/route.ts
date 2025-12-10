@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { prisma } from '@/lib/prisma';
 import { createCustomerSchema } from '@/lib/validations/customer';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { ZodError } from 'zod';
@@ -201,16 +200,12 @@ export async function POST(request: NextRequest) {
 
     // 10. 기존 DB 중복 체크
     if (uniqueCustomers.length > 0) {
-      const existingCustomers = await prisma.customer.findMany({
-        where: {
-          businessNumber: {
-            in: uniqueCustomers.map(c => c.businessNumber),
-          },
-        },
-        select: { businessNumber: true },
-      });
+      const { data: existingCustomers } = await supabase
+        .from('customers')
+        .select('businessNumber')
+        .in('businessNumber', uniqueCustomers.map(c => c.businessNumber));
 
-      const existingBusinessNumbers = new Set(existingCustomers.map(c => c.businessNumber));
+      const existingBusinessNumbers = new Set((existingCustomers || []).map((c: { businessNumber: string }) => c.businessNumber));
 
       const duplicatesInDB: number[] = [];
       uniqueCustomers.forEach((customer, index) => {
@@ -231,30 +226,30 @@ export async function POST(request: NextRequest) {
       // DB 중복 제거
       const validCustomers = uniqueCustomers.filter((_, index) => !duplicatesInDB.includes(index));
 
-      // 11. Prisma Transaction으로 일괄 생성
+      // 11. Supabase로 일괄 생성
       let successCount = 0;
       if (validCustomers.length > 0) {
-        try {
-          const created = await prisma.$transaction(
-            validCustomers.map(customer =>
-              prisma.customer.create({
-                data: {
-                  userId: user.id,
-                  ...customer,
-                },
-              })
-            )
-          );
-          successCount = created.length;
-        } catch (error) {
-          // Transaction 실패 시 전체 롤백
+        const customersToInsert = validCustomers.map(customer => ({
+          userId: user.id,
+          ...customer,
+        }));
+
+        const { data: created, error: insertError } = await supabase
+          .from('customers')
+          .insert(customersToInsert)
+          .select();
+
+        if (insertError) {
+          console.error('Bulk insert error:', insertError);
           return errorResponse(
             ErrorCode.DATABASE_ERROR,
             '데이터 저장 중 오류가 발생했습니다',
-            error instanceof Error ? error.message : '알 수 없는 오류',
+            insertError.message,
             500
           );
         }
+
+        successCount = created?.length || 0;
       }
 
       // 12. 성공/실패 통계 반환

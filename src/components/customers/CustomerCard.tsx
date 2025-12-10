@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Building2, MapPin, DollarSign, Phone, Mail } from 'lucide-react';
 import Link from 'next/link';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 
 interface CustomerCardProps {
   customer: Customer;

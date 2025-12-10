@@ -4,14 +4,12 @@
  * Phase 3: 다중 API 통합 연동 (기업마당, K-Startup, KOCCA)
  */
 
-import { PrismaClient } from '@prisma/client';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { IProgramAPIClient, RawProgramData } from '../apis/base-api-client';
 import { BizinfoAPIClient } from '../apis/bizinfo-api-client';
 import { KStartupAPIClient } from '../apis/kstartup-api-client';
 import { KoccaPIMSAPIClient } from '../apis/kocca-pims-api-client';
 import { KoccaFinanceAPIClient } from '../apis/kocca-finance-api-client';
-
-const prisma = new PrismaClient();
 
 /**
  * 동기화 결과 타입
@@ -115,15 +113,17 @@ export class ProgramSyncOrchestrator {
    */
   private async getSyncMetadata(dataSource: string): Promise<Date | null> {
     try {
-      const metadata = await prisma.syncMetadata.findUnique({
-        where: { dataSource },
-      });
+      const { data: metadata } = await supabaseAdmin
+        .from('sync_metadata')
+        .select('*')
+        .eq('dataSource', dataSource)
+        .single();
 
       if (metadata) {
         console.log(
-          `[ProgramSyncOrchestrator] 🔄 Incremental sync for ${dataSource} since ${metadata.lastSyncedAt.toISOString()}`
+          `[ProgramSyncOrchestrator] 🔄 Incremental sync for ${dataSource} since ${new Date(metadata.lastSyncedAt).toISOString()}`
         );
-        return metadata.lastSyncedAt;
+        return new Date(metadata.lastSyncedAt);
       } else {
         console.log(`[ProgramSyncOrchestrator] 🔄 Full sync for ${dataSource} (first time)`);
         return null;
@@ -152,21 +152,26 @@ export class ProgramSyncOrchestrator {
     try {
       const now = new Date();
 
-      await prisma.syncMetadata.upsert({
-        where: { dataSource },
-        update: {
-          lastSyncedAt: now,
-          syncCount: { increment: 1 },
-          lastResult: success ? 'success' : 'failed',
-          updatedAt: now,
-        },
-        create: {
+      // Get existing metadata to calculate new syncCount
+      const { data: existing } = await supabaseAdmin
+        .from('sync_metadata')
+        .select('syncCount')
+        .eq('dataSource', dataSource)
+        .single();
+
+      const newSyncCount = existing ? (existing.syncCount || 0) + 1 : 1;
+
+      await supabaseAdmin
+        .from('sync_metadata')
+        .upsert({
           dataSource,
-          lastSyncedAt: now,
-          syncCount: 1,
+          lastSyncedAt: now.toISOString(),
+          syncCount: newSyncCount,
           lastResult: success ? 'success' : 'failed',
-        },
-      });
+          updatedAt: now.toISOString(),
+        }, {
+          onConflict: 'dataSource'
+        });
 
       console.log(
         `[ProgramSyncOrchestrator] ✅ Updated sync metadata for ${dataSource}: ${count} programs, ${success ? 'success' : 'failed'}`
@@ -363,14 +368,12 @@ export class ProgramSyncOrchestrator {
     }
 
     // ⭐ 기존 데이터 존재 여부 확인
-    const existing = await prisma.program.findUnique({
-      where: {
-        dataSource_sourceApiId: {
-          dataSource,
-          sourceApiId,
-        },
-      },
-    });
+    const { data: existing } = await supabaseAdmin
+      .from('programs')
+      .select('id')
+      .eq('dataSource', dataSource)
+      .eq('sourceApiId', sourceApiId)
+      .single();
 
     // 이미 존재하면 아무것도 하지 않음 (기존 데이터 보존)
     if (existing) {
@@ -457,8 +460,9 @@ export class ProgramSyncOrchestrator {
     const endDate = deadline; // ⭐ endDate는 deadline과 동일
 
     // ⭐ 신규 프로그램만 생성 (기존 데이터는 위에서 이미 체크하여 리턴됨)
-    await prisma.program.create({
-      data: {
+    await supabaseAdmin
+      .from('programs')
+      .insert({
         dataSource,
         sourceApiId,
         title,
@@ -468,16 +472,15 @@ export class ProgramSyncOrchestrator {
         targetLocation,
         keywords,
         budgetRange,
-        deadline,
+        deadline: deadline?.toISOString(),
         sourceUrl,
         attachmentUrl, // ⭐ 첨부파일 URL (기업마당 API만 제공)
-        registeredAt, // ⭐ 교차 정렬용
-        startDate,
-        endDate,
+        registeredAt: registeredAt?.toISOString(), // ⭐ 교차 정렬용
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
         rawData: raw as object,
         syncStatus: 'active',
-      },
-    });
+      });
 
     console.log(
       `[ProgramSyncOrchestrator] ✅ New program added: ${dataSource}-${sourceApiId} - ${title}`
@@ -485,9 +488,9 @@ export class ProgramSyncOrchestrator {
   }
 
   /**
-   * 리소스 정리 (Prisma 연결 해제)
+   * 리소스 정리 (Supabase는 연결 해제 불필요)
    */
   async dispose(): Promise<void> {
-    await prisma.$disconnect();
+    // Supabase는 자동으로 연결 관리, 별도 해제 불필요
   }
 }

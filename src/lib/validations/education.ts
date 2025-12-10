@@ -125,6 +125,110 @@ export const knowHowFilterSchema = z.object({
 });
 
 // ============================================
+// KnowHowCategory (노하우 카테고리) Schemas
+// ============================================
+
+// 노하우 카테고리 생성 스키마
+export const createKnowHowCategorySchema = z.object({
+  name: z.string().min(1, '카테고리 이름은 필수입니다').max(50, '카테고리 이름은 50자 이하여야 합니다'),
+  description: z.string().max(200, '설명은 200자 이하여야 합니다').optional(),
+  order: z.number().int().min(0, '순서는 0 이상이어야 합니다').default(0),
+});
+
+// 노하우 카테고리 수정 스키마
+export const updateKnowHowCategorySchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  description: z.string().max(200).optional(),
+  order: z.number().int().min(0).optional(),
+});
+
+// ============================================
+// KnowHowPost (노하우 게시글) Schemas
+// ============================================
+
+// 노하우 게시글 생성 스키마 (일반 회원용)
+export const createKnowHowPostSchema = z.object({
+  categoryId: z.string().min(1, '카테고리를 선택해주세요'),
+  title: z.string().min(1, '제목은 필수입니다').max(200, '제목은 200자 이하여야 합니다'),
+  content: z.string().min(1, '내용은 필수입니다'),
+  imageUrls: z.array(z.string().url()).default([]),
+  fileUrls: z.array(z.string().url()).default([]),
+  fileNames: z.array(z.string()).default([]),
+});
+
+// 노하우 게시글 수정 스키마 (일반 회원용)
+export const updateKnowHowPostSchema = z.object({
+  categoryId: z.string().min(1).optional(),
+  title: z.string().min(1).max(200).optional(),
+  content: z.string().min(1).optional(),
+  imageUrls: z.array(z.string().url()).optional(),
+  fileUrls: z.array(z.string().url()).optional(),
+  fileNames: z.array(z.string()).optional(),
+});
+
+// 노하우 게시글 생성 스키마 (관리자용 - 공지/이벤트)
+export const createAdminKnowHowPostSchema = z.object({
+  categoryId: z.string().min(1, '카테고리를 선택해주세요'),
+  title: z.string().min(1, '제목은 필수입니다').max(200, '제목은 200자 이하여야 합니다'),
+  content: z.string().min(1, '내용은 필수입니다'),
+  imageUrls: z.array(z.string().url()).default([]),
+  fileUrls: z.array(z.string().url()).default([]),
+  fileNames: z.array(z.string()).default([]),
+  isAnnouncement: z.boolean().default(false),
+  isEvent: z.boolean().default(false),
+  isPinned: z.boolean().default(false),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+});
+
+// 노하우 게시글 수정 스키마 (관리자용)
+export const updateAdminKnowHowPostSchema = z.object({
+  categoryId: z.string().min(1).optional(),
+  title: z.string().min(1).max(200).optional(),
+  content: z.string().min(1).optional(),
+  imageUrls: z.array(z.string().url()).optional(),
+  fileUrls: z.array(z.string().url()).optional(),
+  fileNames: z.array(z.string()).optional(),
+  isAnnouncement: z.boolean().optional(),
+  isEvent: z.boolean().optional(),
+  isPinned: z.boolean().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+});
+
+// 노하우 게시글 필터링 스키마
+export const knowHowPostFilterSchema = z.object({
+  // 페이지네이션
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+
+  // 정렬
+  sortBy: z.enum(['createdAt', 'updatedAt', 'viewCount', 'title']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+
+  // 필터링
+  categoryId: z.string().optional(),
+  isAnnouncement: z.coerce.boolean().optional(),
+  isEvent: z.coerce.boolean().optional(),
+  search: z.string().optional(), // 제목, 내용 검색
+});
+
+// ============================================
+// KnowHowComment (노하우 댓글) Schemas
+// ============================================
+
+// 노하우 댓글 생성 스키마
+export const createKnowHowCommentSchema = z.object({
+  postId: z.string().min(1, '게시글 ID는 필수입니다'),
+  content: z.string().min(1, '댓글 내용은 필수입니다').max(1000, '댓글은 1000자 이하여야 합니다'),
+});
+
+// 노하우 댓글 수정 스키마
+export const updateKnowHowCommentSchema = z.object({
+  content: z.string().min(1, '댓글 내용은 필수입니다').max(1000, '댓글은 1000자 이하여야 합니다'),
+});
+
+// ============================================
 // Resource (자료실) Schemas
 // ============================================
 
@@ -196,3 +300,15 @@ export type KnowHowFilterInput = z.infer<typeof knowHowFilterSchema>;
 export type CreateResourceInput = z.infer<typeof createResourceSchema>;
 export type UpdateResourceInput = z.infer<typeof updateResourceSchema>;
 export type ResourceFilterInput = z.infer<typeof resourceFilterSchema>;
+
+export type CreateKnowHowCategoryInput = z.infer<typeof createKnowHowCategorySchema>;
+export type UpdateKnowHowCategoryInput = z.infer<typeof updateKnowHowCategorySchema>;
+
+export type CreateKnowHowPostInput = z.infer<typeof createKnowHowPostSchema>;
+export type UpdateKnowHowPostInput = z.infer<typeof updateKnowHowPostSchema>;
+export type CreateAdminKnowHowPostInput = z.infer<typeof createAdminKnowHowPostSchema>;
+export type UpdateAdminKnowHowPostInput = z.infer<typeof updateAdminKnowHowPostSchema>;
+export type KnowHowPostFilterInput = z.infer<typeof knowHowPostFilterSchema>;
+
+export type CreateKnowHowCommentInput = z.infer<typeof createKnowHowCommentSchema>;
+export type UpdateKnowHowCommentInput = z.infer<typeof updateKnowHowCommentSchema>;

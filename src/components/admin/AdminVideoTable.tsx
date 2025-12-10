@@ -16,14 +16,10 @@ import {
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import type { EducationVideo, VideoCategory } from '@prisma/client';
-
-interface VideoWithCategory extends EducationVideo {
-  category: VideoCategory;
-}
+import type { EducationVideo } from '@/hooks/useEducation';
 
 interface AdminVideoTableProps {
-  videos: VideoWithCategory[];
+  videos: EducationVideo[];
 }
 
 const categoryColors: Record<string, string> = {

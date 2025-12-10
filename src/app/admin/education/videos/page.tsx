@@ -1,7 +1,7 @@
 import { Video, Plus, FolderTree } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AdminVideoTable } from '@/components/admin/AdminVideoTable';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import Link from 'next/link';
 
 /**
@@ -10,34 +10,44 @@ import Link from 'next/link';
  * - Create, Edit, Delete videos
  */
 export default async function AdminVideosPage() {
-  // Fetch all videos with category relation
-  const videos = await prisma.educationVideo.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      category: true,
-    },
-  });
+  // Fetch all videos with category relation (sorted by createdAt desc)
+  const { data: videos } = await supabaseAdmin
+    .from('education_videos')
+    .select(`
+      *,
+      category:video_categories!education_videos_categoryId_fkey(*)
+    `)
+    .order('createdAt', { ascending: false });
 
-  // Fetch all categories with video counts and view counts
-  const categories = await prisma.videoCategory.findMany({
-    orderBy: { order: 'asc' },
-    include: {
-      videos: {
-        select: {
-          viewCount: true,
-        },
-      },
-    },
-  });
+  // Fetch all categories (sorted by order asc)
+  const { data: categories } = await supabaseAdmin
+    .from('video_categories')
+    .select('*')
+    .order('order', { ascending: true });
+
+  // For each category, count videos and sum viewCounts
+  const categoriesWithStats = await Promise.all(
+    (categories || []).map(async (cat) => {
+      const { data: categoryVideos } = await supabaseAdmin
+        .from('education_videos')
+        .select('viewCount')
+        .eq('category', cat.name);
+
+      return {
+        ...cat,
+        videos: categoryVideos || [],
+      };
+    })
+  );
 
   const stats = {
-    total: videos.length,
-    totalViews: videos.reduce((sum, v) => sum + v.viewCount, 0),
-    byCategory: categories.reduce(
+    total: videos?.length || 0,
+    totalViews: (videos || []).reduce((sum, v) => sum + v.viewCount, 0),
+    byCategory: categoriesWithStats.reduce(
       (acc, cat) => {
         acc[cat.name] = {
           count: cat.videos.length,
-          views: cat.videos.reduce((sum, v) => sum + v.viewCount, 0),
+          views: cat.videos.reduce((sum: number, v: { viewCount: number }) => sum + v.viewCount, 0),
         };
         return acc;
       },
@@ -100,7 +110,7 @@ export default async function AdminVideosPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">카테고리</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{categories.length}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{categoriesWithStats.length}</p>
               <p className="text-xs text-gray-500 mt-1">최대 10개</p>
             </div>
             <FolderTree className="w-10 h-10 text-purple-600" />
@@ -209,7 +219,7 @@ export default async function AdminVideosPage() {
       </div>
 
       {/* Video Table */}
-      <AdminVideoTable videos={videos} />
+      <AdminVideoTable videos={videos || []} />
     </div>
   );
 }

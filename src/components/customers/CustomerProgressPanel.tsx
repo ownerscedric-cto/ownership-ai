@@ -1,6 +1,6 @@
 'use client';
 
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Target, Calendar, TrendingUp, Clock, CheckCircle2, AlertCircle } from 'lucide-react';

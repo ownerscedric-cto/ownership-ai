@@ -5,10 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { createClient } from '@/lib/supabase/server';
 import { createErrorResponse, logError } from '@/lib/utils/error-handler';
-
-const prisma = new PrismaClient();
 
 /**
  * GET /api/matching/[id]
@@ -31,6 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     // 1. Path Parameters 파싱
     const { id: customerId } = await params;
+    const supabase = await createClient();
 
     if (!customerId) {
       return NextResponse.json(
@@ -55,12 +54,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     );
 
     // 3. 고객 존재 여부 확인
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
-      select: { id: true },
-    });
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('id', customerId)
+      .single();
 
-    if (!customer) {
+    if (customerError || !customer) {
       return NextResponse.json(
         {
           success: false,
@@ -74,46 +74,44 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // 4. 매칭 결과 조회
-    const results = await prisma.matchingResult.findMany({
-      where: {
-        customerId,
-        score: {
-          gte: minScore,
-        },
-      },
-      orderBy: {
-        score: 'desc',
-      },
-      take: limit,
-      include: {
-        program: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            category: true,
-            targetAudience: true,
-            targetLocation: true,
-            keywords: true,
-            budgetRange: true,
-            deadline: true,
-            sourceUrl: true,
-            dataSource: true,
-            rawData: true,
-          },
-        },
-      },
-    });
+    const { data: results, error: matchingError } = await supabase
+      .from('matching_results')
+      .select(`
+        *,
+        program:programs (
+          id,
+          title,
+          description,
+          category,
+          targetAudience,
+          targetLocation,
+          keywords,
+          budgetRange,
+          deadline,
+          sourceUrl,
+          dataSource,
+          rawData
+        )
+      `)
+      .eq('customerId', customerId)
+      .gte('score', minScore)
+      .order('score', { ascending: false })
+      .limit(limit);
 
-    console.log(`[GET /api/matching/${customerId}] ✅ Fetched ${results.length} matching results`);
+    if (matchingError) {
+      console.error('Matching results fetch error:', matchingError);
+      return NextResponse.json(createErrorResponse(matchingError), { status: 500 });
+    }
+
+    console.log(`[GET /api/matching/${customerId}] ✅ Fetched ${results?.length || 0} matching results`);
 
     // 5. 성공 응답
     return NextResponse.json(
       {
         success: true,
-        data: results,
+        data: results || [],
         metadata: {
-          total: results.length,
+          total: results?.length || 0,
           limit,
         },
       },
@@ -127,7 +125,5 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const errorResponse = createErrorResponse(error);
 
     return NextResponse.json(errorResponse, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

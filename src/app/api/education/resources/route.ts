@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { createResourceSchema, resourceFilterSchema } from '@/lib/validations/education';
 import { z } from 'zod';
 
@@ -12,43 +12,51 @@ export async function GET(request: NextRequest) {
     const filters = resourceFilterSchema.parse(searchParams);
 
     const { page, limit, sortBy, sortOrder, type, search } = filters;
-    const skip = (page - 1) * limit;
+    const supabase = await createClient();
+
+    let query = supabase.from('resources').select('*', { count: 'exact' });
 
     // WHERE 조건
-    const where: {
-      type?: string;
-      OR?: Array<{
-        title?: { contains: string; mode: 'insensitive' };
-        description?: { contains: string; mode: 'insensitive' };
-      }>;
-    } = {};
-    if (type) where.type = type;
+    if (type) {
+      query = query.eq('type', type);
+    }
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
-    // 데이터 조회
-    const [resources, total] = await Promise.all([
-      prisma.resource.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { [sortBy]: sortOrder },
-      }),
-      prisma.resource.count({ where }),
-    ]);
+    // 정렬 (Supabase 테이블이 camelCase이므로 그대로 사용)
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
 
+    // 페이지네이션
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    const { data: resources, error: resourcesError, count } = await query;
+
+    if (resourcesError) {
+      console.error('자료 목록 조회 실패:', resourcesError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to fetch resources list',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // Supabase 테이블이 이미 camelCase이므로 변환 불필요
     return NextResponse.json({
       success: true,
-      data: resources,
+      data: resources || [],
       metadata: {
-        total,
+        total: count || 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((count || 0) / limit),
       },
     });
   } catch (error) {
@@ -88,11 +96,37 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = createResourceSchema.parse(body);
+    const supabase = await createClient();
 
-    const resource = await prisma.resource.create({
-      data: validated,
-    });
+    const { data: resource, error: createError } = await supabase
+      .from('resources')
+      .insert({
+        title: validated.title,
+        description: validated.description,
+        type: validated.type,
+        fileUrl: validated.fileUrl,
+        fileName: validated.fileName,
+        fileSize: validated.fileSize,
+        tags: validated.tags || [],
+      })
+      .select('*')
+      .single();
 
+    if (createError) {
+      console.error('자료 생성 실패:', createError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create resource',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // Supabase 테이블이 이미 camelCase이므로 변환 불필요
     return NextResponse.json(
       {
         success: true,

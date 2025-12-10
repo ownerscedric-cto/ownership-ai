@@ -130,6 +130,71 @@ Simple actionable rules for Claude Code SuperClaude framework operation.
   - Use NextAuth.js session validation
   - Check user permissions before data access
 
+### Code Reuse and Abstraction Rules (MANDATORY)
+
+**Before Writing ANY New Code**:
+
+1. **Search for Similar Code** (MANDATORY):
+   ```bash
+   # Step 1: Find similar files
+   Glob: "**/*{keyword}*/route.ts"
+   Glob: "**/*{feature}*.tsx"
+
+   # Step 2: Search for similar patterns
+   Grep: "similar_function_name" --output-mode files_with_matches
+   Grep: "similar_pattern" --output-mode content
+
+   # Step 3: Read and analyze
+   Read: [identified files]
+   ```
+
+2. **Check for Reusable Patterns** (MANDATORY):
+   - ✅ Same logic repeated 2+ times → Extract to utility function
+   - ✅ Same UI structure 2+ times → Create generic component
+   - ✅ Same validation pattern 2+ times → Share Zod schema
+   - ✅ Same API pattern 2+ times → Create helper function
+
+3. **Abstraction Threshold Rules**:
+   - **3+ lines repeated**: Extract to function
+   - **2+ files with same pattern**: Create shared utility
+   - **Any duplicate API logic**: Use common helpers
+   - **Any duplicate component structure**: Use generic component
+
+**Examples**:
+
+```typescript
+// ❌ WRONG: Copy-paste similar code
+// /api/videos/[id]/route.ts
+export async function PATCH() {
+  const cookieStore = await cookies();
+  const viewed = cookieStore.get('viewed_videos');
+  // ... 50 lines of duplicate logic
+}
+
+// /api/posts/[id]/view/route.ts
+export async function PATCH() {
+  const cookieStore = await cookies();
+  const viewed = cookieStore.get('viewed_posts');
+  // ... same 50 lines again
+}
+
+// ✅ CORRECT: Extract to utility
+// /lib/server/view-count.ts
+export async function incrementViewCount(model, id, cookieName) { ... }
+
+// /api/videos/[id]/view/route.ts
+export async function PATCH() {
+  const result = await incrementEducationVideoViewCount(id);
+  return successResponse(result);
+}
+```
+
+**Development Checklist**:
+- [ ] Searched for similar existing code before writing new code
+- [ ] Checked if pattern can be abstracted/reused
+- [ ] Created utility/component if pattern used 2+ times
+- [ ] Verified no duplicate logic in codebase
+
 ### Systematic Codebase Changes
 
 - **MANDATORY**: Complete project-wide discovery before any changes
@@ -173,6 +238,8 @@ Simple actionable rules for Claude Code SuperClaude framework operation.
 
 ### Do
 
+✅ **Search for similar code FIRST** before writing new code
+✅ **Extract to utility/component** if pattern used 2+ times
 ✅ Read before Write/Edit/Update
 ✅ Use absolute paths
 ✅ Batch tool calls

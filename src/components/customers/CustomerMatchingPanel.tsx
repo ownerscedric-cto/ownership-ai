@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Target, Star, Sparkles } from 'lucide-react';
 import { CustomerWatchlist } from './CustomerWatchlist';

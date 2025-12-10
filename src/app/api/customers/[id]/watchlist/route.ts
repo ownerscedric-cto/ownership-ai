@@ -7,7 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/api/response';
 
 /**
@@ -25,6 +25,7 @@ const addToWatchlistSchema = z.object({
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const supabase = await createClient();
 
     // Validate id format
     if (!id || typeof id !== 'string') {
@@ -48,74 +49,72 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { programId, notes } = validationResult.data;
 
     // Check if customer exists
-    const customer = await prisma.customer.findUnique({
-      where: { id },
-    });
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .select('preferredKeywords')
+      .eq('id', id)
+      .single();
 
-    if (!customer) {
+    if (customerError || !customer) {
       return errorResponse('CUSTOMER_NOT_FOUND', 'Customer not found', 404);
     }
 
     // Check if program exists
-    const program = await prisma.program.findUnique({
-      where: { id: programId },
-    });
+    const { data: program, error: programError } = await supabase
+      .from('programs')
+      .select('id, title, dataSource, deadline, targetAudience, targetLocation, keywords')
+      .eq('id', programId)
+      .single();
 
-    if (!program) {
+    if (programError || !program) {
       return errorResponse('PROGRAM_NOT_FOUND', 'Program not found', 404);
     }
 
     // Check if already in watchlist (to prevent duplicates)
-    const existing = await prisma.customerProgram.findUnique({
-      where: {
-        customerId_programId: {
-          customerId: id,
-          programId,
-        },
-      },
-    });
+    const { data: existing } = await supabase
+      .from('customer_programs')
+      .select('*')
+      .eq('customerId', id)
+      .eq('programId', programId)
+      .single();
 
     if (existing) {
       return errorResponse('ALREADY_IN_WATCHLIST', 'Program already in watchlist', 409);
     }
 
-    // Add to watchlist and update preferred keywords
-    const [watchlistItem] = await prisma.$transaction([
-      // 1. Add to watchlist
-      prisma.customerProgram.create({
-        data: {
-          customerId: id,
-          programId,
-          notes: notes || null,
-        },
-        include: {
-          program: {
-            select: {
-              id: true,
-              title: true,
-              dataSource: true,
-              deadline: true,
-              targetAudience: true,
-              targetLocation: true,
-            },
-          },
-        },
-      }),
-      // 2. Update customer's preferred keywords
-      prisma.customer.update({
-        where: { id },
-        data: {
-          preferredKeywords: {
-            set: Array.from(
-              new Set([
-                ...customer.preferredKeywords,
-                ...program.keywords, // Add program's keywords to preferred keywords
-              ])
-            ).slice(0, 100), // Limit to 100 keywords to prevent excessive growth
-          },
-        },
-      }),
-    ]);
+    // 1. Add to watchlist
+    const { data: watchlistItem, error: insertError } = await supabase
+      .from('customer_programs')
+      .insert({
+        customerId: id,
+        programId,
+        notes: notes || null,
+      })
+      .select('*, program:programs(*)')
+      .single();
+
+    if (insertError) {
+      console.error('[POST /api/customers/[id]/watchlist] Insert error:', insertError);
+      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to add to watchlist', 500);
+    }
+
+    // 2. Update customer's preferred keywords
+    const updatedKeywords = Array.from(
+      new Set([
+        ...(customer.preferredKeywords || []),
+        ...(program.keywords || []),
+      ])
+    ).slice(0, 100);
+
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({ preferredKeywords: updatedKeywords })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('[POST /api/customers/[id]/watchlist] Update keywords error:', updateError);
+      // Continue even if keyword update fails
+    }
 
     return successResponse(watchlistItem, undefined, 201);
   } catch (error) {
@@ -131,6 +130,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const supabase = await createClient();
 
     // Validate id format
     if (!id || typeof id !== 'string') {
@@ -138,43 +138,49 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     // Check if customer exists
-    const customer = await prisma.customer.findUnique({
-      where: { id },
-    });
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('id', id)
+      .single();
 
-    if (!customer) {
+    if (customerError || !customer) {
       return errorResponse('CUSTOMER_NOT_FOUND', 'Customer not found', 404);
     }
 
     // Get watchlist with program details
-    const watchlist = await prisma.customerProgram.findMany({
-      where: { customerId: id },
-      orderBy: { addedAt: 'desc' },
-      include: {
-        program: {
-          select: {
-            id: true,
-            dataSource: true,
-            title: true,
-            description: true,
-            category: true,
-            targetAudience: true,
-            targetLocation: true,
-            keywords: true,
-            budgetRange: true,
-            deadline: true,
-            sourceUrl: true,
-            registeredAt: true,
-            startDate: true,
-            endDate: true,
-          },
-        },
-      },
-    });
+    const { data: watchlist, error: watchlistError } = await supabase
+      .from('customer_programs')
+      .select(`
+        *,
+        program:programs (
+          id,
+          dataSource,
+          title,
+          description,
+          category,
+          targetAudience,
+          targetLocation,
+          keywords,
+          budgetRange,
+          deadline,
+          sourceUrl,
+          registeredAt,
+          startDate,
+          endDate
+        )
+      `)
+      .eq('customerId', id)
+      .order('addedAt', { ascending: false });
+
+    if (watchlistError) {
+      console.error('[GET /api/customers/[id]/watchlist] Error:', watchlistError);
+      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to fetch watchlist', 500);
+    }
 
     return successResponse({
-      total: watchlist.length,
-      items: watchlist,
+      total: watchlist?.length || 0,
+      items: watchlist || [],
     });
   } catch (error) {
     console.error('[GET /api/customers/[id]/watchlist] Error:', error);

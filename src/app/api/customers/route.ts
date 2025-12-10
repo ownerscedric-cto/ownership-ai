@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { prisma } from '@/lib/prisma';
 import {
   createCustomerSchema,
   customerFilterSchema,
@@ -8,8 +7,6 @@ import {
 } from '@/lib/validations/customer';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { ZodError } from 'zod';
-import type { Prisma } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 // POST /api/customers - 고객 생성
 export async function POST(request: NextRequest) {
@@ -32,12 +29,29 @@ export async function POST(request: NextRequest) {
     const validatedData: CreateCustomerInput = createCustomerSchema.parse(body);
 
     // 4. 고객 생성
-    const customer = await prisma.customer.create({
-      data: {
+    const { data: customer, error: createError } = await supabase
+      .from('customers')
+      .insert({
         userId: user.id,
         ...validatedData,
-      },
-    });
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      // 중복 에러 (unique constraint violation)
+      if (createError.code === '23505') {
+        return errorResponse(
+          ErrorCode.DUPLICATE_ENTRY,
+          '이미 등록된 사업자등록번호입니다',
+          { field: 'businessNumber' },
+          400
+        );
+      }
+
+      console.error('Customer creation error:', createError);
+      return errorResponse(ErrorCode.INTERNAL_ERROR, '고객 생성 중 오류가 발생했습니다', null, 500);
+    }
 
     // 5. 성공 응답
     return successResponse(customer, undefined, 201);
@@ -50,18 +64,6 @@ export async function POST(request: NextRequest) {
         error.issues,
         400
       );
-    }
-
-    // Prisma 중복 에러
-    if (error instanceof PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        return errorResponse(
-          ErrorCode.DUPLICATE_ENTRY,
-          '이미 등록된 사업자등록번호입니다',
-          { field: 'businessNumber' },
-          400
-        );
-      }
     }
 
     // 서버 에러
@@ -90,50 +92,56 @@ export async function GET(request: NextRequest) {
 
     const filters = customerFilterSchema.parse(queryParams);
 
-    // 3. Prisma where 조건 구성
-    const where: Prisma.CustomerWhereInput = {
-      userId: user.id, // 본인의 고객만 조회
-      ...(filters.businessType && { businessType: filters.businessType }),
-      ...(filters.industry && {
-        industry: { contains: filters.industry, mode: 'insensitive' },
-      }),
-      ...(filters.location && {
-        location: { contains: filters.location, mode: 'insensitive' },
-      }),
-      ...(filters.search && {
-        OR: [
-          { name: { contains: filters.search, mode: 'insensitive' } },
-          { businessNumber: { contains: filters.search } },
-        ],
-      }),
-    };
+    // 3. Supabase 쿼리 구성 (본인의 고객만 조회)
+    let query = supabase
+      .from('customers')
+      .select('*', { count: 'exact' })
+      .eq('userId', user.id);
 
-    // 4. 정렬 조건
-    const orderBy: Prisma.CustomerOrderByWithRelationInput = {
-      [filters.sortBy]: filters.sortOrder,
-    };
+    // 4. 필터 적용
+    if (filters.businessType) {
+      query = query.eq('businessType', filters.businessType);
+    }
 
-    // 5. 페이지네이션 계산
-    const skip = (filters.page - 1) * filters.limit;
-    const take = filters.limit;
+    if (filters.industry) {
+      query = query.ilike('industry', `%${filters.industry}%`);
+    }
 
-    // 6. 데이터 조회 (병렬 처리)
-    const [customers, total] = await Promise.all([
-      prisma.customer.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-      }),
-      prisma.customer.count({ where }),
-    ]);
+    if (filters.location) {
+      query = query.ilike('location', `%${filters.location}%`);
+    }
 
-    // 7. 성공 응답
+    if (filters.search) {
+      query = query.or(`name.ilike.%${filters.search}%,businessNumber.ilike.%${filters.search}%`);
+    }
+
+    // 5. 정렬 적용
+    query = query.order(filters.sortBy, { ascending: filters.sortOrder === 'asc' });
+
+    // 6. 페이지네이션 적용
+    const from = (filters.page - 1) * filters.limit;
+    const to = from + filters.limit - 1;
+    query = query.range(from, to);
+
+    // 7. 데이터 조회
+    const { data: customers, error: fetchError, count } = await query;
+
+    if (fetchError) {
+      console.error('Customer list error:', fetchError);
+      return errorResponse(
+        ErrorCode.INTERNAL_ERROR,
+        '고객 목록 조회 중 오류가 발생했습니다',
+        null,
+        500
+      );
+    }
+
+    // 8. 성공 응답
     return successResponse(customers, {
-      total,
+      total: count || 0,
       page: filters.page,
       limit: filters.limit,
-      totalPages: Math.ceil(total / filters.limit),
+      totalPages: Math.ceil((count || 0) / filters.limit),
     });
   } catch (error) {
     // Zod 유효성 검증 에러

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 import { Input } from '@/components/ui/input';
 import {
   Accordion,

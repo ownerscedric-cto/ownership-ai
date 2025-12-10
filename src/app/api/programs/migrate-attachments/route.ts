@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 /**
  * POST /api/programs/migrate-attachments
@@ -13,19 +13,18 @@ export async function POST(_request: NextRequest) {
     console.log('[POST /api/programs/migrate-attachments] Starting migration...');
 
     // 기업마당 프로그램 전체 조회 (잘못된 데이터 수정을 위해 전체 업데이트)
-    const programs = await prisma.program.findMany({
-      where: {
-        dataSource: '기업마당',
-      },
-    });
+    const { data: programs } = await supabaseAdmin
+      .from('programs')
+      .select('*')
+      .eq('dataSource', '기업마당');
 
-    console.log(`[Migrate] Found ${programs.length} programs to migrate`);
+    console.log(`[Migrate] Found ${programs?.length || 0} programs to migrate`);
 
     let updatedCount = 0;
     let skippedCount = 0;
 
     // 각 프로그램의 rawData에서 flpthNm 추출
-    for (const program of programs) {
+    for (const program of programs || []) {
       const rawData = program.rawData as Record<string, unknown>;
       const flpthNm = rawData.flpthNm;
 
@@ -48,10 +47,10 @@ export async function POST(_request: NextRequest) {
         }
 
         // attachmentUrl 업데이트
-        await prisma.program.update({
-          where: { id: program.id },
-          data: { attachmentUrl },
-        });
+        await supabaseAdmin
+          .from('programs')
+          .update({ attachmentUrl })
+          .eq('id', program.id);
 
         console.log(`[Migrate] ✅ Updated: ${program.title} → ${attachmentUrl}`);
         updatedCount++;
@@ -69,7 +68,7 @@ export async function POST(_request: NextRequest) {
       {
         success: true,
         data: {
-          total: programs.length,
+          total: programs?.length || 0,
           updated: updatedCount,
           skipped: skippedCount,
         },

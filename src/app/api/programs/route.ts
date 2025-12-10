@@ -5,10 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { createClient } from '@/lib/supabase/server';
 import { createErrorResponse, logError } from '@/lib/utils/error-handler';
-
-const prisma = new PrismaClient();
 
 /**
  * GET /api/programs
@@ -48,58 +46,55 @@ export async function GET(request: NextRequest) {
     const targetLocation = searchParams.get('targetLocation');
     const keyword = searchParams.get('keyword');
 
-    // Prisma where 조건 구성
-    const where: {
-      dataSource?: string | { in: string[] };
-      category?: string;
-      targetAudience?: { has: string };
-      targetLocation?: { has: string };
-      OR?: Array<{ title?: { contains: string }; keywords?: { has: string } }>;
-    } = {};
+    const supabase = await createClient();
 
+    // Supabase 쿼리 구성
+    let query = supabase.from('programs').select('*', { count: 'exact' });
+
+    // 필터 적용
     if (dataSource) {
       // "한국콘텐츠진흥원" 선택 시 KOCCA-PIMS와 KOCCA-Finance 둘 다 조회
       if (dataSource === '한국콘텐츠진흥원') {
-        where.dataSource = {
-          in: ['KOCCA-PIMS', 'KOCCA-Finance'],
-        };
+        query = query.in('dataSource', ['KOCCA-PIMS', 'KOCCA-Finance']);
       } else {
-        where.dataSource = dataSource;
+        query = query.eq('dataSource', dataSource);
       }
     }
 
     if (category) {
-      where.category = category;
+      query = query.eq('category', category);
     }
 
     if (targetAudience) {
-      where.targetAudience = { has: targetAudience };
+      query = query.contains('targetAudience', [targetAudience]);
     }
 
     if (targetLocation) {
-      where.targetLocation = { has: targetLocation };
+      query = query.contains('targetLocation', [targetLocation]);
     }
 
     if (keyword) {
-      where.OR = [{ title: { contains: keyword } }, { keywords: { has: keyword } }];
+      query = query.or(`title.ilike.%${keyword}%,keywords.cs.{${keyword}}`);
     }
 
-    // 전체 개수 조회
-    const total = await prisma.program.count({ where });
-
     // ⭐ 교차 정렬: registeredAt 기준 내림차순 정렬 (최신순)
-    const programs = await prisma.program.findMany({
-      where,
-      orderBy: {
-        registeredAt: 'desc', // ⭐ 등록일 기준 최신순 (교차 노출)
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    query = query.order('registeredAt', { ascending: false });
+
+    // 페이지네이션
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    const { data: programs, error: fetchError, count: total } = await query;
+
+    if (fetchError) {
+      console.error('Programs fetch error:', fetchError);
+      return NextResponse.json(createErrorResponse(fetchError), { status: 500 });
+    }
 
     // 출처별 분포 통계 계산 (현재 페이지의 데이터)
     // KOCCA-PIMS와 KOCCA-Finance는 "한국콘텐츠진흥원"으로 통합
-    const sourceDistribution = programs.reduce(
+    const sourceDistribution = (programs || []).reduce(
       (acc: Record<string, number>, program: { dataSource: string }) => {
         const normalizedSource =
           program.dataSource === 'KOCCA-PIMS' || program.dataSource === 'KOCCA-Finance'
@@ -113,16 +108,16 @@ export async function GET(request: NextRequest) {
     );
 
     console.log(
-      `[GET /api/programs] Fetched ${programs.length} programs (page ${page}, limit ${limit})`
+      `[GET /api/programs] Fetched ${programs?.length || 0} programs (page ${page}, limit ${limit})`
     );
 
     // 성공 응답
     return NextResponse.json(
       {
         success: true,
-        data: programs,
+        data: programs || [],
         metadata: {
-          total,
+          total: total || 0,
           page,
           limit,
           sourceDistribution, // 출처별 분포
@@ -138,7 +133,5 @@ export async function GET(request: NextRequest) {
     const errorResponse = createErrorResponse(error);
 
     return NextResponse.json(errorResponse, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

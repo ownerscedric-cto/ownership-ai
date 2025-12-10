@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 import type { CreateCustomerInput } from '@/lib/validations/customer';
 
 // API 응답 타입

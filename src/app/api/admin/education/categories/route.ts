@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 /**
@@ -23,23 +23,49 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const supabase = await createClient();
+
     // 카테고리 목록 조회 (order 순서대로)
-    const categories = await prisma.videoCategory.findMany({
-      orderBy: {
-        order: 'asc',
-      },
-      include: {
-        _count: {
-          select: {
-            videos: true, // 각 카테고리의 비디오 개수
+    const { data: categories, error: categoriesError } = await supabase
+      .from('video_categories')
+      .select('*')
+      .order('order', { ascending: true });
+
+    if (categoriesError) {
+      console.error('카테고리 목록 조회 실패:', categoriesError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to fetch categories',
+            details: categoriesError.message,
           },
         },
-      },
-    });
+        { status: 500 }
+      );
+    }
+
+    // 각 카테고리별 비디오 개수 조회
+    const categoriesWithCount = await Promise.all(
+      (categories || []).map(async (category) => {
+        const { count } = await supabase
+          .from('education_videos')
+          .select('*', { count: 'exact', head: true })
+          .eq('category', category.name);
+
+        return {
+          ...category,
+          _count: {
+            videos: count || 0,
+          },
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,
-      data: categories,
+      data: categoriesWithCount,
     });
   } catch (error) {
     console.error('GET /api/admin/education/categories error:', error);
@@ -69,13 +95,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const supabase = await createClient();
+
     // Request body validation
     const body = await request.json();
     const validatedData = createCategorySchema.parse(body);
 
     // 카테고리 개수 제한 체크 (최대 10개)
-    const categoryCount = await prisma.videoCategory.count();
-    if (categoryCount >= 10) {
+    const { count } = await supabase
+      .from('video_categories')
+      .select('*', { count: 'exact', head: true });
+
+    if (count && count >= 10) {
       return NextResponse.json(
         {
           success: false,
@@ -89,9 +120,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 중복 이름 체크
-    const existingCategory = await prisma.videoCategory.findUnique({
-      where: { name: validatedData.name },
-    });
+    const { data: existingCategory } = await supabase
+      .from('video_categories')
+      .select('*')
+      .eq('name', validatedData.name)
+      .single();
 
     if (existingCategory) {
       return NextResponse.json(
@@ -107,9 +140,30 @@ export async function POST(request: NextRequest) {
     }
 
     // 카테고리 생성
-    const category = await prisma.videoCategory.create({
-      data: validatedData,
-    });
+    const { data: category, error: createError } = await supabase
+      .from('video_categories')
+      .insert({
+        name: validatedData.name,
+        description: validatedData.description,
+        order: validatedData.order ?? 0,
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error('카테고리 생성 실패:', createError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create category',
+            details: createError.message,
+          },
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       {

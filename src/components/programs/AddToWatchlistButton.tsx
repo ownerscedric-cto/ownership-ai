@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAddToWatchlist } from '@/lib/hooks/useWatchlist';
 import { CustomerSelectDialog } from './CustomerSelectDialog';
-import type { Customer } from '@prisma/client';
+import type { Customer } from "@/lib/types/program";
 
 interface AddToWatchlistButtonProps {
   programId: string;
