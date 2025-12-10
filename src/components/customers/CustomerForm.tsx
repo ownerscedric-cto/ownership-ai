@@ -25,7 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { createCustomerSchema, type CreateCustomerInput } from '@/lib/validations/customer';
-import type { Customer } from "@/lib/types/program";
+import type { Customer } from '@/lib/types/customer';
 import { LOCATIONS } from '@/lib/constants/locations';
 
 interface CustomerFormProps {

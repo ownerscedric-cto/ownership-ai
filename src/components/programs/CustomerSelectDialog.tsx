@@ -20,7 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useIsInWatchlist } from '@/lib/hooks/useWatchlist';
-import type { Customer } from "@/lib/types/program";
+import type { Customer } from '@/lib/types/customer';
 
 interface CustomerSelectDialogProps {
   open: boolean;

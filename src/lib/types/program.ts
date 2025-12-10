@@ -1,6 +1,6 @@
 /**
  * @file program.ts
- * @description Program 및 공용 타입 정의
+ * @description Program 타입 정의
  * Supabase Database Schema Types
  */
 
@@ -30,48 +30,6 @@ export type Program = {
   createdAt: Date;
   updatedAt: Date;
 };
-
-/**
- * Customer 타입 (Supabase Database)
- */
-export interface Customer {
-  id: string;
-  userId: string;
-  businessNumber: string;
-  businessType: string;
-  corporateNumber: string | null;
-  name: string;
-  industry: string;
-  companySize: string | null;
-  location: string;
-  budget: number | null;
-  challenges: string[];
-  goals: string[];
-  preferredKeywords: string[];
-  contactEmail: string | null;
-  contactPhone: string | null;
-  notes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * EducationVideo 타입 (Supabase Database)
- */
-export interface EducationVideo {
-  id: string;
-  title: string;
-  description: string | null;
-  categoryId: string;
-  videoUrl: string;
-  videoType: string;
-  thumbnailUrl: string | null;
-  duration: number | null;
-  viewCount: number;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
 
 /**
  * Program 필터 파라미터

@@ -1,9 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import {
-  updateKnowHowPostSchema,
-  type UpdateKnowHowPostInput,
-} from '@/lib/validations/education';
+import { updateKnowHowPostSchema, type UpdateKnowHowPostInput } from '@/lib/validations/education';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { ZodError } from 'zod';
 
@@ -20,11 +17,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // 1. 게시글 조회
     const { data: post, error: postError } = await supabase
       .from('knowhow_posts')
-      .select(`
+      .select(
+        `
         *,
         category:knowhow_categories(*),
         comments:knowhow_comments(*)
-      `)
+      `
+      )
       .eq('id', id)
       .single();
 
@@ -52,22 +51,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isEvent: post.is_event,
       createdAt: post.created_at,
       updatedAt: post.updated_at,
-      category: post.category ? {
-        id: post.category.id,
-        name: post.category.name,
-        description: post.category.description,
-      } : null,
+      category: post.category
+        ? {
+            id: post.category.id,
+            name: post.category.name,
+            description: post.category.description,
+          }
+        : null,
       comments: (post.comments || [])
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+          const aDate = new Date(a.created_at as string).getTime();
+          const bDate = new Date(b.created_at as string).getTime();
+          return bDate - aDate;
+        })
         .slice(0, 10)
-        .map((comment: any) => ({
-          id: comment.id,
-          content: comment.content,
-          authorName: comment.author_name,
-          userId: comment.user_id,
-          postId: comment.post_id,
-          createdAt: comment.created_at,
-          updatedAt: comment.updated_at,
+        .map((comment: Record<string, unknown>) => ({
+          id: comment.id as string,
+          content: comment.content as string,
+          authorName: comment.author_name as string,
+          userId: comment.user_id as string,
+          postId: comment.post_id as string,
+          createdAt: comment.created_at as string,
+          updatedAt: comment.updated_at as string,
         })),
       _count: {
         comments: commentsCount || 0,
@@ -78,12 +83,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return successResponse(formattedPost);
   } catch (error) {
     console.error('KnowHow post detail error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '게시글 조회 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 조회 중 오류가 발생했습니다', null, 500);
   }
 }
 
@@ -115,12 +115,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     if (existingPost.user_id !== user.id) {
-      return errorResponse(
-        ErrorCode.FORBIDDEN,
-        '게시글 작성자만 수정할 수 있습니다',
-        null,
-        403
-      );
+      return errorResponse(ErrorCode.FORBIDDEN, '게시글 작성자만 수정할 수 있습니다', null, 403);
     }
 
     // 3. 요청 바디 파싱
@@ -143,7 +138,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // snake_case 변환
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (validatedData.title !== undefined) updateData.title = validatedData.title;
     if (validatedData.content !== undefined) updateData.content = validatedData.content;
     if (validatedData.categoryId !== undefined) updateData.category_id = validatedData.categoryId;
@@ -175,11 +170,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       isEvent: updatedPost.is_event,
       createdAt: updatedPost.created_at,
       updatedAt: updatedPost.updated_at,
-      category: updatedPost.category ? {
-        id: updatedPost.category.id,
-        name: updatedPost.category.name,
-        description: updatedPost.category.description,
-      } : null,
+      category: updatedPost.category
+        ? {
+            id: updatedPost.category.id,
+            name: updatedPost.category.name,
+            description: updatedPost.category.description,
+          }
+        : null,
     };
 
     // 7. 성공 응답
@@ -197,12 +194,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 서버 에러
     console.error('KnowHow post update error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '게시글 수정 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 수정 중 오류가 발생했습니다', null, 500);
   }
 }
 
@@ -234,19 +226,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     if (existingPost.user_id !== user.id) {
-      return errorResponse(
-        ErrorCode.FORBIDDEN,
-        '게시글 작성자만 삭제할 수 있습니다',
-        null,
-        403
-      );
+      return errorResponse(ErrorCode.FORBIDDEN, '게시글 작성자만 삭제할 수 있습니다', null, 403);
     }
 
     // 3. 게시글 삭제 (댓글도 CASCADE 삭제됨)
-    const { error: deleteError } = await supabase
-      .from('knowhow_posts')
-      .delete()
-      .eq('id', id);
+    const { error: deleteError } = await supabase.from('knowhow_posts').delete().eq('id', id);
 
     if (deleteError) {
       console.error('게시글 삭제 실패:', deleteError);
@@ -258,11 +242,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     // 서버 에러
     console.error('KnowHow post delete error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '게시글 삭제 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 삭제 중 오류가 발생했습니다', null, 500);
   }
 }

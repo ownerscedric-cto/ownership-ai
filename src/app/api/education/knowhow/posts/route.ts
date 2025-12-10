@@ -77,11 +77,13 @@ export async function POST(request: NextRequest) {
       isEvent: post.is_event,
       createdAt: post.created_at,
       updatedAt: post.updated_at,
-      category: post.category ? {
-        id: post.category.id,
-        name: post.category.name,
-        description: post.category.description,
-      } : null,
+      category: post.category
+        ? {
+            id: post.category.id,
+            name: post.category.name,
+            description: post.category.description,
+          }
+        : null,
     };
 
     // 8. 성공 응답
@@ -99,12 +101,7 @@ export async function POST(request: NextRequest) {
 
     // 서버 에러
     console.error('KnowHow post creation error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '게시글 생성 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 생성 중 오류가 발생했습니다', null, 500);
   }
 }
 
@@ -121,7 +118,9 @@ export async function GET(request: NextRequest) {
     // 2. Supabase 쿼리 시작
     let query = supabase
       .from('knowhow_posts')
-      .select('*, category:knowhow_categories(*), comments:knowhow_comments(count)', { count: 'exact' });
+      .select('*, category:knowhow_categories(*), comments:knowhow_comments(count)', {
+        count: 'exact',
+      });
 
     // 카테고리 필터링
     if (filters.categoryId) {
@@ -145,10 +144,9 @@ export async function GET(request: NextRequest) {
 
     // 3. 정렬 (고정글 우선)
     query = query.order('is_pinned', { ascending: false });
-    query = query.order(
-      filters.sortBy === 'createdAt' ? 'created_at' : filters.sortBy,
-      { ascending: filters.sortOrder === 'asc' }
-    );
+    query = query.order(filters.sortBy === 'createdAt' ? 'created_at' : filters.sortBy, {
+      ascending: filters.sortOrder === 'asc',
+    });
 
     // 4. 페이지네이션
     const from = (filters.page - 1) * filters.limit;
@@ -164,28 +162,35 @@ export async function GET(request: NextRequest) {
     }
 
     // 6. camelCase 변환
-    const formattedPosts = (posts || []).map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      authorName: post.author_name,
-      userId: post.user_id,
-      categoryId: post.category_id,
-      viewCount: post.view_count,
-      isPinned: post.is_pinned,
-      isAnnouncement: post.is_announcement,
-      isEvent: post.is_event,
-      createdAt: post.created_at,
-      updatedAt: post.updated_at,
-      category: post.category ? {
-        id: post.category.id,
-        name: post.category.name,
-        description: post.category.description,
-      } : null,
-      _count: {
-        comments: post.comments?.[0]?.count || 0,
-      },
-    }));
+    const formattedPosts = (posts || []).map((post: Record<string, unknown>) => {
+      const category = post.category as Record<string, unknown> | null;
+      const comments = post.comments as Array<Record<string, unknown>> | undefined;
+
+      return {
+        id: post.id as string,
+        title: post.title as string,
+        content: post.content as string,
+        authorName: post.author_name as string,
+        userId: post.user_id as string,
+        categoryId: post.category_id as string,
+        viewCount: post.view_count as number,
+        isPinned: post.is_pinned as boolean,
+        isAnnouncement: post.is_announcement as boolean,
+        isEvent: post.is_event as boolean,
+        createdAt: post.created_at as string,
+        updatedAt: post.updated_at as string,
+        category: category
+          ? {
+              id: category.id as string,
+              name: category.name as string,
+              description: category.description as string | null,
+            }
+          : null,
+        _count: {
+          comments: (comments?.[0]?.count as number) || 0,
+        },
+      };
+    });
 
     // 7. 성공 응답
     return successResponse(formattedPosts, {

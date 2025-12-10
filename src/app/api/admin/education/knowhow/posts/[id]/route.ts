@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // 6. 업데이트 데이터 준비 (snake_case로 변환)
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
 
     if (validatedData.categoryId !== undefined) {
       updateData.category_id = validatedData.categoryId;
@@ -90,10 +90,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       updateData.is_pinned = validatedData.isPinned;
     }
     if (validatedData.startDate !== undefined) {
-      updateData.start_date = validatedData.startDate ? new Date(validatedData.startDate).toISOString() : null;
+      updateData.start_date = validatedData.startDate
+        ? new Date(validatedData.startDate).toISOString()
+        : null;
     }
     if (validatedData.endDate !== undefined) {
-      updateData.end_date = validatedData.endDate ? new Date(validatedData.endDate).toISOString() : null;
+      updateData.end_date = validatedData.endDate
+        ? new Date(validatedData.endDate).toISOString()
+        : null;
     }
 
     // 7. 게시글 수정
@@ -124,12 +128,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 서버 에러
     console.error('Admin KnowHow post update error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '게시글 수정 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 수정 중 오류가 발생했습니다', null, 500);
   }
 }
 
@@ -163,10 +162,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     }
 
     // 3. 게시글 삭제 (댓글도 CASCADE 삭제됨)
-    const { error: deleteError } = await supabase
-      .from('knowhow_posts')
-      .delete()
-      .eq('id', id);
+    const { error: deleteError } = await supabase.from('knowhow_posts').delete().eq('id', id);
 
     if (deleteError) {
       console.error('게시글 삭제 실패:', deleteError);
@@ -178,11 +174,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     // 서버 에러
     console.error('Admin KnowHow post delete error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '게시글 삭제 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 삭제 중 오류가 발생했습니다', null, 500);
   }
 }

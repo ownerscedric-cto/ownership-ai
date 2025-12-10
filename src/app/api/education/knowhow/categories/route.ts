@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 
 // GET /api/education/knowhow/categories - 카테고리 목록 조회
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -14,7 +14,12 @@ export async function GET(request: NextRequest) {
 
     if (categoriesError) {
       console.error('카테고리 조회 실패:', categoriesError);
-      return errorResponse(ErrorCode.INTERNAL_ERROR, '카테고리 목록 조회에 실패했습니다', null, 500);
+      return errorResponse(
+        ErrorCode.INTERNAL_ERROR,
+        '카테고리 목록 조회에 실패했습니다',
+        null,
+        500
+      );
     }
 
     return successResponse(categories || []);

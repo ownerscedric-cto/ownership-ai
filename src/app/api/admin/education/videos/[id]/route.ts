@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const validatedData = updateVideoSchema.parse(body);
 
     // 4. 업데이트 데이터 준비
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
 
     if (validatedData.title !== undefined) {
       updateData.title = validatedData.title;
@@ -201,10 +201,7 @@ export async function DELETE(
     }
 
     // 3. 비디오 삭제
-    const { error: deleteError } = await supabase
-      .from('education_videos')
-      .delete()
-      .eq('id', id);
+    const { error: deleteError } = await supabase.from('education_videos').delete().eq('id', id);
 
     if (deleteError) {
       console.error('비디오 삭제 실패:', deleteError);

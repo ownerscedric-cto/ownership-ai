@@ -22,12 +22,7 @@ interface KnowHowCommentsProps {
  * - 댓글 작성 폼
  * - 작성자, 작성일 표시
  */
-export function KnowHowComments({
-  postId,
-  comments,
-  isLoading,
-  onAddComment,
-}: KnowHowCommentsProps) {
+export function KnowHowComments({ comments, isLoading, onAddComment }: KnowHowCommentsProps) {
   const [commentContent, setCommentContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,12 +69,10 @@ export function KnowHowComments({
             ))}
           </div>
         ) : comments.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
-            첫 번째 댓글을 작성해보세요!
-          </p>
+          <p className="text-gray-500 text-center py-8">첫 번째 댓글을 작성해보세요!</p>
         ) : (
           <div className="space-y-4">
-            {comments.map((comment) => (
+            {comments.map(comment => (
               <div key={comment.id} className="border-b pb-4 last:border-0">
                 {/* 작성자 및 작성일 */}
                 <div className="flex items-center gap-3 mb-2 text-sm text-gray-600">
@@ -110,7 +103,7 @@ export function KnowHowComments({
           <Textarea
             placeholder="댓글을 입력하세요..."
             value={commentContent}
-            onChange={(e) => setCommentContent(e.target.value)}
+            onChange={e => setCommentContent(e.target.value)}
             disabled={isSubmitting}
             rows={3}
             className="mb-3"

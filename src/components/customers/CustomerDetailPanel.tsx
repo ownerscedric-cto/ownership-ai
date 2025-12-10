@@ -1,6 +1,6 @@
 'use client';
 
-import type { Customer } from "@/lib/types/program";
+import type { Customer } from '@/lib/types/customer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';

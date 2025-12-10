@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const authorName = user.user_metadata?.name || user.email?.split('@')[0] || '관리자';
 
     // 6. 게시글 데이터 준비 (snake_case로 변환)
-    const postData: any = {
+    const postData: Record<string, unknown> = {
       user_id: user.id,
       author_name: authorName,
       category_id: validatedData.categoryId,
@@ -94,11 +94,6 @@ export async function POST(request: NextRequest) {
 
     // 서버 에러
     console.error('Admin KnowHow post creation error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '게시글 생성 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 생성 중 오류가 발생했습니다', null, 500);
   }
 }

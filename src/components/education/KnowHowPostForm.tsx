@@ -1,6 +1,4 @@
 'use client';
-
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,15 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
 // 게시글 작성 스키마
 const postFormSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요').max(100, '제목은 100자 이내로 작성해주세요'),
-  content: z.string().min(10, '내용은 최소 10자 이상 입력해주세요').max(5000, '내용은 5000자 이내로 작성해주세요'),
+  content: z
+    .string()
+    .min(10, '내용은 최소 10자 이상 입력해주세요')
+    .max(5000, '내용은 5000자 이내로 작성해주세요'),
   categoryId: z.string().min(1, '카테고리를 선택해주세요'),
-  authorName: z.string().min(1, '작성자 이름을 입력해주세요').max(50, '작성자 이름은 50자 이내로 입력해주세요'),
+  authorName: z
+    .string()
+    .min(1, '작성자 이름을 입력해주세요')
+    .max(50, '작성자 이름은 50자 이내로 입력해주세요'),
 });
 
 export type PostFormData = z.infer<typeof postFormSchema>;
@@ -85,9 +95,7 @@ export function KnowHowPostForm({
               disabled={isSubmitting}
               {...register('title')}
             />
-            {errors.title && (
-              <p className="text-sm text-red-600">{errors.title.message}</p>
-            )}
+            {errors.title && <p className="text-sm text-red-600">{errors.title.message}</p>}
           </div>
 
           {/* 카테고리 */}
@@ -95,14 +103,14 @@ export function KnowHowPostForm({
             <Label htmlFor="categoryId">카테고리 *</Label>
             <Select
               value={categoryId}
-              onValueChange={(value) => setValue('categoryId', value)}
+              onValueChange={value => setValue('categoryId', value)}
               disabled={isSubmitting}
             >
               <SelectTrigger id="categoryId">
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
+                {categories.map(category => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
                   </SelectItem>
@@ -139,9 +147,7 @@ export function KnowHowPostForm({
               className="resize-none"
               {...register('content')}
             />
-            {errors.content && (
-              <p className="text-sm text-red-600">{errors.content.message}</p>
-            )}
+            {errors.content && <p className="text-sm text-red-600">{errors.content.message}</p>}
           </div>
 
           {/* 버튼 */}

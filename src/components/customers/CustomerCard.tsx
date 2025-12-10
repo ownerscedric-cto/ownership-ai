@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Building2, MapPin, DollarSign, Phone, Mail } from 'lucide-react';
 import Link from 'next/link';
-import type { Customer } from "@/lib/types/program";
+import type { Customer } from '@/lib/types/customer';
 
 interface CustomerCardProps {
   customer: Customer;

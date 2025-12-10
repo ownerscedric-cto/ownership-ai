@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Building2, MapPin, DollarSign, Phone, Mail, Calendar, FileText } from 'lucide-react';
-import type { Customer } from "@/lib/types/program";
+import type { Customer } from '@/lib/types/customer';
 
 interface CustomerDetailProps {
   customer: Customer;

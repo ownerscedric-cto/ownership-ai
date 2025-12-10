@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
-import type { EducationVideo } from "@/lib/types/program";
+import type { EducationVideo } from '@/lib/types/education';
 import { fetchYouTubeMetadata } from '@/lib/youtube';
 
 interface VideoCategory {

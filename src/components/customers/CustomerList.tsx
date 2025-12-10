@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import type { Customer } from "@/lib/types/program";
+import type { Customer } from '@/lib/types/customer';
 
 interface CustomerListProps {
   customers: Customer[];
