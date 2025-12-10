@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KnowHowCard } from '@/components/education/KnowHowCard';
-import { useKnowHowList } from '@/hooks/useEducation';
+import { useKnowHowPosts, useKnowHowCategories } from '@/hooks/useEducation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,19 +18,20 @@ import { AppLayout } from '@/components/layout/AppLayout';
  */
 export default function KnowHowPage() {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
+  // 카테고리 목록 조회
+  const { data: categoriesData } = useKnowHowCategories();
+  const categories = categoriesData?.data || [];
+
   // React Query 데이터 조회
-  const { data, isLoading, error } = useKnowHowList({
-    category: selectedCategory,
+  const { data, isLoading, error } = useKnowHowPosts({
+    categoryId: selectedCategoryId,
     search,
     limit: 12,
   });
-
-  // 카테고리 목록
-  const categories = ['업종별', '사업별', '팁', '주의사항'];
 
   // 검색 실행
   const handleSearch = () => {
@@ -55,8 +56,8 @@ export default function KnowHowPage() {
 
         {/* 헤더 */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">노하우 아카이브</h1>
-          <p className="text-gray-600">업종별/사업별 실전 노하우를 확인하세요</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">노하우 커뮤니티</h1>
+          <p className="text-gray-600">업종별/사업별 실전 노하우를 공유하고 확인하세요</p>
         </div>
 
         {/* 검색 및 필터 */}
@@ -82,20 +83,20 @@ export default function KnowHowPage() {
           {/* 카테고리 필터 */}
           <div className="flex flex-wrap gap-2">
             <Badge
-              variant={selectedCategory === undefined ? 'default' : 'outline'}
-              className={`cursor-pointer ${selectedCategory === undefined ? 'bg-[#0052CC]' : ''}`}
-              onClick={() => setSelectedCategory(undefined)}
+              variant={selectedCategoryId === undefined ? 'default' : 'outline'}
+              className={`cursor-pointer ${selectedCategoryId === undefined ? 'bg-[#0052CC]' : ''}`}
+              onClick={() => setSelectedCategoryId(undefined)}
             >
               전체
             </Badge>
             {categories.map(category => (
               <Badge
-                key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
-                className={`cursor-pointer ${selectedCategory === category ? 'bg-[#0052CC]' : ''}`}
-                onClick={() => setSelectedCategory(category)}
+                key={category.id}
+                variant={selectedCategoryId === category.id ? 'default' : 'outline'}
+                className={`cursor-pointer ${selectedCategoryId === category.id ? 'bg-[#0052CC]' : ''}`}
+                onClick={() => setSelectedCategoryId(category.id)}
               >
-                {category}
+                {category.name}
               </Badge>
             ))}
           </div>
