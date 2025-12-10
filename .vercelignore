@@ -1,0 +1,2 @@
+# Ignore legacy Prisma scripts during Vercel build
+scripts/
