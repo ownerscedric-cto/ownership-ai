@@ -14,9 +14,10 @@ export const config = {
      * - favicon.ico (favicon file)
      * - api/programs/* (all program endpoints - public for testing)
      * - api/matching/* (all matching endpoints - public for testing)
+     * - api/education/* (all education endpoints - public read access)
      * - api/cron/* (Vercel Cron Job endpoints - protected by CRON_SECRET)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/programs|api/matching|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/programs|api/matching|api/education|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

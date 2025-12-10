@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KnowHowCard } from '@/components/education/KnowHowCard';
-import { useKnowHowPosts, useKnowHowCategories } from '@/hooks/useEducation';
+import { useKnowHowList, useKnowHowCategories } from '@/hooks/useEducation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +18,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
  */
 export default function KnowHowPage() {
   const router = useRouter();
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
@@ -27,8 +27,8 @@ export default function KnowHowPage() {
   const categories = categoriesData?.data || [];
 
   // React Query 데이터 조회
-  const { data, isLoading, error } = useKnowHowPosts({
-    categoryId: selectedCategoryId,
+  const { data, isLoading, error } = useKnowHowList({
+    category: selectedCategory,
     search,
     limit: 12,
   });
@@ -49,14 +49,14 @@ export default function KnowHowPage() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* 뒤로가기 버튼 */}
-        <Button onClick={() => router.push('/education')} variant="ghost" className="mb-6">
+        <Button onClick={() => router.push('/education/knowhow')} variant="ghost" className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          교육 센터로
+          노하우 커뮤니티로
         </Button>
 
         {/* 헤더 */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">노하우 커뮤니티</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">노하우 아카이브</h1>
           <p className="text-gray-600">업종별/사업별 실전 노하우를 공유하고 확인하세요</p>
         </div>
 
@@ -83,18 +83,18 @@ export default function KnowHowPage() {
           {/* 카테고리 필터 */}
           <div className="flex flex-wrap gap-2">
             <Badge
-              variant={selectedCategoryId === undefined ? 'default' : 'outline'}
-              className={`cursor-pointer ${selectedCategoryId === undefined ? 'bg-[#0052CC]' : ''}`}
-              onClick={() => setSelectedCategoryId(undefined)}
+              variant={selectedCategory === undefined ? 'default' : 'outline'}
+              className={`cursor-pointer ${selectedCategory === undefined ? 'bg-[#0052CC]' : ''}`}
+              onClick={() => setSelectedCategory(undefined)}
             >
               전체
             </Badge>
             {categories.map(category => (
               <Badge
                 key={category.id}
-                variant={selectedCategoryId === category.id ? 'default' : 'outline'}
-                className={`cursor-pointer ${selectedCategoryId === category.id ? 'bg-[#0052CC]' : ''}`}
-                onClick={() => setSelectedCategoryId(category.id)}
+                variant={selectedCategory === category.id ? 'default' : 'outline'}
+                className={`cursor-pointer ${selectedCategory === category.id ? 'bg-[#0052CC]' : ''}`}
+                onClick={() => setSelectedCategory(category.id)}
               >
                 {category.name}
               </Badge>

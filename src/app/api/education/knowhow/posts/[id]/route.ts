@@ -42,15 +42,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       id: post.id,
       title: post.title,
       content: post.content,
-      authorName: post.author_name,
-      userId: post.user_id,
-      categoryId: post.category_id,
-      viewCount: post.view_count,
-      isPinned: post.is_pinned,
-      isAnnouncement: post.is_announcement,
-      isEvent: post.is_event,
-      createdAt: post.created_at,
-      updatedAt: post.updated_at,
+      authorName: post.authorName,
+      userId: post.userId,
+      categoryId: post.categoryId,
+      viewCount: post.viewCount,
+      isPinned: post.isPinned,
+      isAnnouncement: post.isAnnouncement,
+      isEvent: post.isEvent,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
       category: post.category
         ? {
             id: post.category.id,
@@ -60,19 +60,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         : null,
       comments: (post.comments || [])
         .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
-          const aDate = new Date(a.created_at as string).getTime();
-          const bDate = new Date(b.created_at as string).getTime();
+          const aDate = new Date(a.createdAt as string).getTime();
+          const bDate = new Date(b.createdAt as string).getTime();
           return bDate - aDate;
         })
         .slice(0, 10)
         .map((comment: Record<string, unknown>) => ({
           id: comment.id as string,
           content: comment.content as string,
-          authorName: comment.author_name as string,
-          userId: comment.user_id as string,
+          authorName: comment.authorName as string,
+          userId: comment.userId as string,
           postId: comment.post_id as string,
-          createdAt: comment.created_at as string,
-          updatedAt: comment.updated_at as string,
+          createdAt: comment.createdAt as string,
+          updatedAt: comment.updatedAt as string,
         })),
       _count: {
         comments: commentsCount || 0,
@@ -106,7 +106,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // 2. 게시글 존재 여부 및 작성자 확인
     const { data: existingPost, error: postError } = await supabase
       .from('knowhow_posts')
-      .select('id, user_id')
+      .select('id, userId')
       .eq('id', id)
       .single();
 
@@ -114,7 +114,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return errorResponse(ErrorCode.NOT_FOUND, '게시글을 찾을 수 없습니다', null, 404);
     }
 
-    if (existingPost.user_id !== user.id) {
+    if (existingPost.userId !== user.id) {
       return errorResponse(ErrorCode.FORBIDDEN, '게시글 작성자만 수정할 수 있습니다', null, 403);
     }
 
@@ -141,7 +141,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const updateData: Record<string, unknown> = {};
     if (validatedData.title !== undefined) updateData.title = validatedData.title;
     if (validatedData.content !== undefined) updateData.content = validatedData.content;
-    if (validatedData.categoryId !== undefined) updateData.category_id = validatedData.categoryId;
+    if (validatedData.categoryId !== undefined) updateData.categoryId = validatedData.categoryId;
 
     // 6. 게시글 수정
     const { data: updatedPost, error: updateError } = await supabase
@@ -161,15 +161,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       id: updatedPost.id,
       title: updatedPost.title,
       content: updatedPost.content,
-      authorName: updatedPost.author_name,
-      userId: updatedPost.user_id,
-      categoryId: updatedPost.category_id,
-      viewCount: updatedPost.view_count,
-      isPinned: updatedPost.is_pinned,
-      isAnnouncement: updatedPost.is_announcement,
-      isEvent: updatedPost.is_event,
-      createdAt: updatedPost.created_at,
-      updatedAt: updatedPost.updated_at,
+      authorName: updatedPost.authorName,
+      userId: updatedPost.userId,
+      categoryId: updatedPost.categoryId,
+      viewCount: updatedPost.viewCount,
+      isPinned: updatedPost.isPinned,
+      isAnnouncement: updatedPost.isAnnouncement,
+      isEvent: updatedPost.isEvent,
+      createdAt: updatedPost.createdAt,
+      updatedAt: updatedPost.updatedAt,
       category: updatedPost.category
         ? {
             id: updatedPost.category.id,
@@ -217,7 +217,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // 2. 게시글 존재 여부 및 작성자 확인
     const { data: existingPost, error: postError } = await supabase
       .from('knowhow_posts')
-      .select('id, user_id')
+      .select('id, userId')
       .eq('id', id)
       .single();
 
@@ -225,7 +225,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return errorResponse(ErrorCode.NOT_FOUND, '게시글을 찾을 수 없습니다', null, 404);
     }
 
-    if (existingPost.user_id !== user.id) {
+    if (existingPost.userId !== user.id) {
       return errorResponse(ErrorCode.FORBIDDEN, '게시글 작성자만 삭제할 수 있습니다', null, 403);
     }
 

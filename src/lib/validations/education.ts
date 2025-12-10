@@ -91,9 +91,7 @@ export const createKnowHowSchema = z.object({
   // 기본 정보 (필수)
   title: z.string().min(1, '제목은 필수입니다').max(200, '제목은 200자 이하여야 합니다'),
   content: z.string().min(1, '내용은 필수입니다'), // Markdown 지원
-  category: z.enum(['업종별', '사업별', '팁', '주의사항'], {
-    message: '유효한 카테고리를 선택해주세요',
-  }),
+  categoryId: z.string().min(1, '카테고리를 선택해주세요').optional(),
   author: z.string().max(100, '작성자는 100자 이하여야 합니다').optional(),
 
   // 메타데이터 (선택)
@@ -104,7 +102,7 @@ export const createKnowHowSchema = z.object({
 export const updateKnowHowSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   content: z.string().min(1).optional(),
-  category: z.enum(['업종별', '사업별', '팁', '주의사항']).optional(),
+  categoryId: z.string().min(1).optional(),
   author: z.string().max(100).optional(),
   tags: z.array(z.string()).optional(),
 });
@@ -120,7 +118,7 @@ export const knowHowFilterSchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 
   // 필터링
-  category: z.enum(['업종별', '사업별', '팁', '주의사항']).optional(),
+  category: z.string().optional(), // categoryId로 필터링 (backward compatibility를 위해 'category' 유지)
   search: z.string().optional(), // 제목, 내용, 태그 검색
 });
 
@@ -130,7 +128,10 @@ export const knowHowFilterSchema = z.object({
 
 // 노하우 카테고리 생성 스키마
 export const createKnowHowCategorySchema = z.object({
-  name: z.string().min(1, '카테고리 이름은 필수입니다').max(50, '카테고리 이름은 50자 이하여야 합니다'),
+  name: z
+    .string()
+    .min(1, '카테고리 이름은 필수입니다')
+    .max(50, '카테고리 이름은 50자 이하여야 합니다'),
   description: z.string().max(200, '설명은 200자 이하여야 합니다').optional(),
   order: z.number().int().min(0, '순서는 0 이상이어야 합니다').default(0),
 });

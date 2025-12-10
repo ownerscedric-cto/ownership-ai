@@ -36,6 +36,25 @@ Simple actionable rules for Claude Code SuperClaude framework operation.
 - Prefer batch operations and transaction-like behavior
 - Never commit automatically unless explicitly requested
 
+### Database Naming Conventions
+
+- **Table Names**: Use `snake_case` for all table names
+  - ✅ `knowhow_posts`, `knowhow_categories`, `education_videos`
+  - ❌ `knowhowPosts`, `KnowHowCategories`, `educationVideos`
+- **Column Names**: Use `camelCase` for all column names
+  - ✅ `userId`, `categoryId`, `createdAt`, `isAnnouncement`
+  - ❌ `user_id`, `category_id`, `created_at`, `is_announcement`
+- **Foreign Key Constraints**: PostgreSQL automatically lowercases FK names
+  - Database: `knowhow_categoryid_fkey` (all lowercase)
+  - Supabase JOIN: Use exact FK name from database
+  - Check FK name: `SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = 'table_name'`
+- **Migration Process**:
+  1. Create/modify table with snake_case name
+  2. Create columns with camelCase names
+  3. Verify FK constraint names after creation
+  4. Update Supabase schema cache: `NOTIFY pgrst, 'reload schema';`
+  5. Update API code to match exact column names and FK names
+
 ### Framework Compliance
 
 - Check package.json/pyproject.toml before using libraries
@@ -135,6 +154,7 @@ Simple actionable rules for Claude Code SuperClaude framework operation.
 **Before Writing ANY New Code**:
 
 1. **Search for Similar Code** (MANDATORY):
+
    ```bash
    # Step 1: Find similar files
    Glob: "**/*{keyword}*/route.ts"
@@ -190,6 +210,7 @@ export async function PATCH() {
 ```
 
 **Development Checklist**:
+
 - [ ] Searched for similar existing code before writing new code
 - [ ] Checked if pattern can be abstracted/reused
 - [ ] Created utility/component if pattern used 2+ times

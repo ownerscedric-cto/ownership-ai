@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .from('knowhow_comments')
       .select('*')
       .eq('post_id', postId)
-      .order('created_at', { ascending: true });
+      .order('createdAt', { ascending: true });
 
     if (commentsError) {
       console.error('댓글 조회 실패:', commentsError);
@@ -26,14 +26,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // camelCase 변환
-    const formattedComments = comments.map((comment) => ({
+    const formattedComments = comments.map(comment => ({
       id: comment.id,
       content: comment.content,
-      authorName: comment.author_name,
-      userId: comment.user_id,
+      authorName: comment.authorName,
+      userId: comment.userId,
       postId: comment.post_id,
-      createdAt: comment.created_at,
-      updatedAt: comment.updated_at,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
     }));
 
     return successResponse(formattedComments);
@@ -49,7 +49,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 // ============================================
 
 const createCommentSchema = z.object({
-  content: z.string().min(1, '댓글 내용을 입력해주세요').max(1000, '댓글은 1000자 이내로 작성해주세요'),
+  content: z
+    .string()
+    .min(1, '댓글 내용을 입력해주세요')
+    .max(1000, '댓글은 1000자 이내로 작성해주세요'),
   authorName: z.string().min(1, '작성자 이름을 입력해주세요'),
 });
 
@@ -84,8 +87,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .insert({
         post_id: postId,
         content: validatedData.content,
-        author_name: validatedData.authorName,
-        user_id: user?.id || null,
+        authorName: validatedData.authorName,
+        userId: user?.id || null,
       })
       .select()
       .single();
@@ -99,11 +102,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const formattedComment = {
       id: newComment.id,
       content: newComment.content,
-      authorName: newComment.author_name,
-      userId: newComment.user_id,
+      authorName: newComment.authorName,
+      userId: newComment.userId,
       postId: newComment.post_id,
-      createdAt: newComment.created_at,
-      updatedAt: newComment.updated_at,
+      createdAt: newComment.createdAt,
+      updatedAt: newComment.updatedAt,
     };
 
     return successResponse(formattedComment, undefined, 201);

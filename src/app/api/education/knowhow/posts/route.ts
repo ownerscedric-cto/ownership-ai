@@ -42,18 +42,18 @@ export async function POST(request: NextRequest) {
     // 5. 사용자 이름 가져오기 (user metadata 또는 email 사용)
     const authorName = user.user_metadata?.name || user.email?.split('@')[0] || '익명';
 
-    // 6. 게시글 생성
+    // 6. 게시글 생성 (Supabase 테이블은 camelCase)
     const { data: post, error: createError } = await supabase
       .from('knowhow_posts')
       .insert({
         title: validatedData.title,
         content: validatedData.content,
-        category_id: validatedData.categoryId,
-        user_id: user.id,
-        author_name: authorName,
-        is_announcement: false,
-        is_event: false,
-        is_pinned: false,
+        categoryId: validatedData.categoryId,
+        userId: user.id,
+        authorName: authorName,
+        isAnnouncement: false,
+        isEvent: false,
+        isPinned: false,
       })
       .select('*, category:knowhow_categories(*)')
       .single();
@@ -63,31 +63,8 @@ export async function POST(request: NextRequest) {
       return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 생성에 실패했습니다', null, 500);
     }
 
-    // 7. camelCase 변환
-    const formattedPost = {
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      authorName: post.author_name,
-      userId: post.user_id,
-      categoryId: post.category_id,
-      viewCount: post.view_count,
-      isPinned: post.is_pinned,
-      isAnnouncement: post.is_announcement,
-      isEvent: post.is_event,
-      createdAt: post.created_at,
-      updatedAt: post.updated_at,
-      category: post.category
-        ? {
-            id: post.category.id,
-            name: post.category.name,
-            description: post.category.description,
-          }
-        : null,
-    };
-
-    // 8. 성공 응답
-    return successResponse(formattedPost, undefined, 201);
+    // 7. Supabase 테이블이 이미 camelCase이므로 변환 불필요
+    return successResponse(post, undefined, 201);
   } catch (error) {
     // Zod 유효성 검증 에러
     if (error instanceof ZodError) {
@@ -124,17 +101,17 @@ export async function GET(request: NextRequest) {
 
     // 카테고리 필터링
     if (filters.categoryId) {
-      query = query.eq('category_id', filters.categoryId);
+      query = query.eq('categoryId', filters.categoryId);
     }
 
     // 공지사항 필터링
     if (filters.isAnnouncement !== undefined) {
-      query = query.eq('is_announcement', filters.isAnnouncement);
+      query = query.eq('isAnnouncement', filters.isAnnouncement);
     }
 
     // 이벤트 필터링
     if (filters.isEvent !== undefined) {
-      query = query.eq('is_event', filters.isEvent);
+      query = query.eq('isEvent', filters.isEvent);
     }
 
     // 검색어 필터링
@@ -142,9 +119,9 @@ export async function GET(request: NextRequest) {
       query = query.or(`title.ilike.%${filters.search}%,content.ilike.%${filters.search}%`);
     }
 
-    // 3. 정렬 (고정글 우선)
-    query = query.order('is_pinned', { ascending: false });
-    query = query.order(filters.sortBy === 'createdAt' ? 'created_at' : filters.sortBy, {
+    // 3. 정렬 (고정글 우선, Supabase 테이블은 camelCase)
+    query = query.order('isPinned', { ascending: false });
+    query = query.order(filters.sortBy, {
       ascending: filters.sortOrder === 'asc',
     });
 
@@ -161,31 +138,11 @@ export async function GET(request: NextRequest) {
       return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 목록 조회에 실패했습니다', null, 500);
     }
 
-    // 6. camelCase 변환
+    // 6. 댓글 수 추가 (Supabase 테이블은 이미 camelCase)
     const formattedPosts = (posts || []).map((post: Record<string, unknown>) => {
-      const category = post.category as Record<string, unknown> | null;
       const comments = post.comments as Array<Record<string, unknown>> | undefined;
-
       return {
-        id: post.id as string,
-        title: post.title as string,
-        content: post.content as string,
-        authorName: post.author_name as string,
-        userId: post.user_id as string,
-        categoryId: post.category_id as string,
-        viewCount: post.view_count as number,
-        isPinned: post.is_pinned as boolean,
-        isAnnouncement: post.is_announcement as boolean,
-        isEvent: post.is_event as boolean,
-        createdAt: post.created_at as string,
-        updatedAt: post.updated_at as string,
-        category: category
-          ? {
-              id: category.id as string,
-              name: category.name as string,
-              description: category.description as string | null,
-            }
-          : null,
+        ...post,
         _count: {
           comments: (comments?.[0]?.count as number) || 0,
         },

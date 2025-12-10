@@ -33,7 +33,8 @@ export interface KnowHow {
   id: string;
   title: string;
   content: string;
-  category: string;
+  categoryId: string | null;
+  category: KnowHowCategory | null; // JOIN으로 가져온 category 객체
   author: string | null;
   tags: string[];
   viewCount: number;
@@ -380,7 +381,15 @@ export function useCreateKnowHowComment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ postId, content, authorName }: { postId: string; content: string; authorName: string }) => {
+    mutationFn: async ({
+      postId,
+      content,
+      authorName,
+    }: {
+      postId: string;
+      content: string;
+      authorName: string;
+    }) => {
       const res = await fetch(`/api/education/knowhow/posts/${postId}/comments`, {
         method: 'POST',
         headers: {

@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
       .insert({
         content: validatedData.content,
         post_id: validatedData.postId,
-        user_id: user.id,
-        author_name: authorName,
+        userId: user.id,
+        authorName: authorName,
       })
       .select('*')
       .single();
@@ -62,11 +62,11 @@ export async function POST(request: NextRequest) {
     const formattedComment = {
       id: comment.id,
       content: comment.content,
-      authorName: comment.author_name,
-      userId: comment.user_id,
+      authorName: comment.authorName,
+      userId: comment.userId,
       postId: comment.post_id,
-      createdAt: comment.created_at,
-      updatedAt: comment.updated_at,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
     };
 
     // 8. 성공 응답
@@ -84,12 +84,7 @@ export async function POST(request: NextRequest) {
 
     // 서버 에러
     console.error('KnowHow comment creation error:', error);
-    return errorResponse(
-      ErrorCode.INTERNAL_ERROR,
-      '댓글 생성 중 오류가 발생했습니다',
-      null,
-      500
-    );
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '댓글 생성 중 오류가 발생했습니다', null, 500);
   }
 }
 
@@ -121,7 +116,7 @@ export async function GET(request: NextRequest) {
       .from('knowhow_comments')
       .select('*')
       .eq('post_id', postId)
-      .order('created_at', { ascending: false });
+      .order('createdAt', { ascending: false });
 
     if (commentsError) {
       console.error('댓글 목록 조회 실패:', commentsError);
@@ -129,14 +124,14 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. camelCase 변환
-    const formattedComments = (comments || []).map((comment) => ({
+    const formattedComments = (comments || []).map(comment => ({
       id: comment.id,
       content: comment.content,
-      authorName: comment.author_name,
-      userId: comment.user_id,
+      authorName: comment.authorName,
+      userId: comment.userId,
       postId: comment.post_id,
-      createdAt: comment.created_at,
-      updatedAt: comment.updated_at,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
     }));
 
     // 4. 성공 응답

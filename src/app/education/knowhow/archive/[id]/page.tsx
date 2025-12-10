@@ -102,7 +102,7 @@ export default function KnowHowDetailPage() {
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <Badge variant="secondary">{knowhow.category}</Badge>
+              {knowhow.category && <Badge variant="secondary">{knowhow.category.name}</Badge>}
               {knowhow.author && (
                 <div className="flex items-center gap-1 text-sm text-gray-600">
                   <User className="w-4 h-4" />

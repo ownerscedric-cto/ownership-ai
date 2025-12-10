@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, User, MessageCircle } from 'lucide-react';
-import type { KnowHowPost } from '@/hooks/useEducation';
+import { Eye, User, Tag } from 'lucide-react';
+import type { KnowHow } from '@/hooks/useEducation';
 
 interface KnowHowCardProps {
-  knowhow: KnowHowPost;
+  knowhow: KnowHow;
 }
 
 /**
@@ -24,9 +24,11 @@ export function KnowHowCard({ knowhow }: KnowHowCardProps) {
       <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer h-full">
         <CardHeader>
           {/* 카테고리 */}
-          <Badge variant="secondary" className="mb-2 w-fit">
-            {knowhow.category.name}
-          </Badge>
+          {knowhow.category && (
+            <Badge variant="secondary" className="mb-2 w-fit">
+              {knowhow.category.name}
+            </Badge>
+          )}
 
           {/* 제목 */}
           <CardTitle className="text-lg line-clamp-2">{knowhow.title}</CardTitle>
@@ -40,10 +42,12 @@ export function KnowHowCard({ knowhow }: KnowHowCardProps) {
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center gap-4">
               {/* 작성자 */}
-              <div className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                <span>{knowhow.authorName}</span>
-              </div>
+              {knowhow.author && (
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  <span>{knowhow.author}</span>
+                </div>
+              )}
 
               {/* 조회수 */}
               <div className="flex items-center gap-1">
@@ -51,11 +55,13 @@ export function KnowHowCard({ knowhow }: KnowHowCardProps) {
                 <span>{knowhow.viewCount.toLocaleString()}</span>
               </div>
 
-              {/* 댓글 수 */}
-              <div className="flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                <span>{knowhow._count.comments}</span>
-              </div>
+              {/* 태그 수 */}
+              {knowhow.tags.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <Tag className="w-3 h-3" />
+                  <span>{knowhow.tags.length}</span>
+                </div>
+              )}
             </div>
 
             {/* 생성일 */}

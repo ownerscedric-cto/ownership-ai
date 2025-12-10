@@ -14,18 +14,25 @@ export async function GET(request: NextRequest) {
     const { page, limit, sortBy, sortOrder, category, search } = filters;
     const supabase = await createClient();
 
-    let query = supabase.from('knowhow').select('*', { count: 'exact' });
+    // knowhow_categories와 JOIN
+    let query = supabase.from('knowhow').select(
+      `
+        *,
+        category:knowhow_categories!knowhow_categoryid_fkey(*)
+      `,
+      { count: 'exact' }
+    );
 
     // WHERE 조건
     if (category) {
-      query = query.eq('category', category);
+      query = query.eq('categoryId', category);
     }
     if (search) {
       query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     }
 
-    // 정렬
-    const sortColumn = sortBy === 'createdAt' ? 'created_at' : sortBy === 'viewCount' ? 'view_count' : sortBy;
+    // 정렬 (Supabase 테이블이 camelCase 사용)
+    const sortColumn = sortBy === 'viewCount' ? 'viewCount' : sortBy;
     query = query.order(sortColumn, { ascending: sortOrder === 'asc' });
 
     // 페이지네이션
@@ -49,18 +56,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // camelCase 변환
-    const formattedKnowHows = (knowhows || []).map((knowhow) => ({
-      id: knowhow.id,
-      title: knowhow.title,
-      content: knowhow.content,
-      category: knowhow.category,
-      author: knowhow.author,
-      tags: knowhow.tags,
-      viewCount: knowhow.view_count,
-      createdAt: knowhow.created_at,
-      updatedAt: knowhow.updated_at,
-    }));
+    // Supabase 테이블이 이미 camelCase이므로 변환 불필요
+    const formattedKnowHows = knowhows || [];
 
     return NextResponse.json({
       success: true,
@@ -116,11 +113,16 @@ export async function POST(request: NextRequest) {
       .insert({
         title: validated.title,
         content: validated.content,
-        category: validated.category,
+        categoryId: validated.categoryId,
         author: validated.author,
         tags: validated.tags || [],
       })
-      .select('*')
+      .select(
+        `
+        *,
+        category:knowhow_categories!knowhow_categoryid_fkey(*)
+      `
+      )
       .single();
 
     if (createError) {
@@ -137,18 +139,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // camelCase 변환
-    const formattedKnowHow = {
-      id: knowhow.id,
-      title: knowhow.title,
-      content: knowhow.content,
-      category: knowhow.category,
-      author: knowhow.author,
-      tags: knowhow.tags,
-      viewCount: knowhow.view_count,
-      createdAt: knowhow.created_at,
-      updatedAt: knowhow.updated_at,
-    };
+    // Supabase 테이블이 이미 camelCase이므로 변환 불필요
+    const formattedKnowHow = knowhow;
 
     return NextResponse.json(
       {
