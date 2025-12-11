@@ -34,6 +34,9 @@ export default function AdminKnowHowNewPage() {
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [isEvent, setIsEvent] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+
+  // 공지사항이나 이벤트가 체크되면 자동으로 상단 고정
+  const effectiveIsPinned = isAnnouncement || isEvent || isPinned;
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -128,7 +131,7 @@ export default function AdminKnowHowNewPage() {
           fileNames: uploadedFiles.map(f => f.name),
           isAnnouncement,
           isEvent,
-          isPinned,
+          isPinned: effectiveIsPinned, // 공지사항/이벤트면 자동 고정
           startDate: startDate ? new Date(startDate).toISOString() : undefined,
           endDate: endDate ? new Date(endDate).toISOString() : undefined,
         }),
