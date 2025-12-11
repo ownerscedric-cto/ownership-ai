@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDateTime } from '@/lib/utils/date';
 import { Shield, User, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -110,14 +109,12 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
 
               {/* Created At */}
               <TableCell className="text-sm text-gray-600">
-                {format(new Date(user.created_at), 'yyyy-MM-dd HH:mm', { locale: ko })}
+                {formatDateTime(user.created_at)}
               </TableCell>
 
               {/* Last Sign In */}
               <TableCell className="text-sm text-gray-600">
-                {user.last_sign_in_at
-                  ? format(new Date(user.last_sign_in_at), 'yyyy-MM-dd HH:mm', { locale: ko })
-                  : '-'}
+                {user.last_sign_in_at ? formatDateTime(user.last_sign_in_at) : '-'}
               </TableCell>
 
               {/* Email Confirmed */}

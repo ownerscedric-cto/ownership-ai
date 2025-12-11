@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import type { Customer } from '@/lib/types/customer';
+import { formatDate } from '@/lib/utils/date';
 
 interface CustomerListProps {
   customers: Customer[];
@@ -31,14 +32,6 @@ export function CustomerList({ customers, isLoading, onDelete }: CustomerListPro
   const formatBusinessNumber = (number: string) => {
     if (number.length !== 10) return number;
     return `${number.slice(0, 3)}-${number.slice(3, 5)}-${number.slice(5)}`;
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(date));
   };
 
   if (isLoading) {

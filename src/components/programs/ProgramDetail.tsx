@@ -7,8 +7,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDateKoreanShort, formatDateDot, formatDateTimeDot } from '@/lib/utils/date';
 import {
   Calendar,
   MapPin,
@@ -112,22 +111,14 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
     );
   }
 
-  // 날짜 포맷팅
-  const formattedDeadline = program.deadline
-    ? format(new Date(program.deadline), 'yyyy년 M월 d일', { locale: ko })
-    : null;
+  // 날짜 포맷팅 (KST 변환)
+  const formattedDeadline = program.deadline ? formatDateKoreanShort(program.deadline) : null;
 
-  const formattedRegisteredAt = format(new Date(program.registeredAt), 'yyyy년 M월 d일', {
-    locale: ko,
-  });
+  const formattedRegisteredAt = formatDateKoreanShort(program.registeredAt);
 
-  const formattedStartDate = program.startDate
-    ? format(new Date(program.startDate), 'yyyy.MM.dd', { locale: ko })
-    : null;
+  const formattedStartDate = program.startDate ? formatDateDot(program.startDate) : null;
 
-  const formattedEndDate = program.endDate
-    ? format(new Date(program.endDate), 'yyyy.MM.dd', { locale: ko })
-    : null;
+  const formattedEndDate = program.endDate ? formatDateDot(program.endDate) : null;
 
   // 데이터 소스 이름 정규화 함수
   // KOCCA-PIMS, KOCCA-Finance → 한국콘텐츠진흥원
@@ -420,10 +411,7 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span>
-                마지막 동기화:{' '}
-                {format(new Date(program.lastSyncedAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-              </span>
+              <span>마지막 동기화: {formatDateTimeDot(program.lastSyncedAt)}</span>
             </div>
           </div>
         </CardContent>

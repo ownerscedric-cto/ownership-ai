@@ -49,7 +49,11 @@ export default function KnowHowPage() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* 뒤로가기 버튼 */}
-        <Button onClick={() => router.push('/education/knowhow')} variant="ghost" className="mb-6">
+        <Button
+          onClick={() => router.push('/education/knowhow/posts')}
+          variant="ghost"
+          className="mb-6"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           노하우 커뮤니티로
         </Button>

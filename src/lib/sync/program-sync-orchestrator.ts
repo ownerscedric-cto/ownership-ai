@@ -161,17 +161,18 @@ export class ProgramSyncOrchestrator {
 
       const newSyncCount = existing ? (existing.syncCount || 0) + 1 : 1;
 
-      await supabaseAdmin
-        .from('sync_metadata')
-        .upsert({
+      await supabaseAdmin.from('sync_metadata').upsert(
+        {
           dataSource,
           lastSyncedAt: now.toISOString(),
           syncCount: newSyncCount,
           lastResult: success ? 'success' : 'failed',
           updatedAt: now.toISOString(),
-        }, {
-          onConflict: 'dataSource'
-        });
+        },
+        {
+          onConflict: 'dataSource',
+        }
+      );
 
       console.log(
         `[ProgramSyncOrchestrator] ✅ Updated sync metadata for ${dataSource}: ${count} programs, ${success ? 'success' : 'failed'}`
@@ -202,11 +203,10 @@ export class ProgramSyncOrchestrator {
       let totalCount = 0;
       let currentPage = 1;
       const pageSize = 50;
-      const MAX_PAGES = 5; // ⭐ API별 최대 5페이지 제한 (페이지당 50개 = 최대 250개)
       let hasMore = true;
 
-      // 최대 페이지 제한 내에서 조회
-      while (hasMore && currentPage <= MAX_PAGES) {
+      // ⭐ 페이지 제한 제거 - API가 빈 응답 반환할 때까지 계속 조회
+      while (hasMore) {
         // ⭐ API에서 프로그램 목록 조회 (증분 동기화 파라미터 전달)
         const rawPrograms = await client.fetchPrograms({
           page: currentPage,
@@ -342,6 +342,7 @@ export class ProgramSyncOrchestrator {
   /**
    * 프로그램 데이터를 데이터베이스에 추가 (신규만)
    * ⭐ 기존 데이터는 절대 수정하지 않음 - 신규 데이터만 추가
+   * ⭐ 2025년 이후 데이터만 저장 (오래된 데이터 필터링)
    *
    * @param client - API 클라이언트
    * @param raw - 원본 프로그램 데이터
@@ -459,28 +460,35 @@ export class ProgramSyncOrchestrator {
     const startDate = client.parseStartDate(raw); // ⭐ API 클라이언트가 시작일 추출
     const endDate = deadline; // ⭐ endDate는 deadline과 동일
 
+    // ⭐ 2025년 1월 1일 이전 데이터는 스킵 (오래된 데이터 필터링)
+    const cutoffDate = new Date('2025-01-01');
+    if (registeredAt < cutoffDate) {
+      console.log(
+        `[ProgramSyncOrchestrator] ⏭️  Skipping old program (registered: ${registeredAt.toISOString().split('T')[0]}) from ${dataSource}`
+      );
+      return;
+    }
+
     // ⭐ 신규 프로그램만 생성 (기존 데이터는 위에서 이미 체크하여 리턴됨)
-    await supabaseAdmin
-      .from('programs')
-      .insert({
-        dataSource,
-        sourceApiId,
-        title,
-        description,
-        category,
-        targetAudience,
-        targetLocation,
-        keywords,
-        budgetRange,
-        deadline: deadline?.toISOString(),
-        sourceUrl,
-        attachmentUrl, // ⭐ 첨부파일 URL (기업마당 API만 제공)
-        registeredAt: registeredAt?.toISOString(), // ⭐ 교차 정렬용
-        startDate: startDate?.toISOString(),
-        endDate: endDate?.toISOString(),
-        rawData: raw as object,
-        syncStatus: 'active',
-      });
+    await supabaseAdmin.from('programs').insert({
+      dataSource,
+      sourceApiId,
+      title,
+      description,
+      category,
+      targetAudience,
+      targetLocation,
+      keywords,
+      budgetRange,
+      deadline: deadline?.toISOString(),
+      sourceUrl,
+      attachmentUrl, // ⭐ 첨부파일 URL (기업마당 API만 제공)
+      registeredAt: registeredAt?.toISOString(), // ⭐ 교차 정렬용
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+      rawData: raw as object,
+      syncStatus: 'active',
+    });
 
     console.log(
       `[ProgramSyncOrchestrator] ✅ New program added: ${dataSource}-${sourceApiId} - ${title}`

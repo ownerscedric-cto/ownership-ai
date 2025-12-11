@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Clock, ArrowLeft, Tag } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { hasViewedContent, addViewedContentId } from '@/lib/cookies';
+import { formatDate } from '@/lib/utils/date';
 
 const VIEWED_VIDEOS_COOKIE = 'viewed_education_videos';
 
@@ -156,7 +157,7 @@ export default function VideoDetailPage() {
 
             {/* 생성일 */}
             <div className="text-sm text-gray-500 pt-4 border-t">
-              등록일: {new Date(video.createdAt).toLocaleDateString('ko-KR')}
+              등록일: {formatDate(video.createdAt)}
             </div>
           </CardContent>
         </Card>

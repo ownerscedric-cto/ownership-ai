@@ -9,8 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Calendar, ArrowLeft } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { hasViewedContent, addViewedContentId } from '@/lib/cookies';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatRelativeTime } from '@/lib/utils/date';
 
 const VIEWED_KNOWHOW_COOKIE = 'viewed_knowhow';
 
@@ -120,12 +119,7 @@ export default function KnowHowArchiveDetailPage() {
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>
-                  {formatDistanceToNow(new Date(archive.createdAt), {
-                    addSuffix: true,
-                    locale: ko,
-                  })}
-                </span>
+                <span>{formatRelativeTime(archive.createdAt)}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Eye className="w-4 h-4" />

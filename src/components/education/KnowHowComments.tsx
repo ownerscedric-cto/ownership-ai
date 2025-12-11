@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { User, Clock, MessageSquare } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatRelativeTime } from '@/lib/utils/date';
 import type { KnowHowComment } from '@/hooks/useEducation';
 
 interface KnowHowCommentsProps {
@@ -82,12 +81,7 @@ export function KnowHowComments({ comments, isLoading, onAddComment }: KnowHowCo
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    <span>
-                      {formatDistanceToNow(new Date(comment.createdAt), {
-                        addSuffix: true,
-                        locale: ko,
-                      })}
-                    </span>
+                    <span>{formatRelativeTime(comment.createdAt)}</span>
                   </div>
                 </div>
 

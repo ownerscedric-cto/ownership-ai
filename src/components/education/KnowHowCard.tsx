@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Eye, User, Tag } from 'lucide-react';
 import type { KnowHow } from '@/hooks/useEducation';
+import { formatDate } from '@/lib/utils/date';
 
 interface KnowHowCardProps {
   knowhow: KnowHow;
@@ -66,7 +67,7 @@ export function KnowHowCard({ knowhow }: KnowHowCardProps) {
             </div>
 
             {/* 생성일 */}
-            <span>{new Date(knowhow.createdAt).toLocaleDateString('ko-KR')}</span>
+            <span>{formatDate(knowhow.createdAt)}</span>
           </div>
         </CardContent>
       </Card>

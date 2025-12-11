@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Building2, MapPin, DollarSign, Phone, Mail, Calendar, FileText } from 'lucide-react';
 import type { Customer } from '@/lib/types/customer';
+import { formatDateTime } from '@/lib/utils/date';
 
 interface CustomerDetailProps {
   customer: Customer;
@@ -21,16 +22,6 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
   const formatBusinessNumber = (number: string) => {
     if (number.length !== 10) return number;
     return `${number.slice(0, 3)}-${number.slice(3, 5)}-${number.slice(5)}`;
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(date));
   };
 
   return (
@@ -203,14 +194,14 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
             <Calendar className="h-4 w-4 text-gray-400 mt-0.5" />
             <div>
               <p className="text-gray-500">등록일</p>
-              <p className="text-gray-900">{formatDate(customer.createdAt)}</p>
+              <p className="text-gray-900">{formatDateTime(customer.createdAt)}</p>
             </div>
           </div>
           <div className="flex items-start gap-2">
             <Calendar className="h-4 w-4 text-gray-400 mt-0.5" />
             <div>
               <p className="text-gray-500">최종 수정일</p>
-              <p className="text-gray-900">{formatDate(customer.updatedAt)}</p>
+              <p className="text-gray-900">{formatDateTime(customer.updatedAt)}</p>
             </div>
           </div>
         </div>

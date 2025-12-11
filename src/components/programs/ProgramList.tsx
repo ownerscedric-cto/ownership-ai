@@ -21,8 +21,7 @@ import {
 import { useProgramsWithMetadata } from '@/lib/hooks/usePrograms';
 import type { ProgramFilters, Program } from '@/lib/types/program';
 import { AlertCircle, FileText } from 'lucide-react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDateShort } from '@/lib/utils/date';
 
 interface ProgramListProps {
   filters: ProgramFilters;
@@ -50,7 +49,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
     const groups: Record<string, Program[]> = {};
 
     programs.forEach(program => {
-      const dateKey = format(new Date(program.registeredAt), 'yy.MM.dd', { locale: ko });
+      const dateKey = formatDateShort(program.registeredAt);
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }

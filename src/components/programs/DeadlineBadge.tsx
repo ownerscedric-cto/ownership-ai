@@ -7,8 +7,8 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Infinity } from 'lucide-react';
-import { differenceInDays, isPast, isToday, format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { differenceInDays, isPast, isToday } from 'date-fns';
+import { toKST, formatDateShort } from '@/lib/utils/date';
 
 interface DeadlineBadgeProps {
   deadline: Date | string | null;
@@ -81,8 +81,9 @@ export function DeadlineBadge({ deadline, rawData, className }: DeadlineBadgePro
     return null;
   }
 
-  const deadlineDate = typeof deadline === 'string' ? new Date(deadline) : deadline;
-  const today = new Date();
+  // Convert to KST for accurate date calculations
+  const deadlineDate = toKST(deadline);
+  const today = toKST(new Date());
   today.setHours(0, 0, 0, 0);
   deadlineDate.setHours(0, 0, 0, 0);
 
@@ -123,9 +124,7 @@ export function DeadlineBadge({ deadline, rawData, className }: DeadlineBadgePro
     >
       <Calendar className="w-3 h-3" />
       <span>{badgeText}</span>
-      <span className="text-xs opacity-75">
-        ({format(deadlineDate, 'yy.MM.dd', { locale: ko })})
-      </span>
+      <span className="text-xs opacity-75">({formatDateShort(deadline)})</span>
     </Badge>
   );
 }

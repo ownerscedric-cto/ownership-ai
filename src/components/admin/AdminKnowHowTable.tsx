@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDate } from '@/lib/utils/date';
 import { Edit, Trash2, Eye, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -196,7 +195,7 @@ export function AdminKnowHowTable({ knowhows, type }: AdminKnowHowTableProps) {
 
               {/* Created At */}
               <TableCell className="text-sm text-gray-600">
-                {format(new Date(knowhow.createdAt), 'yyyy-MM-dd', { locale: ko })}
+                {formatDate(knowhow.createdAt)}
               </TableCell>
 
               {/* Actions */}

@@ -18,8 +18,7 @@ import {
   type WatchlistProgram,
 } from '@/lib/hooks/useWatchlist';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDateDot } from '@/lib/utils/date';
 import { truncateText, decodeHtmlEntities } from '@/lib/utils/html';
 import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
 import { useState } from 'react';
@@ -324,7 +323,7 @@ function WatchlistProgramCard({ item, onRemove, isRemoving }: WatchlistProgramCa
         {/* 추가일 */}
         <div className="flex items-center gap-1 text-sm text-gray-500">
           <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-          <span>추가: {format(new Date(addedAt), 'yyyy.MM.dd', { locale: ko })}</span>
+          <span>추가: {formatDateDot(addedAt)}</span>
         </div>
 
         {/* 메모 */}

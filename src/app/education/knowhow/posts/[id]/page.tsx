@@ -15,8 +15,7 @@ import { Eye, User, Calendar, ArrowLeft, MessageSquare, Pin } from 'lucide-react
 import { AppLayout } from '@/components/layout/AppLayout';
 import { KnowHowComments } from '@/components/education/KnowHowComments';
 import { hasViewedContent, addViewedContentId } from '@/lib/cookies';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatRelativeTime } from '@/lib/utils/date';
 
 const VIEWED_KNOWHOW_POSTS_COOKIE = 'viewed_knowhow_posts';
 
@@ -161,9 +160,7 @@ export default function KnowHowPostDetailPage() {
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>
-                  {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: ko })}
-                </span>
+                <span>{formatRelativeTime(post.createdAt)}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Eye className="w-4 h-4" />

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDate } from '@/lib/utils/date';
 import { Edit, Trash2, Eye, Video as VideoIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -129,9 +128,7 @@ export function AdminVideoTable({ videos }: AdminVideoTableProps) {
               </TableCell>
 
               {/* Created At */}
-              <TableCell className="text-sm text-gray-600">
-                {format(new Date(video.createdAt), 'yyyy-MM-dd', { locale: ko })}
-              </TableCell>
+              <TableCell className="text-sm text-gray-600">{formatDate(video.createdAt)}</TableCell>
 
               {/* Actions */}
               <TableCell className="text-right">
