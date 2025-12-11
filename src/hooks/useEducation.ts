@@ -76,6 +76,18 @@ interface DetailResponse<T> {
 // Education Videos
 // ============================================
 
+// 비디오 카테고리 목록 조회
+export function useVideoCategories() {
+  return useQuery<DetailResponse<VideoCategory[]>>({
+    queryKey: ['videoCategories'],
+    queryFn: async () => {
+      const res = await fetch('/api/education/videos/categories');
+      if (!res.ok) throw new Error('Failed to fetch video categories');
+      return res.json();
+    },
+  });
+}
+
 export function useEducationVideos(params?: {
   category?: string;
   search?: string;
@@ -129,7 +141,7 @@ export function useIncrementVideoViewCount() {
 }
 
 // ============================================
-// KnowHow
+// KnowHow Archive (아카이브 - 기관 작성 전문 콘텐츠)
 // ============================================
 
 export function useKnowHowList(params?: {
@@ -158,7 +170,7 @@ export function useKnowHow(id: string) {
   return useQuery<DetailResponse<KnowHow>>({
     queryKey: ['knowhow', id],
     queryFn: async () => {
-      const res = await fetch(`/api/education/knowhow/${id}`);
+      const res = await fetch(`/api/education/knowhow/archive/${id}`);
       if (!res.ok) throw new Error('Failed to fetch knowhow');
       return res.json();
     },
@@ -171,7 +183,7 @@ export function useIncrementKnowHowViewCount() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/education/knowhow/${id}`, {
+      const res = await fetch(`/api/education/knowhow/archive/${id}`, {
         method: 'PATCH',
       });
       if (!res.ok) throw new Error('Failed to increment view count');

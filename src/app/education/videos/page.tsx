@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { VideoList } from '@/components/education/VideoList';
-import { useEducationVideos } from '@/hooks/useEducation';
+import { useEducationVideos, useVideoCategories } from '@/hooks/useEducation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +29,9 @@ export default function VideosPage() {
     limit: 12,
   });
 
-  // 카테고리 목록
-  const categories = ['개요', '분야별', '신청서작성', '성공사례'];
+  // 카테고리 목록 조회 (DB에서 동적으로 가져오기)
+  const { data: categoriesData } = useVideoCategories();
+  const categories = categoriesData?.data || [];
 
   // 검색 실행
   const handleSearch = () => {
@@ -56,7 +57,7 @@ export default function VideosPage() {
         {/* 헤더 */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">교육 비디오</h1>
-          <p className="text-gray-600">정부지원사업 관련 동영상 강의를 시청하세요</p>
+          <p className="text-gray-600">오너스경영연구소에서 제공하는 동영상 강의를 시청하세요</p>
         </div>
 
         {/* 검색 및 필터 */}
@@ -90,12 +91,12 @@ export default function VideosPage() {
             </Badge>
             {categories.map(category => (
               <Badge
-                key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
-                className={`cursor-pointer ${selectedCategory === category ? 'bg-[#0052CC]' : ''}`}
-                onClick={() => setSelectedCategory(category)}
+                key={category.id}
+                variant={selectedCategory === category.name ? 'default' : 'outline'}
+                className={`cursor-pointer ${selectedCategory === category.name ? 'bg-[#0052CC]' : ''}`}
+                onClick={() => setSelectedCategory(category.name)}
               >
-                {category}
+                {category.name}
               </Badge>
             ))}
           </div>

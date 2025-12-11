@@ -42,10 +42,16 @@ export async function POST(request: NextRequest) {
     // 5. 사용자 이름 가져오기 (user metadata 또는 email 사용)
     const authorName = user.user_metadata?.name || user.email?.split('@')[0] || '익명';
 
-    // 6. 게시글 생성 (Supabase 테이블은 camelCase)
+    // 6. UUID 및 타임스탬프 생성
+    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+    const newId = uuidData || crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    // 7. 게시글 생성 (Supabase 테이블은 camelCase)
     const { data: post, error: createError } = await supabase
       .from('knowhow_posts')
       .insert({
+        id: newId,
         title: validatedData.title,
         content: validatedData.content,
         categoryId: validatedData.categoryId,
@@ -54,6 +60,8 @@ export async function POST(request: NextRequest) {
         isAnnouncement: false,
         isEvent: false,
         isPinned: false,
+        createdAt: now,
+        updatedAt: now,
       })
       .select('*, category:knowhow_categories(*)')
       .single();
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest) {
       return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 생성에 실패했습니다', null, 500);
     }
 
-    // 7. Supabase 테이블이 이미 camelCase이므로 변환 불필요
+    // 8. Supabase 테이블이 이미 camelCase이므로 변환 불필요
     return successResponse(post, undefined, 201);
   } catch (error) {
     // Zod 유효성 검증 에러

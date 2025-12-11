@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,6 +13,8 @@ import {
   Mail,
   Settings,
   LogOut,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,7 +38,7 @@ const menuItems: MenuItem[] = [
   },
   {
     label: '교육 센터',
-    href: '/admin/education',
+    href: '#', // 드롭다운 전용 (페이지 없음)
     icon: GraduationCap,
     children: [
       {
@@ -69,12 +72,33 @@ const menuItems: MenuItem[] = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const isActive = (href: string) => {
     if (href === '/admin') {
       return pathname === '/admin';
     }
     return pathname.startsWith(href);
+  };
+
+  const toggleMenu = (href: string) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [href]: !prev[href],
+    }));
+  };
+
+  // 현재 경로에 해당하는 메뉴를 자동으로 열기
+  const isMenuOpen = (item: MenuItem) => {
+    if (item.children) {
+      // 명시적으로 열린 경우
+      if (openMenus[item.href] !== undefined) {
+        return openMenus[item.href];
+      }
+      // 하위 메뉴 중 하나가 활성화된 경우 자동으로 열기
+      return item.children.some(child => isActive(child.href));
+    }
+    return false;
   };
 
   return (
@@ -97,21 +121,45 @@ export function AdminSidebar() {
         {menuItems.map(item => (
           <div key={item.href}>
             {/* Parent Menu Item */}
-            <Link
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                isActive(item.href)
-                  ? 'bg-[#0052CC] text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </Link>
+            {item.children ? (
+              // 드롭다운 메뉴 (children이 있는 경우)
+              <button
+                onClick={() => toggleMenu(item.href)}
+                className={cn(
+                  'w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors',
+                  isActive(item.href)
+                    ? 'bg-[#0052CC] text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                </div>
+                {isMenuOpen(item) ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </button>
+            ) : (
+              // 일반 링크 (children이 없는 경우)
+              <Link
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                  isActive(item.href)
+                    ? 'bg-[#0052CC] text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            )}
 
             {/* Children Menu Items */}
-            {item.children && (
+            {item.children && isMenuOpen(item) && (
               <div className="ml-4 mt-1 space-y-1">
                 {item.children.map(child => (
                   <Link

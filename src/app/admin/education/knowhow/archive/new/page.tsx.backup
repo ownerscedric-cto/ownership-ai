@@ -1,0 +1,237 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { ArrowLeft, Save } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface KnowHowCategory {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+/**
+ * 관리자 노하우 아카이브 추가 페이지
+ * - knowhow 테이블에 저장
+ * - Markdown 형식 지원
+ * - 이미지/파일 첨부 없음
+ */
+export default function AdminKnowHowArchiveNewPage() {
+  const router = useRouter();
+
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [author, setAuthor] = useState('');
+  const [tags, setTags] = useState('');
+
+  // 카테고리 목록 조회
+  const { data: categories, isLoading: categoriesLoading } = useQuery<KnowHowCategory[]>({
+    queryKey: ['knowhow-categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/education/knowhow/categories');
+      if (!res.ok) throw new Error('Failed to fetch categories');
+      const data = await res.json();
+      return data.data;
+    },
+  });
+
+  // 노하우 아카이브 생성
+  const createArchiveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/education/knowhow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          content,
+          categoryId: categoryId || undefined,
+          author: author || undefined,
+          tags: tags
+            .split(',')
+            .map(t => t.trim())
+            .filter(t => t.length > 0),
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to create archive');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('노하우 아카이브 작성 완료', {
+        description: '노하우 아카이브가 성공적으로 작성되었습니다.',
+      });
+      router.push('/admin/education/knowhow');
+    },
+    onError: (error: Error) => {
+      toast.error('노하우 아카이브 작성 실패', {
+        description: error.message,
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 유효성 검증
+    if (!title.trim()) {
+      toast.error('제목을 입력해주세요');
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error('내용을 입력해주세요');
+      return;
+    }
+
+    createArchiveMutation.mutate();
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Button
+            onClick={() => router.push('/admin/education/knowhow')}
+            variant="ghost"
+            className="mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            노하우 관리로 돌아가기
+          </Button>
+          <h1 className="text-3xl font-bold text-gray-900">노하우 아카이브 추가</h1>
+          <p className="text-gray-600 mt-2">
+            오너스경영연구소 전문 노하우를 작성합니다 (Markdown 지원)
+          </p>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>기본 정보</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* 제목 */}
+            <div className="space-y-2">
+              <Label htmlFor="title">제목 *</Label>
+              <Input
+                id="title"
+                placeholder="노하우 제목을 입력하세요"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* 카테고리 */}
+            <div className="space-y-2">
+              <Label htmlFor="category">카테고리 (선택)</Label>
+              {categoriesLoading ? (
+                <div className="text-sm text-gray-500">카테고리 로딩 중...</div>
+              ) : (
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="카테고리를 선택하세요 (선택사항)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(categories || []).map(category => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* 작성자 */}
+            <div className="space-y-2">
+              <Label htmlFor="author">작성자 (선택)</Label>
+              <Input
+                id="author"
+                placeholder="작성자 이름 (미입력 시 자동)"
+                value={author}
+                onChange={e => setAuthor(e.target.value)}
+              />
+            </div>
+
+            {/* 태그 */}
+            <div className="space-y-2">
+              <Label htmlFor="tags">태그 (쉼표로 구분)</Label>
+              <Input
+                id="tags"
+                placeholder="예: 컨설팅, 정부지원사업, 팁"
+                value={tags}
+                onChange={e => setTags(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">쉼표(,)로 구분하여 여러 태그를 입력할 수 있습니다</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 내용 (Markdown) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>내용 (Markdown 지원) *</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Textarea
+              placeholder="Markdown 형식으로 내용을 작성하세요&#10;&#10;예시:&#10;# 제목&#10;## 부제목&#10;**굵은 글씨**&#10;*기울임*&#10;- 리스트&#10;[링크](https://example.com)"
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              rows={20}
+              className="font-mono text-sm"
+              required
+            />
+            <p className="text-xs text-gray-500">
+              Markdown 문법을 사용하여 작성할 수 있습니다. 이미지와 파일 첨부는 아카이브에서 지원하지 않습니다.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* 버튼 */}
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push('/admin/education/knowhow')}
+            disabled={createArchiveMutation.isPending}
+          >
+            취소
+          </Button>
+          <Button
+            type="submit"
+            disabled={createArchiveMutation.isPending}
+            className="bg-[#0052CC] hover:bg-[#003d99]"
+          >
+            {createArchiveMutation.isPending ? (
+              <>작성 중...</>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                작성 완료
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}

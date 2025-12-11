@@ -96,6 +96,11 @@ export const createKnowHowSchema = z.object({
 
   // 메타데이터 (선택)
   tags: z.array(z.string()).default([]),
+
+  // 이미지 및 파일 첨부 (선택) - 커뮤니티와 동일한 bucket 사용
+  imageUrls: z.array(z.string().url()).optional().default([]),
+  fileUrls: z.array(z.string().url()).optional().default([]),
+  fileNames: z.array(z.string()).optional().default([]),
 });
 
 // 노하우 수정 스키마

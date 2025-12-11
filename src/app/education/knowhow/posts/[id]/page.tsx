@@ -2,7 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useKnowHowPost, useIncrementKnowHowPostViewCount, useKnowHowComments, useCreateKnowHowComment } from '@/hooks/useEducation';
+import {
+  useKnowHowPost,
+  useIncrementKnowHowPostViewCount,
+  useKnowHowComments,
+  useCreateKnowHowComment,
+} from '@/hooks/useEducation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,7 +115,11 @@ export default function KnowHowPostDetailPage() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 뒤로가기 버튼 */}
-        <Button onClick={() => router.push('/education/knowhow')} variant="ghost" className="mb-6">
+        <Button
+          onClick={() => router.push('/education/knowhow/posts')}
+          variant="ghost"
+          className="mb-6"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           목록으로
         </Button>
@@ -169,7 +178,10 @@ export default function KnowHowPostDetailPage() {
 
           <CardContent className="space-y-6">
             {/* 게시글 내용 */}
-            <div className="prose prose-gray max-w-none whitespace-pre-wrap">{post.content}</div>
+            <div
+              className="prose prose-gray max-w-none"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
           </CardContent>
         </Card>
 

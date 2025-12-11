@@ -57,7 +57,7 @@ export default function KnowHowPage() {
         {/* 헤더 */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">노하우 아카이브</h1>
-          <p className="text-gray-600">업종별/사업별 실전 노하우를 공유하고 확인하세요</p>
+          <p className="text-gray-600">오너스경영연구소만의 컨설팅 노하우를 확인하세요</p>
         </div>
 
         {/* 검색 및 필터 */}

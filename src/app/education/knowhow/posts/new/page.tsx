@@ -29,7 +29,7 @@ export default function NewKnowHowPostPage() {
 
       // 작성 성공 시 상세 페이지로 이동
       if (result.success && result.data?.id) {
-        router.push(`/education/knowhow/${result.data.id}`);
+        router.push(`/education/knowhow/posts/${result.data.id}`);
       }
     } catch (error) {
       console.error('게시글 작성 실패:', error);
@@ -38,7 +38,7 @@ export default function NewKnowHowPostPage() {
   };
 
   const handleCancel = () => {
-    router.push('/education/knowhow');
+    router.push('/education/knowhow/posts');
   };
 
   // 카테고리 로딩 중
@@ -58,7 +58,11 @@ export default function NewKnowHowPostPage() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 뒤로가기 버튼 */}
-        <Button onClick={() => router.push('/education/knowhow')} variant="ghost" className="mb-6">
+        <Button
+          onClick={() => router.push('/education/knowhow/posts')}
+          variant="ghost"
+          className="mb-6"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           목록으로
         </Button>

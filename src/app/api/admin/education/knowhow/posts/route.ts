@@ -45,26 +45,34 @@ export async function POST(request: NextRequest) {
     // 5. 사용자 이름 가져오기
     const authorName = user.user_metadata?.name || user.email?.split('@')[0] || '관리자';
 
-    // 6. 게시글 데이터 준비 (snake_case로 변환)
+    // 6. UUID 명시적 생성 (Supabase 기본값 처리 이슈 방지)
+    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+    const newId = uuidData || crypto.randomUUID();
+
+    // 7. 게시글 데이터 준비 (camelCase - Supabase 테이블 컬럼명과 일치)
+    const now = new Date().toISOString();
     const postData: Record<string, unknown> = {
-      user_id: user.id,
-      author_name: authorName,
-      category_id: validatedData.categoryId,
+      id: newId,
+      userId: user.id,
+      authorName: authorName,
+      categoryId: validatedData.categoryId,
       title: validatedData.title,
       content: validatedData.content,
-      image_urls: validatedData.imageUrls || [],
-      file_urls: validatedData.fileUrls || [],
-      file_names: validatedData.fileNames || [],
-      is_announcement: validatedData.isAnnouncement || false,
-      is_event: validatedData.isEvent || false,
-      is_pinned: validatedData.isPinned || false,
+      imageUrls: validatedData.imageUrls || [],
+      fileUrls: validatedData.fileUrls || [],
+      fileNames: validatedData.fileNames || [],
+      isAnnouncement: validatedData.isAnnouncement || false,
+      isEvent: validatedData.isEvent || false,
+      isPinned: validatedData.isPinned || false,
+      createdAt: now,
+      updatedAt: now,
     };
 
     if (validatedData.startDate) {
-      postData.start_date = new Date(validatedData.startDate).toISOString();
+      postData.startDate = new Date(validatedData.startDate).toISOString();
     }
     if (validatedData.endDate) {
-      postData.end_date = new Date(validatedData.endDate).toISOString();
+      postData.endDate = new Date(validatedData.endDate).toISOString();
     }
 
     // 7. 게시글 생성
@@ -75,8 +83,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (createError) {
-      console.error('게시글 생성 실패:', createError);
-      return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 생성에 실패했습니다', null, 500);
+      console.error('게시글 생성 실패 (Full Error):', JSON.stringify(createError, null, 2));
+      console.error('postData:', JSON.stringify(postData, null, 2));
+      return errorResponse(
+        ErrorCode.INTERNAL_ERROR,
+        '게시글 생성에 실패했습니다',
+        createError,
+        500
+      );
     }
 
     // 8. 성공 응답

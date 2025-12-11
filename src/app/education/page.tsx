@@ -56,7 +56,7 @@ export default function EducationPage() {
               <p className="text-sm text-gray-600 mb-4">
                 업종별, 사업별 팁, 주의사항 등 실무에 바로 적용 가능한 노하우를 공유합니다.
               </p>
-              <Link href="/education/knowhow">
+              <Link href="/education/knowhow/posts">
                 <Button className="w-full bg-[#0052CC] hover:bg-[#0052CC]/90">노하우 보기</Button>
               </Link>
             </CardContent>

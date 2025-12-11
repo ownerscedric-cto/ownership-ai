@@ -36,7 +36,7 @@ interface KnowHowPostCardProps {
  */
 export function KnowHowPostCard({ post }: KnowHowPostCardProps) {
   return (
-    <Link href={`/education/knowhow/${post.id}`}>
+    <Link href={`/education/knowhow/posts/${post.id}`}>
       <Card className="hover:shadow-md transition-all duration-200 cursor-pointer">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { count: commentsCount } = await supabase
       .from('knowhow_comments')
       .select('*', { count: 'exact', head: true })
-      .eq('post_id', id);
+      .eq('postId', id);
 
     // camelCase 변환
     const formattedPost = {
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           content: comment.content as string,
           authorName: comment.authorName as string,
           userId: comment.userId as string,
-          postId: comment.post_id as string,
+          postId: comment.postId as string,
           createdAt: comment.createdAt as string,
           updatedAt: comment.updatedAt as string,
         })),

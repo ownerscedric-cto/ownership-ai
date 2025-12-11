@@ -12,6 +12,8 @@ import { createClient } from '@/lib/supabase/server';
 export const STORAGE_BUCKETS = {
   EDUCATION_VIDEOS: 'education-videos',
   RESOURCES: 'resources',
+  KNOWHOW_IMAGES: 'knowhow-images', // 노하우 게시글 이미지
+  KNOWHOW_FILES: 'knowhow-files', // 노하우 게시글 첨부파일
 } as const;
 
 /**

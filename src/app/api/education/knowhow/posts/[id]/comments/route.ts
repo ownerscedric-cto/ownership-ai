@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { data: comments, error: commentsError } = await supabase
       .from('knowhow_comments')
       .select('*')
-      .eq('post_id', postId)
+      .eq('postId', postId)
       .order('createdAt', { ascending: true });
 
     if (commentsError) {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       content: comment.content,
       authorName: comment.authorName,
       userId: comment.userId,
-      postId: comment.post_id,
+      postId: comment.postId,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
     }));
@@ -81,14 +81,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return errorResponse(ErrorCode.NOT_FOUND, '게시글을 찾을 수 없습니다', null, 404);
     }
 
+    // UUID 명시적 생성
+    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+    const newId = uuidData || crypto.randomUUID();
+    const now = new Date().toISOString();
+
     // 댓글 생성
     const { data: newComment, error: createError } = await supabase
       .from('knowhow_comments')
       .insert({
-        post_id: postId,
+        id: newId,
+        postId: postId,
         content: validatedData.content,
         authorName: validatedData.authorName,
         userId: user?.id || null,
+        createdAt: now,
+        updatedAt: now,
       })
       .select()
       .single();
@@ -104,7 +112,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       content: newComment.content,
       authorName: newComment.authorName,
       userId: newComment.userId,
-      postId: newComment.post_id,
+      postId: newComment.postId,
       createdAt: newComment.createdAt,
       updatedAt: newComment.updatedAt,
     };

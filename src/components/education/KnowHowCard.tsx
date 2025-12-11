@@ -11,6 +11,7 @@ interface KnowHowCardProps {
 /**
  * 노하우 카드 컴포넌트
  * - 제목, 카테고리, 작성자, 조회수, 요약 표시
+ * - 아카이브 페이지에서 사용 시 archive 경로로 링크
  */
 export function KnowHowCard({ knowhow }: KnowHowCardProps) {
   // 콘텐츠 요약 (Markdown 제거하고 처음 100자)
@@ -20,7 +21,7 @@ export function KnowHowCard({ knowhow }: KnowHowCardProps) {
   };
 
   return (
-    <Link href={`/education/knowhow/${knowhow.id}`}>
+    <Link href={`/education/knowhow/archive/${knowhow.id}`}>
       <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer h-full">
         <CardHeader>
           {/* 카테고리 */}

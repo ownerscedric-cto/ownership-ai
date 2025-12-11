@@ -108,14 +108,38 @@ export async function POST(request: NextRequest) {
     const validated = createKnowHowSchema.parse(body);
     const supabase = await createClient();
 
+    // UUID 명시적 생성 (Supabase 기본값 처리 이슈 방지)
+    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+    const newId = uuidData || crypto.randomUUID();
+
+    const now = new Date().toISOString();
+
+    // Get category name if categoryId is provided
+    let categoryName = '';
+    if (validated.categoryId) {
+      const { data: categoryData } = await supabase
+        .from('knowhow_categories')
+        .select('name')
+        .eq('id', validated.categoryId)
+        .single();
+      categoryName = categoryData?.name || '';
+    }
+
     const { data: knowhow, error: createError } = await supabase
       .from('knowhow')
       .insert({
+        id: newId,
         title: validated.title,
         content: validated.content,
+        category: categoryName || '일반', // category 컬럼 (텍스트) - NOT NULL 제약
         categoryId: validated.categoryId,
         author: validated.author,
         tags: validated.tags || [],
+        imageUrls: validated.imageUrls || [],
+        fileUrls: validated.fileUrls || [],
+        fileNames: validated.fileNames || [],
+        createdAt: now,
+        updatedAt: now,
       })
       .select(
         `
