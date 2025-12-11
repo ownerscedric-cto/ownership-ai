@@ -204,7 +204,7 @@ export function AdminKnowHowTable({ knowhows, type }: AdminKnowHowTableProps) {
                   <Link
                     href={
                       type === 'archive'
-                        ? `/admin/education/knowhow/${knowhow.id}/edit`
+                        ? `/admin/education/knowhow/archive/${knowhow.id}/edit`
                         : `/admin/education/knowhow/posts/${knowhow.id}/edit`
                     }
                   >

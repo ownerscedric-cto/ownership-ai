@@ -99,7 +99,7 @@ export default function AdminKnowHowNewPage() {
       toast.success('파일 업로드 성공', {
         description: `${data.data.fileName}이(가) 업로드되었습니다.`,
       });
-    } catch (error) {
+    } catch {
       toast.error('파일 업로드 실패', {
         description: '파일 업로드 중 오류가 발생했습니다.',
       });
@@ -135,8 +135,8 @@ export default function AdminKnowHowNewPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error?.message || 'Failed to create post');
+        const errorData = await res.json();
+        throw new Error(errorData.error?.message || 'Failed to create post');
       }
 
       return res.json();
