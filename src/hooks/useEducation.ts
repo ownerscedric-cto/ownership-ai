@@ -427,7 +427,15 @@ export function useCreateKnowHowPost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { title: string; content: string; categoryId: string }) => {
+    mutationFn: async (data: {
+      title: string;
+      content: string;
+      categoryId: string;
+      authorName: string;
+      imageUrls?: string[];
+      fileUrls?: string[];
+      fileNames?: string[];
+    }) => {
       const res = await fetch('/api/education/knowhow/posts', {
         method: 'POST',
         headers: {
@@ -455,6 +463,27 @@ export function useKnowHowCategories() {
       const res = await fetch('/api/education/knowhow/categories');
       if (!res.ok) throw new Error('Failed to fetch categories');
       return res.json();
+    },
+  });
+}
+
+// 게시글 삭제
+export function useDeleteKnowHowPost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/education/knowhow/posts/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to delete post');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowPosts'] });
     },
   });
 }

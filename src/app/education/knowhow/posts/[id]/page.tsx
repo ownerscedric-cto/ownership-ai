@@ -1,21 +1,34 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   useKnowHowPost,
   useIncrementKnowHowPostViewCount,
   useKnowHowComments,
   useCreateKnowHowComment,
+  useDeleteKnowHowPost,
 } from '@/hooks/useEducation';
+import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, User, Calendar, ArrowLeft, MessageSquare, Pin } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Eye, User, Calendar, ArrowLeft, MessageSquare, Pin, Edit, Trash2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { KnowHowComments } from '@/components/education/KnowHowComments';
 import { hasViewedContent, addViewedContentId } from '@/lib/cookies';
 import { formatRelativeTime } from '@/lib/utils/date';
+import { toast } from 'sonner';
 
 const VIEWED_KNOWHOW_POSTS_COOKIE = 'viewed_knowhow_posts';
 
@@ -38,6 +51,11 @@ export default function KnowHowPostDetailPage() {
   // 댓글 조회
   const { data: commentsData, isLoading: isLoadingComments } = useKnowHowComments(postId);
   const createComment = useCreateKnowHowComment();
+
+  // 삭제 기능
+  const deletePost = useDeleteKnowHowPost();
+  const { user } = useAuth();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // 조회수 증가 추적 (중복 방지)
   const hasIncrementedRef = useRef(false);
@@ -70,6 +88,20 @@ export default function KnowHowPostDetailPage() {
       content,
       authorName,
     });
+  };
+
+  // 삭제 핸들러
+  const handleDelete = async () => {
+    try {
+      await deletePost.mutateAsync(postId);
+      toast.success('게시글이 삭제되었습니다');
+      router.push('/education/knowhow/posts');
+    } catch (error) {
+      toast.error('게시글 삭제에 실패했습니다');
+      console.error('Delete error:', error);
+    } finally {
+      setShowDeleteDialog(false);
+    }
   };
 
   // 로딩 상태
@@ -110,6 +142,9 @@ export default function KnowHowPostDetailPage() {
 
   const post = data.data;
 
+  // 작성자 확인
+  const isAuthor = user && user.id === post.userId;
+
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -149,8 +184,33 @@ export default function KnowHowPostDetailPage() {
               </Badge>
             </div>
 
-            {/* 제목 */}
-            <CardTitle className="text-2xl mb-4">{post.title}</CardTitle>
+            {/* 제목 및 액션 버튼 */}
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <CardTitle className="text-2xl flex-1">{post.title}</CardTitle>
+
+              {/* 작성자만 수정/삭제 가능 */}
+              {isAuthor && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/education/knowhow/posts/${postId}/edit`)}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    수정
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    삭제
+                  </Button>
+                </div>
+              )}
+            </div>
 
             {/* 작성자, 작성일, 조회수, 댓글수 */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -189,6 +249,24 @@ export default function KnowHowPostDetailPage() {
           isLoading={isLoadingComments}
           onAddComment={handleAddComment}
         />
+
+        {/* 삭제 확인 다이얼로그 */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>게시글을 삭제하시겠습니까?</AlertDialogTitle>
+              <AlertDialogDescription>
+                이 작업은 되돌릴 수 없습니다. 게시글과 모든 댓글이 영구적으로 삭제됩니다.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>취소</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                삭제
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

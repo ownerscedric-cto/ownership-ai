@@ -72,6 +72,59 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const validated = createKnowHowPostSchema.parse(body);
     const supabase = await createClient();
 
+    // 1. 현재 사용자 확인
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    // 2. 게시글 조회 (작성자 확인용)
+    const { data: existingPost, error: fetchError } = await supabase
+      .from('knowhow_posts')
+      .select('userId')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existingPost) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Post not found',
+          },
+        },
+        { status: 404 }
+      );
+    }
+
+    // 3. 작성자 권한 확인
+    if (existingPost.userId !== user.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You do not have permission to update this post',
+          },
+        },
+        { status: 403 }
+      );
+    }
+
+    // 4. 게시글 수정
     const { data: post, error: updateError } = await supabase
       .from('knowhow_posts')
       .update({
@@ -148,6 +201,59 @@ export async function DELETE(
     const { id } = await params;
     const supabase = await createClient();
 
+    // 1. 현재 사용자 확인
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    // 2. 게시글 조회 (작성자 확인용)
+    const { data: post, error: fetchError } = await supabase
+      .from('knowhow_posts')
+      .select('userId')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !post) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Post not found',
+          },
+        },
+        { status: 404 }
+      );
+    }
+
+    // 3. 작성자 권한 확인
+    if (post.userId !== user.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You do not have permission to delete this post',
+          },
+        },
+        { status: 403 }
+      );
+    }
+
+    // 4. 게시글 삭제
     const { error: deleteError } = await supabase.from('knowhow_posts').delete().eq('id', id);
 
     if (deleteError) {

@@ -1,8 +1,19 @@
 'use client';
 
-import { KnowHowPostCard, type KnowHowPost } from './KnowHowPostCard';
+import Link from 'next/link';
+import { type KnowHowPost } from './KnowHowPostCard';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ChevronLeft, ChevronRight, Pin } from 'lucide-react';
+import { formatRelativeTime } from '@/lib/utils/date';
 
 interface KnowHowPostListProps {
   posts: KnowHowPost[];
@@ -14,8 +25,10 @@ interface KnowHowPostListProps {
 }
 
 /**
- * 노하우 게시글 목록 컴포넌트
- * - 게시글 카드 목록
+ * 노하우 게시글 목록 컴포넌트 (테이블 형식)
+ * - 전형적인 게시판 구조
+ * - 번호, 카테고리, 제목, 작성자, 작성일, 조회수, 댓글수
+ * - 고정글 우선 표시
  * - 페이지네이션
  */
 export function KnowHowPostList({
@@ -30,9 +43,9 @@ export function KnowHowPostList({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         {Array.from({ length: limit }).map((_, i) => (
-          <div key={i} className="bg-gray-100 rounded-lg h-24 animate-pulse" />
+          <div key={i} className="bg-gray-100 rounded h-12 animate-pulse" />
         ))}
       </div>
     );
@@ -47,13 +60,109 @@ export function KnowHowPostList({
     );
   }
 
+  // 고정글을 상단에 배치
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return 0;
+  });
+
+  // 현재 페이지의 시작 번호 계산
+  const startNumber = total - (page - 1) * limit;
+
   return (
     <div>
-      {/* 게시글 목록 */}
-      <div className="space-y-3 mb-8">
-        {posts.map((post) => (
-          <KnowHowPostCard key={post.id} post={post} />
-        ))}
+      {/* 게시글 테이블 */}
+      <div className="border rounded-lg overflow-hidden mb-8">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead className="w-16 text-center">번호</TableHead>
+              <TableHead className="w-28 text-center">카테고리</TableHead>
+              <TableHead>제목</TableHead>
+              <TableHead className="w-28 text-center">작성자</TableHead>
+              <TableHead className="w-32 text-center">작성일</TableHead>
+              <TableHead className="w-20 text-center">조회</TableHead>
+              <TableHead className="w-20 text-center">댓글</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedPosts.map((post, index) => {
+              const postNumber = post.isPinned ? '' : startNumber - index;
+
+              return (
+                <TableRow
+                  key={post.id}
+                  className={`hover:bg-gray-50 transition-colors ${
+                    post.isPinned ? 'bg-blue-50/50' : ''
+                  }`}
+                >
+                  {/* 번호 */}
+                  <TableCell className="text-center text-sm text-gray-600">
+                    {post.isPinned ? (
+                      <Pin className="w-4 h-4 text-[#0052CC] mx-auto" fill="#0052CC" />
+                    ) : (
+                      <span>{postNumber}</span>
+                    )}
+                  </TableCell>
+
+                  {/* 카테고리 */}
+                  <TableCell className="text-center">
+                    <div className="flex flex-col gap-1 items-center">
+                      {post.isAnnouncement && (
+                        <Badge variant="destructive" className="text-xs">
+                          공지
+                        </Badge>
+                      )}
+                      {post.isEvent && <Badge className="text-xs bg-green-600">이벤트</Badge>}
+                      {!post.isAnnouncement && !post.isEvent && (
+                        <Badge variant="secondary" className="text-xs">
+                          {post.category.name}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+
+                  {/* 제목 */}
+                  <TableCell>
+                    <Link
+                      href={`/education/knowhow/posts/${post.id}`}
+                      className="hover:text-[#0052CC] transition-colors font-medium text-gray-900 line-clamp-1 block"
+                    >
+                      {post.title}
+                    </Link>
+                  </TableCell>
+
+                  {/* 작성자 */}
+                  <TableCell className="text-center text-sm text-gray-600">
+                    {post.authorName}
+                  </TableCell>
+
+                  {/* 작성일 */}
+                  <TableCell className="text-center text-sm text-gray-500">
+                    {formatRelativeTime(post.createdAt)}
+                  </TableCell>
+
+                  {/* 조회수 */}
+                  <TableCell className="text-center text-sm text-gray-600">
+                    {post.viewCount.toLocaleString()}
+                  </TableCell>
+
+                  {/* 댓글수 */}
+                  <TableCell className="text-center text-sm">
+                    {post._count.comments > 0 ? (
+                      <span className="text-[#0052CC] font-medium">
+                        {post._count.comments.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">0</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
 
       {/* 페이지네이션 */}
@@ -69,7 +178,7 @@ export function KnowHowPostList({
           </Button>
 
           <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
               // 현재 페이지 주변 5개만 표시
               if (
                 pageNum === 1 ||
