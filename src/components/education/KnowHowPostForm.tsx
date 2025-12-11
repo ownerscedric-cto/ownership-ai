@@ -235,6 +235,9 @@ export function KnowHowPostForm({
                 placeholder="게시글 내용을 입력하세요 (최소 10자)"
                 editable={!isSubmitting}
               />
+              <p className="text-xs text-gray-500">
+                💡 에디터 내 이미지 업로드는 최대 5MB까지 가능합니다
+              </p>
               {errors.content && <p className="text-sm text-red-600">{errors.content.message}</p>}
             </div>
 

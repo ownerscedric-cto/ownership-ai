@@ -325,13 +325,16 @@ export default function AdminKnowHowNewPage() {
           <CardHeader>
             <CardTitle>내용 *</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <TiptapEditor
               content={content}
               onChange={setContent}
               onImageUpload={handleImageUpload}
               placeholder="게시글 내용을 작성하세요..."
             />
+            <p className="text-xs text-gray-500">
+              💡 에디터 내 이미지 업로드는 최대 5MB까지 가능합니다
+            </p>
           </CardContent>
         </Card>
 
@@ -342,9 +345,10 @@ export default function AdminKnowHowNewPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="file-upload">
-                파일 첨부 (PDF, Word, Excel, PowerPoint, ZIP, TXT - 최대 10MB)
-              </Label>
+              <Label htmlFor="file-upload">파일 첨부 (선택)</Label>
+              <p className="text-sm text-gray-500 mt-1">
+                PDF, Word, Excel, PowerPoint, ZIP, TXT 파일 업로드 가능 (최대 10MB)
+              </p>
               <div className="mt-2">
                 <Input
                   id="file-upload"

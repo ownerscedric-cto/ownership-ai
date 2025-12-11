@@ -20,7 +20,7 @@ import {
   Redo,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface TiptapEditorProps {
   content: string;
@@ -73,6 +73,13 @@ export function TiptapEditor({
       },
     },
   });
+
+  // content prop이 변경되면 에디터 업데이트 (수정 페이지에서 기존 이미지 표시)
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
 
   if (!editor) {
     return null;
@@ -208,6 +215,7 @@ export function TiptapEditor({
             size="sm"
             onClick={handleImageUpload}
             disabled={isUploading}
+            title="이미지 업로드 (최대 5MB)"
           >
             <ImageIcon className="w-4 h-4" />
           </Button>

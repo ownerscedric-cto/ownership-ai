@@ -97,7 +97,12 @@ export default function AdminKnowHowArchiveEditPage() {
     });
 
     if (!res.ok) {
-      throw new Error('Image upload failed');
+      const errorData = await res.json();
+      console.error('Image upload error:', errorData);
+      toast.error('이미지 업로드 실패', {
+        description: errorData.error?.message || '다시 시도해주세요.',
+      });
+      throw new Error(errorData.error?.message || 'Image upload failed');
     }
 
     const data = await res.json();
@@ -300,13 +305,16 @@ export default function AdminKnowHowArchiveEditPage() {
           <CardHeader>
             <CardTitle>내용 *</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <TiptapEditor
               content={content}
               onChange={setContent}
               onImageUpload={handleImageUpload}
               placeholder="노하우 내용을 작성하세요..."
             />
+            <p className="text-xs text-gray-500">
+              💡 에디터 내 이미지 업로드는 최대 5MB까지 가능합니다
+            </p>
           </CardContent>
         </Card>
 

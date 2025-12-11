@@ -263,13 +263,16 @@ export default function AdminKnowHowArchiveNewPage() {
           <CardHeader>
             <CardTitle>내용 *</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <TiptapEditor
               content={content}
               onChange={setContent}
               onImageUpload={handleImageUpload}
               placeholder="노하우 내용을 작성하세요..."
             />
+            <p className="text-xs text-gray-500">
+              💡 에디터 내 이미지 업로드는 최대 5MB까지 가능합니다
+            </p>
           </CardContent>
         </Card>
 

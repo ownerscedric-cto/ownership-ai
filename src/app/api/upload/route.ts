@@ -151,13 +151,19 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
+      console.error('Storage upload error:', {
+        message: uploadError.message,
+        name: uploadError.name,
+        cause: uploadError.cause,
+        bucket,
+        filePath,
+      });
       return NextResponse.json(
         {
           success: false,
           error: {
             code: 'UPLOAD_FAILED',
-            message: 'Failed to upload file',
+            message: `Failed to upload file: ${uploadError.message}`,
             details: uploadError.message,
           },
         },
