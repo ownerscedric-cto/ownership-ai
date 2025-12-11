@@ -15,10 +15,25 @@ interface KnowHowCardProps {
  * - 아카이브 페이지에서 사용 시 archive 경로로 링크
  */
 export function KnowHowCard({ knowhow }: KnowHowCardProps) {
-  // 콘텐츠 요약 (Markdown 제거하고 처음 100자)
+  // 콘텐츠 요약 (HTML 태그 제거, 이미지만 있는 경우 처리)
   const getSummary = (content: string) => {
-    const plainText = content.replace(/[#*_`~\[\]()]/g, '').trim();
-    return plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText;
+    // 1. HTML 태그 제거하여 순수 텍스트 추출
+    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
+    const plainText = stripHtml(content);
+
+    // 2. 텍스트가 있으면 텍스트 요약 반환
+    if (plainText.length > 0) {
+      return plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText;
+    }
+
+    // 3. 이미지만 있는 경우 (텍스트 없음)
+    const imageMatches = content.match(/<img/g);
+    if (imageMatches && imageMatches.length > 0) {
+      return `📷 이미지 ${imageMatches.length}개`;
+    }
+
+    // 4. 내용 없음
+    return '내용 없음';
   };
 
   return (
