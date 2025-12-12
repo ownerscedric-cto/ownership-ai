@@ -7,6 +7,7 @@ import {
 } from '@/lib/validations/customer';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { ZodError } from 'zod';
+import { randomUUID } from 'crypto';
 
 // POST /api/customers - 고객 생성
 export async function POST(request: NextRequest) {
@@ -19,39 +20,46 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      console.error('❌ [AUTH ERROR]:', authError);
       return errorResponse(ErrorCode.UNAUTHORIZED, '인증이 필요합니다', null, 401);
     }
 
+    console.log('✅ [AUTH SUCCESS] User ID:', user.id);
+
     // 2. 요청 바디 파싱
     const body = await request.json();
+    console.log('📦 [REQUEST BODY]:', JSON.stringify(body, null, 2));
 
     // 3. 유효성 검증 (Zod)
     const validatedData: CreateCustomerInput = createCustomerSchema.parse(body);
+    console.log('✅ [VALIDATION SUCCESS]:', JSON.stringify(validatedData, null, 2));
 
     // 4. 고객 생성
+    const now = new Date().toISOString();
+    const insertData = {
+      id: randomUUID(), // UUID 명시적 생성
+      userId: user.id,
+      createdAt: now,
+      updatedAt: now,
+      ...validatedData,
+    };
+    console.log('💾 [INSERT DATA]:', JSON.stringify(insertData, null, 2));
+
     const { data: customer, error: createError } = await supabase
       .from('customers')
-      .insert({
-        userId: user.id,
-        ...validatedData,
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (createError) {
-      // 중복 에러 (unique constraint violation)
-      if (createError.code === '23505') {
-        return errorResponse(
-          ErrorCode.DUPLICATE_ENTRY,
-          '이미 등록된 사업자등록번호입니다',
-          { field: 'businessNumber' },
-          400
-        );
-      }
-
-      console.error('Customer creation error:', createError);
+      console.error('❌ [DB ERROR]:', createError);
+      console.error('❌ [DB ERROR CODE]:', createError.code);
+      console.error('❌ [DB ERROR MESSAGE]:', createError.message);
+      console.error('❌ [DB ERROR DETAILS]:', createError.details);
       return errorResponse(ErrorCode.INTERNAL_ERROR, '고객 생성 중 오류가 발생했습니다', null, 500);
     }
+
+    console.log('✅ [CUSTOMER CREATED]:', customer.id);
 
     // 5. 성공 응답
     return successResponse(customer, undefined, 201);
@@ -93,10 +101,7 @@ export async function GET(request: NextRequest) {
     const filters = customerFilterSchema.parse(queryParams);
 
     // 3. Supabase 쿼리 구성 (본인의 고객만 조회)
-    let query = supabase
-      .from('customers')
-      .select('*', { count: 'exact' })
-      .eq('userId', user.id);
+    let query = supabase.from('customers').select('*', { count: 'exact' }).eq('userId', user.id);
 
     // 4. 필터 적용
     if (filters.businessType) {

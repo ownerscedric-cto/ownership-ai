@@ -55,18 +55,18 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
     defaultValues: {
       businessNumber: customer?.businessNumber || '',
       businessType: (customer?.businessType as 'INDIVIDUAL' | 'CORPORATE') || 'INDIVIDUAL',
-      corporateNumber: customer?.corporateNumber || undefined,
+      corporateNumber: customer?.corporateNumber || '',
       name: customer?.name || '',
-      industry: customer?.industry || undefined,
-      companySize: customer?.companySize || undefined,
-      location: customer?.location || undefined,
+      industry: customer?.industry || '',
+      companySize: customer?.companySize || '',
+      location: customer?.location || '',
       budget: customer?.budget || undefined,
       challenges: customer?.challenges || [],
       goals: customer?.goals || [],
       preferredKeywords: customer?.preferredKeywords || [],
-      contactEmail: customer?.contactEmail || undefined,
-      contactPhone: customer?.contactPhone || undefined,
-      notes: customer?.notes || undefined,
+      contactEmail: customer?.contactEmail || '',
+      contactPhone: customer?.contactPhone || '',
+      notes: customer?.notes || '',
     },
   });
 
@@ -142,18 +142,18 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
       form.reset({
         businessNumber: customer.businessNumber,
         businessType: customer.businessType as 'INDIVIDUAL' | 'CORPORATE',
-        corporateNumber: customer.corporateNumber || undefined,
+        corporateNumber: customer.corporateNumber || '',
         name: customer.name,
-        industry: customer.industry || undefined,
-        companySize: customer.companySize || undefined,
-        location: customer.location || undefined,
+        industry: customer.industry || '',
+        companySize: customer.companySize || '',
+        location: customer.location || '',
         budget: customer.budget || undefined,
         challenges: customer.challenges || [],
         goals: customer.goals || [],
         preferredKeywords: customer.preferredKeywords || [],
-        contactEmail: customer.contactEmail || undefined,
-        contactPhone: customer.contactPhone || undefined,
-        notes: customer.notes || undefined,
+        contactEmail: customer.contactEmail || '',
+        contactPhone: customer.contactPhone || '',
+        notes: customer.notes || '',
       });
     }
   }, [customer, form]);
@@ -286,7 +286,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
               <FormItem>
                 <FormLabel>업종</FormLabel>
                 <FormControl>
-                  <Input placeholder="IT 서비스, 제조업 등" {...field} />
+                  <Input placeholder="IT 서비스, 제조업 등" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -300,7 +300,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
               <FormItem>
                 <FormLabel>기업 규모</FormLabel>
                 <FormControl>
-                  <Input placeholder="10명 미만, 10-50명 등" {...field} />
+                  <Input placeholder="10명 미만, 10-50명 등" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -313,7 +313,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
             render={({ field }) => (
               <FormItem>
                 <FormLabel>지역</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <Select onValueChange={field.onChange} value={field.value || ''}>
                   <FormControl>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="지역을 선택하세요" />
@@ -342,7 +342,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
                   <Input
                     type="number"
                     placeholder="50000000"
-                    {...field}
+                    value={field.value ?? ''}
                     onChange={e =>
                       field.onChange(e.target.value ? Number(e.target.value) : undefined)
                     }
@@ -364,7 +364,12 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
               <FormItem>
                 <FormLabel>이메일</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="contact@example.com" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="contact@example.com"
+                    {...field}
+                    value={field.value || ''}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -378,7 +383,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
               <FormItem>
                 <FormLabel>전화번호</FormLabel>
                 <FormControl>
-                  <Input placeholder="010-1234-5678" {...field} />
+                  <Input placeholder="010-1234-5678" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -547,7 +552,12 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
             <FormItem>
               <FormLabel>메모</FormLabel>
               <FormControl>
-                <Textarea placeholder="고객 관련 메모를 입력하세요" rows={4} {...field} />
+                <Textarea
+                  placeholder="고객 관련 메모를 입력하세요"
+                  rows={4}
+                  {...field}
+                  value={field.value || ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
