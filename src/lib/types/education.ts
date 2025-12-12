@@ -74,3 +74,17 @@ export interface KnowHowComment {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * VideoComment 타입 (Supabase Database)
+ * 교육 비디오 댓글
+ */
+export interface VideoComment {
+  id: string;
+  content: string;
+  authorName: string;
+  userId: string;
+  videoId: string;
+  createdAt: string;
+  updatedAt: string;
+}

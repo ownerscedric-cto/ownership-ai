@@ -5,8 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   useKnowHowPost,
   useIncrementKnowHowPostViewCount,
-  useKnowHowComments,
-  useCreateKnowHowComment,
   useDeleteKnowHowPost,
 } from '@/hooks/useEducation';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,10 +46,6 @@ export default function KnowHowPostDetailPage() {
   const { data, isLoading, error } = useKnowHowPost(postId);
   const incrementViewCount = useIncrementKnowHowPostViewCount();
 
-  // 댓글 조회
-  const { data: commentsData, isLoading: isLoadingComments } = useKnowHowComments(postId);
-  const createComment = useCreateKnowHowComment();
-
   // 삭제 기능
   const deletePost = useDeleteKnowHowPost();
   const { user } = useAuth();
@@ -77,18 +71,6 @@ export default function KnowHowPostDetailPage() {
       hasIncrementedRef.current = true;
     }
   }, [postId, data?.success, incrementViewCount]);
-
-  // 댓글 작성 핸들러
-  const handleAddComment = async (content: string) => {
-    // 임시 작성자 이름 (나중에 사용자 정보로 대체)
-    const authorName = '익명';
-
-    await createComment.mutateAsync({
-      postId,
-      content,
-      authorName,
-    });
-  };
 
   // 삭제 핸들러
   const handleDelete = async () => {
@@ -179,9 +161,11 @@ export default function KnowHowPostDetailPage() {
                   이벤트
                 </Badge>
               )}
-              <Badge variant="secondary" className="text-xs">
-                {post.category.name}
-              </Badge>
+              {post.category && (
+                <Badge variant="secondary" className="text-xs">
+                  {post.category.name}
+                </Badge>
+              )}
             </div>
 
             {/* 제목 및 액션 버튼 */}
@@ -243,12 +227,7 @@ export default function KnowHowPostDetailPage() {
         </Card>
 
         {/* 댓글 섹션 */}
-        <KnowHowComments
-          postId={postId}
-          comments={commentsData?.data || []}
-          isLoading={isLoadingComments}
-          onAddComment={handleAddComment}
-        />
+        <KnowHowComments postId={postId} />
 
         {/* 삭제 확인 다이얼로그 */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

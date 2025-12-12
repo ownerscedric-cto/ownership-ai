@@ -71,11 +71,23 @@ export async function DELETE(
       .eq('programId', programId);
 
     if (deleteError) {
-      console.error('[DELETE /api/customers/[id]/watchlist/[programId]] Delete error:', deleteError);
+      console.error(
+        '[DELETE /api/customers/[id]/watchlist/[programId]] Delete error:',
+        deleteError
+      );
+      console.error('[DELETE /api/customers/[id]/watchlist/[programId]] Delete error details:', {
+        code: deleteError.code,
+        message: deleteError.message,
+        details: deleteError.details,
+        hint: deleteError.hint,
+      });
       return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to remove from watchlist', 500);
     }
 
-    return NextResponse.json({ success: true, message: 'Removed from watchlist' }, { status: 204 });
+    console.log(
+      '[DELETE /api/customers/[id]/watchlist/[programId]] ✅ Successfully removed from watchlist'
+    );
+    return NextResponse.json({ success: true, message: 'Removed from watchlist' }, { status: 200 });
   } catch (error) {
     console.error('[DELETE /api/customers/[id]/watchlist/[programId]] Error:', error);
     return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to remove from watchlist', 500);

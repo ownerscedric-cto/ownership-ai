@@ -156,19 +156,15 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
         notes: customer.notes || '',
       });
     }
-  }, [customer, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer?.id]); // customer.id가 변경될 때만 form 초기화
 
-  // 디버깅: form 제출 시 값 확인
   const handleSubmit = (data: CreateCustomerInput) => {
-    console.log('Form 제출 데이터:', data);
-    console.log('businessType:', data.businessType);
     onSubmit(data);
   };
 
-  // 디버깅: form 에러 확인
   const handleInvalidSubmit = (errors: FieldErrors<CreateCustomerInput>) => {
-    console.log('❌ Form validation 실패:', errors);
-    console.log('현재 form 값:', form.getValues());
+    console.error('Form validation error:', errors);
   };
 
   return (
@@ -405,8 +401,12 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
                     value={challengeInput}
                     onChange={e => setChallengeInput(e.target.value)}
                     onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                      if (e.key === 'Enter') {
                         e.preventDefault();
+                      }
+                    }}
+                    onKeyUp={e => {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                         const trimmed = challengeInput.trim();
                         if (trimmed && !field.value?.includes(trimmed)) {
                           field.onChange([...(field.value || []), trimmed]);

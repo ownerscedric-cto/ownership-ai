@@ -45,14 +45,14 @@ export const SignupForm: React.FC = () => {
     if (password.length < 8) {
       return '비밀번호는 최소 8자 이상이어야 합니다';
     }
-    if (!/[A-Z]/.test(password)) {
-      return '비밀번호는 최소 1개의 대문자를 포함해야 합니다';
-    }
-    if (!/[a-z]/.test(password)) {
-      return '비밀번호는 최소 1개의 소문자를 포함해야 합니다';
+    if (!/[a-zA-Z]/.test(password)) {
+      return '비밀번호는 최소 1개의 문자를 포함해야 합니다';
     }
     if (!/[0-9]/.test(password)) {
       return '비밀번호는 최소 1개의 숫자를 포함해야 합니다';
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return '비밀번호는 최소 1개의 특수문자를 포함해야 합니다';
     }
     return null;
   };
@@ -247,7 +247,7 @@ export const SignupForm: React.FC = () => {
           <p>비밀번호 요구사항:</p>
           <ul className="list-disc list-inside ml-2">
             <li>최소 8자 이상</li>
-            <li>대문자, 소문자, 숫자 각 1개 이상 포함</li>
+            <li>문자, 숫자, 특수문자 각 1개 이상 포함</li>
           </ul>
         </div>
 

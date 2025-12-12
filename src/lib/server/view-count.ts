@@ -53,9 +53,7 @@ async function addViewedContentId(cookieName: string, contentId: string): Promis
  * 교육 비디오 조회수 증가
  * - 쿠키 기반 중복 방지 (24시간)
  */
-export async function incrementEducationVideoViewCount(
-  videoId: string
-): Promise<ViewCountResult> {
+export async function incrementEducationVideoViewCount(videoId: string): Promise<ViewCountResult> {
   const cookieName = 'viewed_education_videos';
   const viewedIds = await getViewedContentIds(cookieName);
   const supabase = await createClient();
@@ -111,12 +109,12 @@ export async function incrementKnowHowPostViewCount(postId: string): Promise<Vie
   if (viewedIds.includes(postId)) {
     const { data: post } = await supabase
       .from('knowhow_posts')
-      .select('view_count')
+      .select('viewCount')
       .eq('id', postId)
       .single();
 
     return {
-      viewCount: post?.view_count ?? 0,
+      viewCount: post?.viewCount ?? 0,
       incremented: false,
     };
   }
@@ -124,23 +122,23 @@ export async function incrementKnowHowPostViewCount(postId: string): Promise<Vie
   // 현재 조회수 가져오기
   const { data: currentPost } = await supabase
     .from('knowhow_posts')
-    .select('view_count')
+    .select('viewCount')
     .eq('id', postId)
     .single();
 
   // 조회수 증가
   const { data: updatedPost } = await supabase
     .from('knowhow_posts')
-    .update({ view_count: (currentPost?.view_count ?? 0) + 1 })
+    .update({ viewCount: (currentPost?.viewCount ?? 0) + 1 })
     .eq('id', postId)
-    .select('view_count')
+    .select('viewCount')
     .single();
 
   // 쿠키에 추가
   await addViewedContentId(cookieName, postId);
 
   return {
-    viewCount: updatedPost?.view_count ?? 0,
+    viewCount: updatedPost?.viewCount ?? 0,
     incremented: true,
   };
 }

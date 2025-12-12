@@ -174,7 +174,7 @@ export const updateKnowHowPostSchema = z.object({
 
 // 노하우 게시글 생성 스키마 (관리자용 - 공지/이벤트)
 export const createAdminKnowHowPostSchema = z.object({
-  categoryId: z.string().min(1, '카테고리를 선택해주세요'),
+  categoryId: z.string().min(1, '카테고리를 선택해주세요').optional(), // 공지/이벤트는 선택사항
   title: z.string().min(1, '제목은 필수입니다').max(200, '제목은 200자 이하여야 합니다'),
   content: z.string().min(1, '내용은 필수입니다'),
   imageUrls: z.array(z.string().url()).default([]),
@@ -183,8 +183,8 @@ export const createAdminKnowHowPostSchema = z.object({
   isAnnouncement: z.boolean().default(false),
   isEvent: z.boolean().default(false),
   isPinned: z.boolean().default(false),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.string().optional(), // datetime-local 형식 허용
+  endDate: z.string().optional(), // datetime-local 형식 허용
 });
 
 // 노하우 게시글 수정 스키마 (관리자용)

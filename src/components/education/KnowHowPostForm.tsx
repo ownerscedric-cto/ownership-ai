@@ -27,10 +27,6 @@ const postFormSchema = z.object({
     .min(10, '내용은 최소 10자 이상 입력해주세요')
     .max(5000, '내용은 5000자 이내로 작성해주세요'),
   categoryId: z.string().min(1, '카테고리를 선택해주세요'),
-  authorName: z
-    .string()
-    .min(1, '작성자 이름을 입력해주세요')
-    .max(50, '작성자 이름은 50자 이내로 입력해주세요'),
 });
 
 interface KnowHowPostFormProps {
@@ -76,7 +72,6 @@ export function KnowHowPostForm({
       title: '',
       content: '',
       categoryId: '',
-      authorName: '',
     },
   });
 
@@ -135,6 +130,7 @@ export function KnowHowPostForm({
     try {
       await onSubmit({
         ...data,
+        content, // TiptapEditor의 최신 content 사용
         fileUrls: uploadedFiles.map(f => f.url),
         fileNames: uploadedFiles.map(f => f.name),
       });
@@ -184,20 +180,6 @@ export function KnowHowPostForm({
               </Select>
               {errors.categoryId && (
                 <p className="text-sm text-red-600">{errors.categoryId.message}</p>
-              )}
-            </div>
-
-            {/* 작성자 */}
-            <div className="space-y-2">
-              <Label htmlFor="authorName">작성자 *</Label>
-              <Input
-                id="authorName"
-                placeholder="작성자 이름을 입력하세요"
-                disabled={isSubmitting}
-                {...register('authorName')}
-              />
-              {errors.authorName && (
-                <p className="text-sm text-red-600">{errors.authorName.message}</p>
               )}
             </div>
 

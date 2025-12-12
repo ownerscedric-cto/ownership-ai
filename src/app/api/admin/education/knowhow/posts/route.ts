@@ -27,32 +27,30 @@ export async function POST(request: NextRequest) {
 
     // 2. 요청 바디 파싱
     const body = await request.json();
+    console.log('Received body:', JSON.stringify(body, null, 2));
 
     // 3. 유효성 검증 (Zod)
     const validatedData: CreateAdminKnowHowPostInput = createAdminKnowHowPostSchema.parse(body);
 
-    // 4. 카테고리 존재 여부 확인
-    const { data: category } = await supabase
-      .from('knowhow_categories')
-      .select('*')
-      .eq('id', validatedData.categoryId)
-      .single();
+    // 4. 카테고리 존재 여부 확인 (categoryId가 있는 경우에만)
+    if (validatedData.categoryId) {
+      const { data: category } = await supabase
+        .from('knowhow_categories')
+        .select('*')
+        .eq('id', validatedData.categoryId)
+        .single();
 
-    if (!category) {
-      return errorResponse(ErrorCode.NOT_FOUND, '카테고리를 찾을 수 없습니다', null, 404);
+      if (!category) {
+        return errorResponse(ErrorCode.NOT_FOUND, '카테고리를 찾을 수 없습니다', null, 404);
+      }
     }
 
     // 5. 사용자 이름 가져오기
     const authorName = user.user_metadata?.name || user.email?.split('@')[0] || '관리자';
 
-    // 6. UUID 명시적 생성 (Supabase 기본값 처리 이슈 방지)
-    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
-    const newId = uuidData || crypto.randomUUID();
-
-    // 7. 게시글 데이터 준비 (camelCase - Supabase 테이블 컬럼명과 일치)
-    const now = new Date().toISOString();
+    // 6. 게시글 데이터 준비 (camelCase - Supabase 테이블 컬럼명과 일치)
+    // id, createdAt, updatedAt은 Supabase 기본값 사용
     const postData: Record<string, unknown> = {
-      id: newId,
       userId: user.id,
       authorName: authorName,
       categoryId: validatedData.categoryId,
@@ -64,8 +62,6 @@ export async function POST(request: NextRequest) {
       isAnnouncement: validatedData.isAnnouncement || false,
       isEvent: validatedData.isEvent || false,
       isPinned: validatedData.isPinned || false,
-      createdAt: now,
-      updatedAt: now,
     };
 
     if (validatedData.startDate) {
@@ -98,6 +94,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // Zod 유효성 검증 에러
     if (error instanceof ZodError) {
+      console.error('Validation error:', JSON.stringify(error.issues, null, 2));
       return errorResponse(
         ErrorCode.VALIDATION_ERROR,
         '입력 데이터가 유효하지 않습니다',

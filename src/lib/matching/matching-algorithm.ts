@@ -187,22 +187,33 @@ export async function runMatching(options: MatchingOptions) {
     throw new Error(`Customer not found: ${customerId}`);
   }
 
+  console.log('[Matching] 📋 Customer data:', {
+    id: customer.id,
+    industry: customer.industry,
+    location: customer.location,
+    challenges: customer.challenges,
+    goals: customer.goals,
+    preferredKeywords: customer.preferredKeywords,
+  });
+
   // 2. 기존 매칭 결과 삭제 (forceRefresh = true인 경우)
   if (forceRefresh) {
-    await supabase
-      .from('matching_results')
-      .delete()
-      .eq('customerId', customerId);
+    await supabase.from('matching_results').delete().eq('customerId', customerId);
   }
 
   // 3. 모든 활성 프로그램 조회
   const { data: programs } = await supabase
     .from('programs')
-    .select('id, title, description, category, targetAudience, targetLocation, keywords, budgetRange, deadline, sourceUrl, dataSource')
+    .select(
+      'id, title, description, category, targetAudience, targetLocation, keywords, budgetRange, deadline, sourceUrl, dataSource'
+    )
     .eq('syncStatus', 'active');
+
+  console.log(`[Matching] 📚 Total active programs: ${programs?.length || 0}`);
 
   // 4. 각 프로그램에 대해 매칭 점수 계산
   const matchingResults = [];
+  let programsWithScore = 0;
 
   for (const program of programs || []) {
     // 업종 일치 여부
@@ -228,6 +239,22 @@ export async function runMatching(options: MatchingOptions) {
       matchedPreferredKeywords.length
     );
 
+    // 첫 3개 프로그램의 상세 매칭 결과 로깅
+    if (programsWithScore < 3) {
+      console.log(`[Matching] 🎯 Program ${programsWithScore + 1}:`, {
+        title: program.title,
+        targetAudience: program.targetAudience,
+        targetLocation: program.targetLocation,
+        keywords: program.keywords,
+        matchedIndustry,
+        matchedLocation,
+        matchedBasicKeywords,
+        matchedPreferredKeywords,
+        score: scoreBreakdown.totalScore,
+      });
+    }
+    programsWithScore++;
+
     // 최소 점수 이상인 경우만 저장
     if (scoreBreakdown.totalScore >= minScore) {
       matchingResults.push({
@@ -241,31 +268,46 @@ export async function runMatching(options: MatchingOptions) {
     }
   }
 
+  console.log(`[Matching] ✅ Programs with score ≥${minScore}: ${matchingResults.length}`);
+
   // 5. 점수 내림차순 정렬 후 상위 maxResults개 선택
   matchingResults.sort((a, b) => b.score - a.score);
   const topResults = matchingResults.slice(0, maxResults);
 
   // 6. DB에 매칭 결과 저장 (upsert)
   // Supabase에서는 upsert를 직접 지원하므로 간단하게 처리
+  console.log(`[Matching] 💾 Saving ${topResults.length} results to DB...`);
+
   for (const result of topResults) {
-    await supabase
-      .from('matching_results')
-      .upsert({
+    const { error: upsertError } = await supabase.from('matching_results').upsert(
+      {
+        id: crypto.randomUUID(), // UUID 생성
         customerId: result.customerId,
         programId: result.programId,
         score: result.score,
         matchedIndustry: result.matchedIndustry,
         matchedLocation: result.matchedLocation,
         matchedKeywords: result.matchedKeywords,
-      }, {
-        onConflict: 'customerId,programId'
-      });
+      },
+      {
+        onConflict: 'customerId,programId',
+        ignoreDuplicates: false, // 중복 시 기존 데이터 업데이트
+      }
+    );
+
+    if (upsertError) {
+      console.error('[Matching] ❌ Upsert error:', upsertError);
+      console.error('[Matching] Failed record:', result);
+    }
   }
+
+  console.log('[Matching] ✅ DB save completed');
 
   // 7. 저장된 매칭 결과 조회 (프로그램 상세 정보 포함)
   const { data: savedResults } = await supabase
     .from('matching_results')
-    .select(`
+    .select(
+      `
       *,
       program:programs (
         id,
@@ -280,7 +322,8 @@ export async function runMatching(options: MatchingOptions) {
         sourceUrl,
         dataSource
       )
-    `)
+    `
+    )
     .eq('customerId', customerId)
     .order('score', { ascending: false });
 

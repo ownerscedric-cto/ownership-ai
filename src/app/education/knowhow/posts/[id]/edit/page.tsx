@@ -121,7 +121,6 @@ export default function EditKnowHowPostPage() {
             title: post.title,
             content: post.content,
             categoryId: post.categoryId,
-            authorName: post.authorName,
             imageUrls: post.imageUrls || [],
             fileUrls: post.fileUrls || [],
             fileNames: post.fileNames || [],

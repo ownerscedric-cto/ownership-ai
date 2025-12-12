@@ -82,9 +82,10 @@ export function formatTime(date: string | Date): string {
  * @returns "3분 전" 형식
  */
 export function formatRelativeTime(date: string | Date): string {
-  const kstDate = toKST(date);
+  // Supabase UTC 시간을 브라우저가 자동으로 로컬 시간으로 변환
+  const parsedDate = typeof date === 'string' ? parseISO(date) : date;
 
-  return formatDistanceToNow(kstDate, {
+  return formatDistanceToNow(parsedDate, {
     addSuffix: true,
     locale: ko,
     includeSeconds: true,

@@ -315,7 +315,6 @@ export interface PostFormData {
   title: string;
   content: string;
   categoryId: string;
-  authorName: string;
   imageUrls?: string[];
   fileUrls?: string[];
   fileNames?: string[];
@@ -402,25 +401,17 @@ export function useKnowHowComments(postId: string) {
 }
 
 // 댓글 작성
-export function useCreateKnowHowComment() {
+export function useCreateKnowHowComment(postId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      postId,
-      content,
-      authorName,
-    }: {
-      postId: string;
-      content: string;
-      authorName: string;
-    }) => {
+    mutationFn: async (data: { content: string }) => {
       const res = await fetch(`/api/education/knowhow/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content, authorName }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) {
         const error = await res.json();
@@ -428,9 +419,55 @@ export function useCreateKnowHowComment() {
       }
       return res.json();
     },
-    onSuccess: (_, { postId }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowhowComments', postId] });
       queryClient.invalidateQueries({ queryKey: ['knowhowPost', postId] });
+    },
+  });
+}
+
+// 댓글 수정
+export function useUpdateKnowHowComment(postId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
+      const res = await fetch(`/api/education/knowhow/posts/${postId}/comments/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to update comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowComments', postId] });
+    },
+  });
+}
+
+// 댓글 삭제
+export function useDeleteKnowHowComment(postId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      const res = await fetch(`/api/education/knowhow/posts/${postId}/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to delete comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowComments', postId] });
     },
   });
 }
@@ -444,7 +481,6 @@ export function useCreateKnowHowPost() {
       title: string;
       content: string;
       categoryId: string;
-      authorName: string;
       imageUrls?: string[];
       fileUrls?: string[];
       fileNames?: string[];
@@ -523,6 +559,112 @@ export function useUpdateKnowHowPost() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['knowhowPost', id] });
       queryClient.invalidateQueries({ queryKey: ['knowhowPosts'] });
+    },
+  });
+}
+
+// ============================================
+// Video Comments (비디오 댓글)
+// ============================================
+
+export interface VideoComment {
+  id: string;
+  content: string;
+  authorName: string;
+  userId: string;
+  videoId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 특정 비디오의 댓글 목록 조회
+ */
+export function useVideoComments(videoId: string) {
+  return useQuery<DetailResponse<VideoComment[]>>({
+    queryKey: ['videoComments', videoId],
+    queryFn: async () => {
+      const res = await fetch(`/api/education/videos/${videoId}/comments`);
+      if (!res.ok) throw new Error('Failed to fetch video comments');
+      return res.json();
+    },
+    enabled: !!videoId,
+  });
+}
+
+/**
+ * 비디오 댓글 작성
+ */
+export function useCreateVideoComment(videoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { content: string }) => {
+      const res = await fetch(`/api/education/videos/${videoId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to create comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['videoComments', videoId] });
+    },
+  });
+}
+
+/**
+ * 비디오 댓글 수정
+ */
+export function useUpdateVideoComment(videoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
+      const res = await fetch(`/api/education/videos/${videoId}/comments/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to update comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['videoComments', videoId] });
+    },
+  });
+}
+
+/**
+ * 비디오 댓글 삭제
+ */
+export function useDeleteVideoComment(videoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      const res = await fetch(`/api/education/videos/${videoId}/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to delete comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['videoComments', videoId] });
     },
   });
 }

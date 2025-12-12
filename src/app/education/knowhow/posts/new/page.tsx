@@ -28,7 +28,6 @@ export default function NewKnowHowPostPage() {
         title: data.title,
         content: data.content,
         categoryId: data.categoryId,
-        authorName: data.authorName,
         imageUrls: data.imageUrls || [],
         fileUrls: data.fileUrls || [],
         fileNames: data.fileNames || [],

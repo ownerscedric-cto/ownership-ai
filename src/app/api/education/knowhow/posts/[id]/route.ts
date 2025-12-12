@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createKnowHowPostSchema } from '@/lib/validations/education';
+import { updateKnowHowPostSchema } from '@/lib/validations/education';
 import { z } from 'zod';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -69,7 +69,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const body = await request.json();
-    const validated = createKnowHowPostSchema.parse(body);
+    const validated = updateKnowHowPostSchema.parse(body);
     const supabase = await createClient();
 
     // 1. 현재 사용자 확인

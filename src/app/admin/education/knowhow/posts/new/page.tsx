@@ -117,24 +117,28 @@ export default function AdminKnowHowNewPage() {
   // 게시글 생성
   const createPostMutation = useMutation({
     mutationFn: async () => {
+      const payload = {
+        title,
+        content,
+        categoryId: categoryId || undefined, // 빈 문자열이면 undefined로 변환
+        imageUrls: uploadedImages,
+        fileUrls: uploadedFiles.map(f => f.url),
+        fileNames: uploadedFiles.map(f => f.name),
+        isAnnouncement,
+        isEvent,
+        isPinned: effectiveIsPinned, // 공지사항/이벤트면 자동 고정
+        startDate: startDate ? new Date(startDate).toISOString() : undefined,
+        endDate: endDate ? new Date(endDate).toISOString() : undefined,
+      };
+
+      console.log('Sending payload:', payload);
+
       const res = await fetch('/api/admin/education/knowhow/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          content,
-          categoryId,
-          imageUrls: uploadedImages,
-          fileUrls: uploadedFiles.map(f => f.url),
-          fileNames: uploadedFiles.map(f => f.name),
-          isAnnouncement,
-          isEvent,
-          isPinned: effectiveIsPinned, // 공지사항/이벤트면 자동 고정
-          startDate: startDate ? new Date(startDate).toISOString() : undefined,
-          endDate: endDate ? new Date(endDate).toISOString() : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {

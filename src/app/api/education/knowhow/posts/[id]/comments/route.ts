@@ -53,7 +53,6 @@ const createCommentSchema = z.object({
     .string()
     .min(1, '댓글 내용을 입력해주세요')
     .max(1000, '댓글은 1000자 이내로 작성해주세요'),
-  authorName: z.string().min(1, '작성자 이름을 입력해주세요'),
 });
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -61,10 +60,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id: postId } = await params;
     const supabase = await createClient();
 
-    // 인증 체크 (선택사항 - 로그인 필수로 변경 가능)
+    // 인증 체크
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    if (!user) {
+      return errorResponse(ErrorCode.UNAUTHORIZED, '로그인이 필요합니다', null, 401);
+    }
 
     // Body 파싱 및 검증
     const body = await request.json();
@@ -81,22 +84,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return errorResponse(ErrorCode.NOT_FOUND, '게시글을 찾을 수 없습니다', null, 404);
     }
 
-    // UUID 명시적 생성
-    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
-    const newId = uuidData || crypto.randomUUID();
-    const now = new Date().toISOString();
+    // 사용자 이름 가져오기 (user.user_metadata.name 또는 email)
+    const authorName = user.user_metadata?.name || user.email?.split('@')[0] || '익명';
 
-    // 댓글 생성
+    // 댓글 생성 (createdAt, updatedAt은 Supabase 기본값 사용)
     const { data: newComment, error: createError } = await supabase
       .from('knowhow_comments')
       .insert({
-        id: newId,
         postId: postId,
         content: validatedData.content,
-        authorName: validatedData.authorName,
-        userId: user?.id || null,
-        createdAt: now,
-        updatedAt: now,
+        authorName: authorName,
+        userId: user.id,
       })
       .select()
       .single();
