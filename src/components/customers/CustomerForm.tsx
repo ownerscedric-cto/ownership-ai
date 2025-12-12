@@ -176,7 +176,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
       <form onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)} className="space-y-6">
         {/* 사업자등록번호 & 검증 */}
         <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="font-semibold text-sm">사업자등록번호 검증</h3>
+          <h3 className="font-semibold text-sm">사업자등록번호 검증 *</h3>
 
           <div className="flex gap-2">
             <Input
@@ -312,7 +312,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
             name="location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>지역</FormLabel>
+                <FormLabel>지역 *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value || ''}>
                   <FormControl>
                     <SelectTrigger className="w-full">

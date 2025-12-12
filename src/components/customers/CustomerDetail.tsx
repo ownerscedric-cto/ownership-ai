@@ -3,7 +3,7 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Building2, MapPin, DollarSign, Phone, Mail, Calendar, FileText } from 'lucide-react';
+import { Building2, Phone, Mail, Calendar, FileText } from 'lucide-react';
 import type { Customer } from '@/lib/types/customer';
 import { formatDateTime } from '@/lib/utils/date';
 
@@ -68,7 +68,6 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
 
           {customer.location && (
             <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-gray-500">지역</p>
                 <p className="text-base text-gray-900">{customer.location}</p>
@@ -78,7 +77,6 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
 
           {customer.budget && (
             <div className="flex items-start gap-3">
-              <DollarSign className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-gray-500">예산</p>
                 <p className="text-base text-gray-900">{formatCurrency(customer.budget)}</p>

@@ -33,7 +33,7 @@ export const createCustomerSchema = z
     // 기업 정보 (선택)
     industry: z.string().optional(),
     companySize: z.string().optional(),
-    location: z.string().optional(),
+    location: z.string().min(1, '지역은 필수입니다'),
     budget: z.number().int().positive().optional(),
 
     // 니즈 정보 (선택)

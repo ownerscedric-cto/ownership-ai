@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
   Building2,
-  MapPin,
-  DollarSign,
+  // MapPin,
+  // DollarSign,
   Mail,
   Phone,
   FileText,
@@ -132,7 +132,7 @@ export function CustomerDetailPanel({
             {customer.location && (
               <div>
                 <p className="text-sm text-gray-500">
-                  <MapPin className="h-4 w-4 inline mr-1" />
+                  {/* <MapPin className="h-4 w-4 inline mr-1" /> */}
                   위치
                 </p>
                 <p className="text-sm font-medium text-gray-900 mt-1">{customer.location}</p>
@@ -141,7 +141,7 @@ export function CustomerDetailPanel({
             {customer.budget && (
               <div>
                 <p className="text-sm text-gray-500">
-                  <DollarSign className="h-4 w-4 inline mr-1" />
+                  {/* <DollarSign className="h-4 w-4 inline mr-1" /> */}
                   예산
                 </p>
                 <p className="text-sm font-medium text-gray-900 mt-1">
