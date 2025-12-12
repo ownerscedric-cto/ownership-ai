@@ -5,8 +5,11 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { KnowHowPostForm } from '@/components/education/KnowHowPostForm';
-import { useKnowHowCategories, useCreateKnowHowPost } from '@/hooks/useEducation';
-import type { PostFormData } from '@/components/education/KnowHowPostForm';
+import {
+  useKnowHowCategories,
+  useCreateKnowHowPost,
+  type PostFormData,
+} from '@/hooks/useEducation';
 
 /**
  * 노하우 게시글 작성 페이지

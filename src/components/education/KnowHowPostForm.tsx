@@ -17,6 +17,7 @@ import {
 import { Loader2, Upload, X, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { TiptapEditor } from '@/components/editor/TiptapEditor';
+import { type PostFormData } from '@/hooks/useEducation';
 
 // 게시글 작성 스키마
 const postFormSchema = z.object({
@@ -31,12 +32,6 @@ const postFormSchema = z.object({
     .min(1, '작성자 이름을 입력해주세요')
     .max(50, '작성자 이름은 50자 이내로 입력해주세요'),
 });
-
-export type PostFormData = z.infer<typeof postFormSchema> & {
-  imageUrls?: string[];
-  fileUrls?: string[];
-  fileNames?: string[];
-};
 
 interface KnowHowPostFormProps {
   categories: Array<{ id: string; name: string }>;

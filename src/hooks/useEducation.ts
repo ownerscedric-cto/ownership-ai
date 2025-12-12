@@ -300,12 +300,25 @@ export interface KnowHowPost {
   isPinned: boolean;
   isAnnouncement: boolean;
   isEvent: boolean;
+  imageUrls?: string[];
+  fileUrls?: string[];
+  fileNames?: string[];
   createdAt: string;
   updatedAt: string;
   category: KnowHowCategory;
   _count: {
     comments: number;
   };
+}
+
+export interface PostFormData {
+  title: string;
+  content: string;
+  categoryId: string;
+  authorName: string;
+  imageUrls?: string[];
+  fileUrls?: string[];
+  fileNames?: string[];
 }
 
 export interface KnowHowComment {
@@ -483,6 +496,32 @@ export function useDeleteKnowHowPost() {
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowPosts'] });
+    },
+  });
+}
+
+// 게시글 수정
+export function useUpdateKnowHowPost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: PostFormData & { id: string }) => {
+      const res = await fetch(`/api/education/knowhow/posts/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to update post');
+      }
+      return res.json();
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowPost', id] });
       queryClient.invalidateQueries({ queryKey: ['knowhowPosts'] });
     },
   });
