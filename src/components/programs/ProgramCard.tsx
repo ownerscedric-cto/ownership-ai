@@ -6,13 +6,19 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Tag, Building2 } from 'lucide-react';
+import { MapPin, Tag, Building2, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DeadlineBadge } from './DeadlineBadge';
+import { CustomerSelectDialog } from './CustomerSelectDialog';
+import { useAddToWatchlist } from '@/lib/hooks/useWatchlist';
 import type { Program } from '@/lib/types/program';
+import type { Customer } from '@/lib/types/customer';
 import { decodeHtmlEntities, truncateText } from '@/lib/utils/html';
+import { toast } from 'sonner';
 
 interface ProgramCardProps {
   program: Program;
@@ -51,6 +57,8 @@ const dataSourceColors: Record<string, string> = {
  */
 export function ProgramCard({ program }: ProgramCardProps) {
   const router = useRouter();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const addToWatchlist = useAddToWatchlist();
 
   // 설명 최대 길이 제한 (모바일에서 너무 길지 않도록)
   const truncatedDescription = program.description ? truncateText(program.description, 150) : null;
@@ -67,85 +75,127 @@ export function ProgramCard({ program }: ProgramCardProps) {
     router.push(`/programs/${program.id}`);
   };
 
+  // 별표 버튼 클릭 핸들러
+  const handleStarClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Card 클릭 이벤트 전파 방지
+    setIsDialogOpen(true);
+  };
+
+  // 고객 선택 핸들러
+  const handleCustomerSelect = async (customer: Customer) => {
+    try {
+      await addToWatchlist.mutateAsync({
+        customerId: customer.id,
+        programId: program.id,
+      });
+      toast.success(`${customer.name} 고객의 관심 목록에 추가되었습니다`);
+    } catch (error) {
+      toast.error('관심 목록 추가에 실패했습니다');
+      console.error('Failed to add to watchlist:', error);
+    }
+  };
+
   return (
-    <Card
-      onClick={handleCardClick}
-      className="h-full transition-all duration-200 hover:shadow-md hover:border-[#0052CC]/50 cursor-pointer"
-    >
-      <CardHeader className="space-y-2">
-        {/* 데이터 소스 Badge + 마감일 Badge */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Badge
-            className={
-              dataSourceColors[normalizeDataSource(program.dataSource)] ||
-              'bg-gray-100 text-gray-800'
-            }
-          >
-            {normalizeDataSource(program.dataSource)}
-          </Badge>
-          <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
-        </div>
-
-        {/* 제목 */}
-        <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
-          {decodeHtmlEntities(program.title)}
-        </CardTitle>
-
-        {/* 카테고리 */}
-        {program.category && (
-          <div className="flex items-center gap-1 text-sm text-gray-600">
-            <Tag className="w-4 h-4" />
-            <span>{program.category}</span>
-          </div>
-        )}
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        {/* 설명 (최대 150자) */}
-        {truncatedDescription && (
-          <CardDescription className="text-sm text-gray-600 line-clamp-2">
-            {truncatedDescription}
-          </CardDescription>
-        )}
-
-        {/* 대상 업종 */}
-        {displayedAudiences.length > 0 && (
-          <div className="flex items-start gap-2">
-            <Building2 className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-            <div className="flex flex-wrap gap-1">
-              {displayedAudiences.map((audience, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {decodeHtmlEntities(audience)}
-                </Badge>
-              ))}
-              {remainingAudiencesCount > 0 && (
-                <Badge variant="outline" className="text-xs text-gray-500">
-                  +{remainingAudiencesCount}
-                </Badge>
-              )}
+    <>
+      <Card
+        onClick={handleCardClick}
+        className="h-full transition-all duration-200 hover:shadow-md hover:border-[#0052CC]/50 cursor-pointer relative"
+      >
+        <CardHeader className="space-y-2">
+          {/* 데이터 소스 Badge + 마감일 Badge */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <Badge
+              className={
+                dataSourceColors[normalizeDataSource(program.dataSource)] ||
+                'bg-gray-100 text-gray-800'
+              }
+            >
+              {normalizeDataSource(program.dataSource)}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
+              {/* 별표 버튼 */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleStarClick}
+                className="h-8 w-8 p-0 hover:bg-yellow-50 hover:text-yellow-600 transition-colors"
+                title="관심 목록에 추가"
+              >
+                <Star className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-        )}
 
-        {/* 대상 지역 */}
-        {displayedLocations.length > 0 && (
-          <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-            <div className="flex flex-wrap gap-1">
-              {displayedLocations.map((location, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {decodeHtmlEntities(location)}
-                </Badge>
-              ))}
-              {remainingLocationsCount > 0 && (
-                <Badge variant="outline" className="text-xs text-gray-500">
-                  +{remainingLocationsCount}
-                </Badge>
-              )}
+          {/* 제목 */}
+          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+            {decodeHtmlEntities(program.title)}
+          </CardTitle>
+
+          {/* 카테고리 */}
+          {program.category && (
+            <div className="flex items-center gap-1 text-sm text-gray-600">
+              <Tag className="w-4 h-4" />
+              <span>{program.category}</span>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {/* 설명 (최대 150자) */}
+          {truncatedDescription && (
+            <CardDescription className="text-sm text-gray-600 line-clamp-2">
+              {truncatedDescription}
+            </CardDescription>
+          )}
+
+          {/* 대상 업종 */}
+          {displayedAudiences.length > 0 && (
+            <div className="flex items-start gap-2">
+              <Building2 className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-wrap gap-1">
+                {displayedAudiences.map((audience, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {decodeHtmlEntities(audience)}
+                  </Badge>
+                ))}
+                {remainingAudiencesCount > 0 && (
+                  <Badge variant="outline" className="text-xs text-gray-500">
+                    +{remainingAudiencesCount}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 대상 지역 */}
+          {displayedLocations.length > 0 && (
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-wrap gap-1">
+                {displayedLocations.map((location, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {decodeHtmlEntities(location)}
+                  </Badge>
+                ))}
+                {remainingLocationsCount > 0 && (
+                  <Badge variant="outline" className="text-xs text-gray-500">
+                    +{remainingLocationsCount}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 고객 선택 다이얼로그 */}
+      <CustomerSelectDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSelect={handleCustomerSelect}
+        programId={program.id}
+      />
+    </>
   );
 }
