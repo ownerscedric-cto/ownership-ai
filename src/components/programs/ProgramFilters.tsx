@@ -11,6 +11,13 @@ import { Search, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { ProgramFilters as FilterType } from '@/lib/types/program';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +30,11 @@ interface ProgramFiltersProps {
  * 데이터 소스 목록 (확장 가능)
  */
 const dataSources = ['전체', '기업마당', 'K-Startup', '한국콘텐츠진흥원'] as const;
+
+/**
+ * 페이지당 개수 옵션
+ */
+const limitOptions = [30, 50, 100] as const;
 
 /**
  * 프로그램 필터 컴포넌트
@@ -56,6 +68,17 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
       ...filters,
       dataSource: value === '전체' ? undefined : value,
       page: 1, // 필터 변경 시 첫 페이지로 이동
+    });
+  };
+
+  /**
+   * 페이지당 개수 변경
+   */
+  const handleLimitChange = (value: number) => {
+    onFiltersChange({
+      ...filters,
+      limit: value,
+      page: 1, // 페이지당 개수 변경 시 첫 페이지로 이동
     });
   };
 
@@ -126,13 +149,31 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
         </div>
       </div>
 
-      {/* 키워드 검색 */}
+      {/* 페이지당 개수 선택 + 키워드 검색 (한 줄로 배치) */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
           <Search className="w-4 h-4" />
-          키워드 검색
+          검색 및 필터
         </h3>
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          {/* 페이지당 개수 Select */}
+          <Select
+            value={(filters.limit || 50).toString()}
+            onValueChange={value => handleLimitChange(Number(value))}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {limitOptions.map(limit => (
+                <SelectItem key={limit} value={limit.toString()}>
+                  {limit}개
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* 키워드 검색 */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
@@ -152,6 +193,8 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
               </button>
             )}
           </div>
+
+          {/* 검색 버튼 */}
           <Button
             type="submit"
             className="bg-[#0052CC] hover:bg-[#003d99] px-3 sm:px-4"

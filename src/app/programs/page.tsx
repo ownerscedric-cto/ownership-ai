@@ -29,7 +29,7 @@ function ProgramsPageContent() {
   // URL 쿼리 파라미터에서 초기 필터 상태 읽기
   const [filters, setFilters] = useState<FilterType>(() => ({
     page: Number(searchParams.get('page')) || 1,
-    limit: Number(searchParams.get('limit')) || 20,
+    limit: Number(searchParams.get('limit')) || 50,
     dataSource: searchParams.get('dataSource') || undefined,
     keyword: searchParams.get('keyword') || undefined,
   }));
@@ -43,7 +43,7 @@ function ProgramsPageContent() {
     if (newFilters.page && newFilters.page > 1) {
       params.set('page', newFilters.page.toString());
     }
-    if (newFilters.limit && newFilters.limit !== 20) {
+    if (newFilters.limit && newFilters.limit !== 50) {
       params.set('limit', newFilters.limit.toString());
     }
     if (newFilters.dataSource) {
@@ -90,7 +90,7 @@ function ProgramsPageContent() {
   const parsedFilters = useMemo<FilterType>(() => {
     return {
       page: Number(searchParams.get('page')) || 1,
-      limit: Number(searchParams.get('limit')) || 20,
+      limit: Number(searchParams.get('limit')) || 50,
       dataSource: searchParams.get('dataSource') || undefined,
       keyword: searchParams.get('keyword') || undefined,
     };
@@ -107,7 +107,7 @@ function ProgramsPageContent() {
       const params = new URLSearchParams(window.location.search);
       const newFilters: FilterType = {
         page: Number(params.get('page')) || 1,
-        limit: Number(params.get('limit')) || 20,
+        limit: Number(params.get('limit')) || 50,
         dataSource: params.get('dataSource') || undefined,
         keyword: params.get('keyword') || undefined,
       };

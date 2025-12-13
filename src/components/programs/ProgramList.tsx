@@ -161,7 +161,9 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
     <div className="space-y-6">
       {/* 결과 개수 및 출처 분포 */}
       <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-        <span className="font-medium">총 {metadata.total.toLocaleString()}개의 프로그램</span>
+        <span className="font-medium">
+          총 {metadata.total.toLocaleString()}개의 프로그램 (페이지당 {metadata.limit}개)
+        </span>
         {Object.keys(metadata.sourceDistribution).length > 0 && (
           <>
             <span className="text-gray-300">|</span>
