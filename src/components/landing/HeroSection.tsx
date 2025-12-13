@@ -51,6 +51,14 @@ export const HeroSection: React.FC = () => {
               무료로 시작하기
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => (window.location.href = '/auth/login')}
+              className="bg-white/20 backdrop-blur-sm border-white/50 text-white hover:bg-white/30 hover:border-white transition-all"
+            >
+              로그인
+            </Button>
           </motion.div>
 
           <motion.div
