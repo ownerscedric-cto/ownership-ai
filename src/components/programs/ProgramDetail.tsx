@@ -200,10 +200,14 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
             </div>
           </div>
 
-          {/* 제목 */}
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            {decodeHtmlEntities(program.title)}
-          </CardTitle>
+          {/* 제목 + 관심목록 추가 버튼 */}
+          <div className="flex items-start justify-between gap-4">
+            <CardTitle className="text-2xl font-bold text-gray-900 flex-1">
+              {decodeHtmlEntities(program.title)}
+            </CardTitle>
+            {/* 관심 목록 추가 버튼 (우측 상단) */}
+            <AddToWatchlistButton programId={program.id} programTitle={program.title} />
+          </div>
 
           {/* 카테고리 */}
           {program.category && (
@@ -213,7 +217,7 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
             </div>
           )}
 
-          {/* 공고 바로가기 & 첨부파일 다운로드 & 관심 목록 추가 버튼 */}
+          {/* 공고 바로가기 & 첨부파일 다운로드 버튼 */}
           <div className="flex flex-wrap gap-3">
             {program.sourceUrl && (
               <a
@@ -228,9 +232,6 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
                 </Button>
               </a>
             )}
-
-            {/* 관심 목록 추가 버튼 */}
-            <AddToWatchlistButton programId={program.id} programTitle={program.title} />
 
             {/* 첨부파일 다운로드 버튼 (단일 파일) */}
             {attachmentUrls.length === 1 && (
