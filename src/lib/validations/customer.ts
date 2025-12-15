@@ -23,15 +23,18 @@ export const createCustomerSchema = z
     businessType: z.enum(['INDIVIDUAL', 'CORPORATE'], {
       message: '개인사업자 또는 법인사업자를 선택해주세요',
     }),
+    // 법인등록번호 - 빈 문자열 허용 (개인사업자는 빈 값)
     corporateNumber: z
-      .string()
-      .regex(corporateNumberRegex, '법인등록번호는 13자리 숫자여야 합니다')
+      .union([
+        z.literal(''),
+        z.string().regex(corporateNumberRegex, '법인등록번호는 13자리 숫자여야 합니다'),
+      ])
       .optional()
       .nullable(),
     name: z.string().min(1, '사업자명/상호는 필수입니다'),
 
-    // 기업 정보 (선택)
-    industry: z.string().optional(),
+    // 기업 정보
+    industry: z.string().min(1, '업종은 필수입니다'),
     companySize: z.string().optional(),
     location: z.string().min(1, '지역은 필수입니다'),
     budget: z.number().int().positive().optional(),
@@ -43,10 +46,7 @@ export const createCustomerSchema = z
 
     // 연락처 정보 (선택) - 빈 문자열 허용
     contactEmail: z
-      .string()
-      .refine(val => val === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
-        message: '올바른 이메일 형식이 아닙니다',
-      })
+      .union([z.literal(''), z.string().email('올바른 이메일 형식이 아닙니다')])
       .optional(),
     contactPhone: z.string().optional(),
 
@@ -79,9 +79,12 @@ export const updateCustomerSchema = z
         message: '개인사업자 또는 법인사업자를 선택해주세요',
       })
       .optional(),
+    // 법인등록번호 - 빈 문자열 허용 (개인사업자는 빈 값)
     corporateNumber: z
-      .string()
-      .regex(corporateNumberRegex, '법인등록번호는 13자리 숫자여야 합니다')
+      .union([
+        z.literal(''),
+        z.string().regex(corporateNumberRegex, '법인등록번호는 13자리 숫자여야 합니다'),
+      ])
       .optional()
       .nullable(),
     name: z.string().min(1, '사업자명/상호는 필수입니다').optional(),
@@ -94,10 +97,7 @@ export const updateCustomerSchema = z
     preferredKeywords: z.array(z.string()).optional(),
     // 연락처 정보 (선택) - 빈 문자열 허용
     contactEmail: z
-      .string()
-      .refine(val => val === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
-        message: '올바른 이메일 형식이 아닙니다',
-      })
+      .union([z.literal(''), z.string().email('올바른 이메일 형식이 아닙니다')])
       .optional(),
     contactPhone: z.string().optional(),
     notes: z.string().optional(),

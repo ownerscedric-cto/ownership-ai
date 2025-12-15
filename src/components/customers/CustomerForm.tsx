@@ -280,7 +280,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
             name="industry"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>업종</FormLabel>
+                <FormLabel>업종 *</FormLabel>
                 <FormControl>
                   <Input placeholder="IT 서비스, 제조업 등" {...field} value={field.value || ''} />
                 </FormControl>
