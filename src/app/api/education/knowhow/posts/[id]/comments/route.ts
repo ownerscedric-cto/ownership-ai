@@ -32,11 +32,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       authorName: comment.authorName,
       userId: comment.userId,
       postId: comment.postId,
+      parentId: comment.parentId,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
     }));
 
-    return successResponse(formattedComments);
+    // 대댓글을 부모 댓글에 중첩 구조로 변환
+    const rootComments = formattedComments.filter(c => !c.parentId);
+    const replies = formattedComments.filter(c => c.parentId);
+
+    // 각 부모 댓글에 대댓글 추가
+    const commentsWithReplies = rootComments.map(comment => ({
+      ...comment,
+      replies: replies.filter(r => r.parentId === comment.id),
+    }));
+
+    return successResponse(commentsWithReplies);
   } catch (error) {
     console.error('댓글 조회 에러:', error);
     return errorResponse(ErrorCode.INTERNAL_ERROR, '댓글 조회 중 오류가 발생했습니다', null, 500);
@@ -53,6 +64,7 @@ const createCommentSchema = z.object({
     .string()
     .min(1, '댓글 내용을 입력해주세요')
     .max(1000, '댓글은 1000자 이내로 작성해주세요'),
+  parentId: z.string().nullable().optional(), // 대댓글인 경우 부모 댓글 ID
 });
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -87,6 +99,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // 사용자 이름 가져오기 (user.user_metadata.name 또는 email)
     const authorName = user.user_metadata?.name || user.email?.split('@')[0] || '익명';
 
+    // 대댓글인 경우 부모 댓글 존재 여부 확인
+    if (validatedData.parentId) {
+      const { data: parentComment, error: parentError } = await supabase
+        .from('knowhow_comments')
+        .select('id')
+        .eq('id', validatedData.parentId)
+        .eq('postId', postId) // 같은 게시글의 댓글인지 확인
+        .single();
+
+      if (parentError || !parentComment) {
+        return errorResponse(ErrorCode.NOT_FOUND, '부모 댓글을 찾을 수 없습니다', null, 404);
+      }
+    }
+
     // 댓글 생성 (createdAt, updatedAt은 Supabase 기본값 사용)
     const { data: newComment, error: createError } = await supabase
       .from('knowhow_comments')
@@ -95,6 +121,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         content: validatedData.content,
         authorName: authorName,
         userId: user.id,
+        parentId: validatedData.parentId || null,
       })
       .select()
       .single();
@@ -111,6 +138,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       authorName: newComment.authorName,
       userId: newComment.userId,
       postId: newComment.postId,
+      parentId: newComment.parentId,
       createdAt: newComment.createdAt,
       updatedAt: newComment.updatedAt,
     };

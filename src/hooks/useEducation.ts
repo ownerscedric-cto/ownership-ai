@@ -326,8 +326,10 @@ export interface KnowHowComment {
   authorName: string;
   userId: string;
   postId: string;
+  parentId: string | null;
   createdAt: string;
   updatedAt: string;
+  replies?: KnowHowComment[];
 }
 
 export function useKnowHowPosts(params?: {
@@ -400,12 +402,12 @@ export function useKnowHowComments(postId: string) {
   });
 }
 
-// 댓글 작성
+// 댓글 작성 (대댓글 지원)
 export function useCreateKnowHowComment(postId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { content: string }) => {
+    mutationFn: async (data: { content: string; parentId?: string | null }) => {
       const res = await fetch(`/api/education/knowhow/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
@@ -573,8 +575,10 @@ export interface VideoComment {
   authorName: string;
   userId: string;
   videoId: string;
+  parentId: string | null;
   createdAt: string;
   updatedAt: string;
+  replies?: VideoComment[];
 }
 
 /**
@@ -593,13 +597,13 @@ export function useVideoComments(videoId: string) {
 }
 
 /**
- * 비디오 댓글 작성
+ * 비디오 댓글 작성 (대댓글 지원)
  */
 export function useCreateVideoComment(videoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { content: string }) => {
+    mutationFn: async (data: { content: string; parentId?: string | null }) => {
       const res = await fetch(`/api/education/videos/${videoId}/comments`, {
         method: 'POST',
         headers: {

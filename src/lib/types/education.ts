@@ -71,8 +71,10 @@ export interface KnowHowComment {
   authorName: string;
   userId: string;
   postId: string;
+  parentId: string | null; // 대댓글인 경우 부모 댓글 ID
   createdAt: string;
   updatedAt: string;
+  replies?: KnowHowComment[]; // 대댓글 목록 (클라이언트에서 구성)
 }
 
 /**
@@ -85,6 +87,8 @@ export interface VideoComment {
   authorName: string;
   userId: string;
   videoId: string;
+  parentId: string | null; // 대댓글인 경우 부모 댓글 ID
   createdAt: string;
   updatedAt: string;
+  replies?: VideoComment[]; // 대댓글 목록 (클라이언트에서 구성)
 }
