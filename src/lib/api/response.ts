@@ -69,6 +69,7 @@ export function errorResponse(
 // 에러 코드 상수
 export const ErrorCode = {
   // 400 Bad Request
+  BAD_REQUEST: 'BAD_REQUEST',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   INVALID_INPUT: 'INVALID_INPUT',
   DUPLICATE_ENTRY: 'DUPLICATE_ENTRY',

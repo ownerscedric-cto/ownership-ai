@@ -6,20 +6,16 @@ import {
   type CreateEducationVideoInput,
 } from '@/lib/validations/education';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
+import { requireEducationAccess } from '@/lib/auth/roles';
 import { ZodError } from 'zod';
 
 // POST /api/education/videos - 교육 비디오 생성
 export async function POST(request: NextRequest) {
   try {
-    // 1. 인증 체크
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errorResponse(ErrorCode.UNAUTHORIZED, '인증이 필요합니다', null, 401);
+    // 1. 인증 및 교육 센터 접근 권한 체크
+    const authResult = await requireEducationAccess(request);
+    if (!authResult.success) {
+      return authResult.response;
     }
 
     // 2. 요청 바디 파싱
@@ -29,6 +25,7 @@ export async function POST(request: NextRequest) {
     const validatedData: CreateEducationVideoInput = createEducationVideoSchema.parse(body);
 
     // 4. 교육 비디오 생성
+    const supabase = await createClient();
     const { data: video, error: createError } = await supabase
       .from('education_videos')
       .insert({
@@ -76,17 +73,26 @@ export async function POST(request: NextRequest) {
 // GET /api/education/videos - 교육 비디오 목록 조회
 export async function GET(request: NextRequest) {
   try {
-    // 1. 쿼리 파라미터 파싱 및 검증
+    // 1. 인증 및 교육 센터 접근 권한 체크
+    const authResult = await requireEducationAccess(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
+    // 2. 쿼리 파라미터 파싱 및 검증
     const { searchParams } = new URL(request.url);
     const queryParams = Object.fromEntries(searchParams.entries());
 
     const filters = educationVideoFilterSchema.parse(queryParams);
     const supabase = await createClient();
 
-    let query = supabase.from('education_videos').select(`
+    let query = supabase.from('education_videos').select(
+      `
       *,
       category:video_categories!education_videos_categoryId_fkey(*)
-    `, { count: 'exact' });
+    `,
+      { count: 'exact' }
+    );
 
     // 2. 필터링 조건
     if (filters.category) {
@@ -122,7 +128,12 @@ export async function GET(request: NextRequest) {
 
     if (videosError) {
       console.error('비디오 목록 조회 실패:', videosError);
-      return errorResponse(ErrorCode.INTERNAL_ERROR, '교육 비디오 목록 조회에 실패했습니다', null, 500);
+      return errorResponse(
+        ErrorCode.INTERNAL_ERROR,
+        '교육 비디오 목록 조회에 실패했습니다',
+        null,
+        500
+      );
     }
 
     // 5. 성공 응답 (Supabase 테이블이 이미 camelCase이므로 변환 불필요)

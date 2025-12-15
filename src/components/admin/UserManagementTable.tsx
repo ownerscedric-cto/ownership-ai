@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { formatDateTime } from '@/lib/utils/date';
-import { Shield, User, MoreVertical } from 'lucide-react';
+import { Shield, User, Star, MoreVertical, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -18,13 +18,21 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+
+interface RoleData {
+  id: string;
+  name: string;
+  displayName: string;
+}
 
 interface UserData {
   id: string;
   email: string;
-  role: 'admin' | 'consultant';
+  role: RoleData;
   created_at: string;
   last_sign_in_at: string | null;
   email_confirmed_at: string | null;
@@ -32,19 +40,46 @@ interface UserData {
 
 interface UserManagementTableProps {
   users: UserData[];
+  roles: RoleData[];
 }
 
-export function UserManagementTable({ users }: UserManagementTableProps) {
+// 역할별 아이콘 및 스타일
+const getRoleStyle = (roleName: string) => {
+  switch (roleName) {
+    case 'admin':
+      return {
+        icon: Shield,
+        className: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
+      };
+    case 'premium':
+      return {
+        icon: Star,
+        className: 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+      };
+    case 'consultant':
+    default:
+      return {
+        icon: User,
+        className: 'bg-gray-100 text-gray-800 hover:bg-gray-200',
+      };
+  }
+};
+
+export function UserManagementTable({ users, roles }: UserManagementTableProps) {
   const [updatingUsers, setUpdatingUsers] = useState<Set<string>>(new Set());
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'consultant') => {
+  const handleRoleChange = async (
+    userId: string,
+    newRoleId: string,
+    newRoleDisplayName: string
+  ) => {
     setUpdatingUsers(prev => new Set(prev).add(userId));
 
     try {
       const response = await fetch(`/api/admin/users/${userId}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
+        body: JSON.stringify({ roleId: newRoleId }),
       });
 
       const data = await response.json();
@@ -54,7 +89,7 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
       }
 
       toast.success('역할 변경 완료', {
-        description: `${newRole === 'admin' ? '관리자' : '컨설턴트'} 권한으로 변경되었습니다.`,
+        description: `${newRoleDisplayName} 권한으로 변경되었습니다.`,
       });
 
       // Refresh page to update UI
@@ -87,74 +122,85 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.map(user => (
-            <TableRow key={user.id}>
-              {/* Email */}
-              <TableCell className="font-medium">{user.email}</TableCell>
+          {users.map(user => {
+            const roleStyle = getRoleStyle(user.role.name);
+            const RoleIcon = roleStyle.icon;
 
-              {/* Role Badge */}
-              <TableCell>
-                {user.role === 'admin' ? (
-                  <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
-                    <Shield className="w-3 h-3 mr-1" />
-                    관리자
+            return (
+              <TableRow key={user.id}>
+                {/* Email */}
+                <TableCell className="font-medium">{user.email}</TableCell>
+
+                {/* Role Badge */}
+                <TableCell>
+                  <Badge className={roleStyle.className}>
+                    <RoleIcon className="w-3 h-3 mr-1" />
+                    {user.role.displayName}
                   </Badge>
-                ) : (
-                  <Badge variant="secondary">
-                    <User className="w-3 h-3 mr-1" />
-                    컨설턴트
-                  </Badge>
-                )}
-              </TableCell>
+                </TableCell>
 
-              {/* Created At */}
-              <TableCell className="text-sm text-gray-600">
-                {formatDateTime(user.created_at)}
-              </TableCell>
+                {/* Created At */}
+                <TableCell className="text-sm text-gray-600">
+                  {formatDateTime(user.created_at)}
+                </TableCell>
 
-              {/* Last Sign In */}
-              <TableCell className="text-sm text-gray-600">
-                {user.last_sign_in_at ? formatDateTime(user.last_sign_in_at) : '-'}
-              </TableCell>
+                {/* Last Sign In */}
+                <TableCell className="text-sm text-gray-600">
+                  {user.last_sign_in_at ? formatDateTime(user.last_sign_in_at) : '-'}
+                </TableCell>
 
-              {/* Email Confirmed */}
-              <TableCell>
-                {user.email_confirmed_at ? (
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    인증됨
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-red-600 border-red-600">
-                    미인증
-                  </Badge>
-                )}
-              </TableCell>
+                {/* Email Confirmed */}
+                <TableCell>
+                  {user.email_confirmed_at ? (
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      인증됨
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-red-600 border-red-600">
+                      미인증
+                    </Badge>
+                  )}
+                </TableCell>
 
-              {/* Actions */}
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" disabled={updatingUsers.has(user.id)}>
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {user.role === 'consultant' ? (
-                      <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'admin')}>
-                        <Shield className="w-4 h-4 mr-2" />
-                        관리자로 변경
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'consultant')}>
-                        <User className="w-4 h-4 mr-2" />
-                        컨설턴트로 변경
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+                {/* Actions */}
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" disabled={updatingUsers.has(user.id)}>
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>역할 변경</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {roles.map(role => {
+                        const style = getRoleStyle(role.name);
+                        const Icon = style.icon;
+                        const isCurrentRole = user.role.id === role.id;
+
+                        return (
+                          <DropdownMenuItem
+                            key={role.id}
+                            onClick={() => {
+                              if (!isCurrentRole) {
+                                handleRoleChange(user.id, role.id, role.displayName);
+                              }
+                            }}
+                            disabled={isCurrentRole}
+                            className={isCurrentRole ? 'bg-gray-50' : ''}
+                          >
+                            <Icon className="w-4 h-4 mr-2" />
+                            {role.displayName}
+                            {isCurrentRole && <Check className="w-4 h-4 ml-auto text-green-600" />}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createResourceSchema, resourceFilterSchema } from '@/lib/validations/education';
+import { requireEducationAccess } from '@/lib/auth/roles';
 import { z } from 'zod';
 
 /**
@@ -8,6 +9,12 @@ import { z } from 'zod';
  */
 export async function GET(request: NextRequest) {
   try {
+    // 1. 인증 및 교육 센터 접근 권한 체크
+    const authResult = await requireEducationAccess(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const filters = resourceFilterSchema.parse(searchParams);
 
@@ -100,6 +107,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // 1. 인증 및 교육 센터 접근 권한 체크
+    const authResult = await requireEducationAccess(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const validated = createResourceSchema.parse(body);
     const supabase = await createClient();

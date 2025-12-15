@@ -6,21 +6,19 @@ import {
   type CreateKnowHowPostInput,
 } from '@/lib/validations/education';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
+import { requireEducationAccess } from '@/lib/auth/roles';
 import { ZodError } from 'zod';
 
 // POST /api/education/knowhow/posts - 노하우 게시글 생성 (일반 회원용)
 export async function POST(request: NextRequest) {
   try {
-    // 1. 인증 체크
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errorResponse(ErrorCode.UNAUTHORIZED, '인증이 필요합니다', null, 401);
+    // 1. 인증 및 교육 센터 접근 권한 체크
+    const authResult = await requireEducationAccess(request);
+    if (!authResult.success) {
+      return authResult.response;
     }
+    const user = authResult.user;
+    const supabase = await createClient();
 
     // 2. 요청 바디 파싱
     const body = await request.json();
@@ -93,7 +91,13 @@ export async function POST(request: NextRequest) {
 // GET /api/education/knowhow/posts - 노하우 게시글 목록 조회
 export async function GET(request: NextRequest) {
   try {
-    // 1. 쿼리 파라미터 파싱 및 검증
+    // 1. 인증 및 교육 센터 접근 권한 체크
+    const authResult = await requireEducationAccess(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
+    // 2. 쿼리 파라미터 파싱 및 검증
     const { searchParams } = new URL(request.url);
     const queryParams = Object.fromEntries(searchParams.entries());
 

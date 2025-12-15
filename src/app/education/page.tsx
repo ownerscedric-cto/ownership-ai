@@ -1,14 +1,42 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { BookOpen, Video, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { EducationAccessDenied } from '@/components/education/EducationAccessDenied';
+import { createClient } from '@/lib/supabase/server';
+import { getUserRole } from '@/lib/auth/roles';
 
 /**
  * 교육 메인 페이지
  * - VOD, 노하우, 자료실 섹션으로 이동
+ * - 프리미엄 이상 등급만 접근 가능
  */
-export default function EducationPage() {
+export default async function EducationPage() {
+  // 인증 체크
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/auth/login');
+  }
+
+  // 역할 및 권한 체크
+  const userRole = await getUserRole(user.id);
+  const hasEducationAccess = userRole.role.permissions.education_center === true;
+
+  // 권한 없으면 안내 페이지 표시
+  if (!hasEducationAccess) {
+    return (
+      <AppLayout>
+        <EducationAccessDenied userRole={userRole.role.displayName} />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-7xl">

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ResourceList } from '@/components/education/ResourceList';
+import { EducationGuard } from '@/components/education/EducationGuard';
 import { useResources, useResourceCategories } from '@/hooks/useEducation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import type { Resource } from '@/hooks/useEducation';
  * - 카테고리별 필터링
  * - 검색 기능
  * - 게시판(테이블) 형식 레이아웃
+ * - 프리미엄 이상 등급만 접근 가능
  */
 export default function ResourcesPage() {
   const router = useRouter();
@@ -71,87 +73,89 @@ export default function ResourcesPage() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* 뒤로가기 버튼 */}
-        <Button onClick={() => router.push('/education')} variant="ghost" className="mb-6">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          교육 센터로
-        </Button>
+      <EducationGuard>
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          {/* 뒤로가기 버튼 */}
+          <Button onClick={() => router.push('/education')} variant="ghost" className="mb-6">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            교육 센터로
+          </Button>
 
-        {/* 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">자료실</h1>
-          <p className="text-gray-600">신청서 템플릿, 체크리스트, 참고 문서를 다운로드하세요</p>
-        </div>
+          {/* 헤더 */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">자료실</h1>
+            <p className="text-gray-600">신청서 템플릿, 체크리스트, 참고 문서를 다운로드하세요</p>
+          </div>
 
-        {/* 검색 및 필터 */}
-        <div className="mb-8 space-y-4">
-          {/* 검색창 */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="자료 검색..."
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="pl-10"
-              />
+          {/* 검색 및 필터 */}
+          <div className="mb-8 space-y-4">
+            {/* 검색창 */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="자료 검색..."
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="pl-10"
+                />
+              </div>
+              <Button onClick={handleSearch} className="bg-[#0052CC] hover:bg-[#0052CC]/90">
+                검색
+              </Button>
             </div>
-            <Button onClick={handleSearch} className="bg-[#0052CC] hover:bg-[#0052CC]/90">
-              검색
-            </Button>
-          </div>
 
-          {/* 카테고리 필터 */}
-          <div className="flex flex-wrap gap-2">
-            <Badge
-              variant={selectedCategoryId === undefined ? 'default' : 'outline'}
-              className={`cursor-pointer ${selectedCategoryId === undefined ? 'bg-[#0052CC]' : ''}`}
-              onClick={() => handleCategoryChange(undefined)}
-            >
-              전체
-            </Badge>
-            {categories.map(category => (
+            {/* 카테고리 필터 */}
+            <div className="flex flex-wrap gap-2">
               <Badge
-                key={category.id}
-                variant={selectedCategoryId === category.id ? 'default' : 'outline'}
-                className={`cursor-pointer ${selectedCategoryId === category.id ? 'bg-[#0052CC]' : ''}`}
-                onClick={() => handleCategoryChange(category.id)}
+                variant={selectedCategoryId === undefined ? 'default' : 'outline'}
+                className={`cursor-pointer ${selectedCategoryId === undefined ? 'bg-[#0052CC]' : ''}`}
+                onClick={() => handleCategoryChange(undefined)}
               >
-                {category.name}
-                {category._count && category._count.resources > 0 && (
-                  <span className="ml-1 text-xs opacity-70">({category._count.resources})</span>
-                )}
+                전체
               </Badge>
-            ))}
+              {categories.map(category => (
+                <Badge
+                  key={category.id}
+                  variant={selectedCategoryId === category.id ? 'default' : 'outline'}
+                  className={`cursor-pointer ${selectedCategoryId === category.id ? 'bg-[#0052CC]' : ''}`}
+                  onClick={() => handleCategoryChange(category.id)}
+                >
+                  {category.name}
+                  {category._count && category._count.resources > 0 && (
+                    <span className="ml-1 text-xs opacity-70">({category._count.resources})</span>
+                  )}
+                </Badge>
+              ))}
+            </div>
           </div>
+
+          {/* 에러 상태 */}
+          {error && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-red-600 font-semibold mb-2">
+                자료를 불러오는 중 오류가 발생했습니다
+              </p>
+              <p className="text-gray-600 text-sm">{error.message}</p>
+            </div>
+          )}
+
+          {/* 자료 목록 (게시판 형식) */}
+          {!error && (
+            <ResourceList
+              resources={data?.data || []}
+              total={data?.metadata.total || 0}
+              page={page}
+              limit={limit}
+              onPageChange={setPage}
+              onDownload={handleDownload}
+              isLoading={isLoading}
+            />
+          )}
         </div>
-
-        {/* 에러 상태 */}
-        {error && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-red-600 font-semibold mb-2">
-              자료를 불러오는 중 오류가 발생했습니다
-            </p>
-            <p className="text-gray-600 text-sm">{error.message}</p>
-          </div>
-        )}
-
-        {/* 자료 목록 (게시판 형식) */}
-        {!error && (
-          <ResourceList
-            resources={data?.data || []}
-            total={data?.metadata.total || 0}
-            page={page}
-            limit={limit}
-            onPageChange={setPage}
-            onDownload={handleDownload}
-            isLoading={isLoading}
-          />
-        )}
-      </div>
+      </EducationGuard>
     </AppLayout>
   );
 }
