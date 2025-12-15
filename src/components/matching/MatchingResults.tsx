@@ -8,16 +8,19 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Building2, Tag, CheckCircle2, XCircle } from 'lucide-react';
+import { MapPin, Building2, Tag, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useMatchingResults } from '@/lib/hooks/useMatching';
+import { useAddToWatchlist } from '@/lib/hooks/useWatchlist';
 import { MatchingFilters } from './MatchingFilters';
 import { DeadlineBadge } from '../programs/DeadlineBadge';
 import { cn } from '@/lib/utils';
 import { truncateText, decodeHtmlEntities } from '@/lib/utils/html';
+import { toast } from 'sonner';
 
 interface MatchingResultsProps {
   customerId: string;
@@ -64,6 +67,7 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
   const router = useRouter();
   const [minScore, setMinScore] = useState(30);
   const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const addToWatchlist = useAddToWatchlist();
 
   const {
     data: results,
@@ -74,6 +78,25 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
     limit: 50,
     minScore,
   });
+
+  // 관심목록 추가 핸들러
+  const handleAddToWatchlist = async (e: React.MouseEvent, programId: string) => {
+    e.stopPropagation(); // Card 클릭 이벤트 전파 방지
+    try {
+      await addToWatchlist.mutateAsync({
+        customerId,
+        programId,
+      });
+      toast.success('관심 목록에 추가되었습니다');
+    } catch (error) {
+      // 이미 추가된 경우
+      if (error instanceof Error && error.message.includes('already')) {
+        toast.info('이미 관심 목록에 있습니다');
+      } else {
+        toast.error('관심 목록 추가에 실패했습니다');
+      }
+    }
+  };
 
   // Filter expired programs based on deadline
   const filteredResults = results?.filter(result => {
@@ -210,7 +233,7 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
               className="h-full transition-all duration-200 hover:shadow-md hover:border-[#0052CC]/50 cursor-pointer"
             >
               <CardHeader className="space-y-2">
-                {/* 데이터 소스 Badge + 매칭 점수 Badge + 마감일 Badge */}
+                {/* 데이터 소스 Badge + 매칭 점수 Badge + 마감일 Badge + 별표 버튼 */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Badge
@@ -225,10 +248,23 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
                       {Math.round(result.score)}점
                     </Badge>
                   </div>
-                  <DeadlineBadge
-                    deadline={result.program.deadline}
-                    rawData={result.program.rawData}
-                  />
+                  <div className="flex items-center gap-2">
+                    <DeadlineBadge
+                      deadline={result.program.deadline}
+                      rawData={result.program.rawData}
+                    />
+                    {/* 관심목록 추가 버튼 */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={e => handleAddToWatchlist(e, result.program.id)}
+                      className="h-8 w-8 p-0 hover:bg-yellow-50 hover:text-yellow-600 transition-colors"
+                      title="관심 목록에 추가"
+                      disabled={addToWatchlist.isPending}
+                    >
+                      <Star className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* 제목 */}
