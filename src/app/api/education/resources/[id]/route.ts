@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { updateResourceSchema } from '@/lib/validations/education';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { z } from 'zod';
 
 // GET /api/education/resources/[id] - 자료 상세 조회
@@ -32,28 +33,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 // PATCH /api/education/resources/[id] - 자료 수정 (관리자 전용)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // 관리자 권한 체크 (app_metadata.role 기반)
+    const authResult = await requireAdmin(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const { id } = await params;
     const supabase = await createClient();
-
-    // 인증 체크
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(ErrorCode.UNAUTHORIZED, '로그인이 필요합니다', null, 401);
-    }
-
-    // 관리자 권한 체크
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'ADMIN') {
-      return errorResponse(ErrorCode.FORBIDDEN, '관리자 권한이 필요합니다', null, 403);
-    }
 
     // 자료 존재 여부 확인
     const { data: existingResource, error: existingError } = await supabase
@@ -112,32 +99,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 // DELETE /api/education/resources/[id] - 자료 삭제 (관리자 전용)
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // 관리자 권한 체크 (app_metadata.role 기반)
+    const authResult = await requireAdmin(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const { id } = await params;
     const supabase = await createClient();
-
-    // 인증 체크
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(ErrorCode.UNAUTHORIZED, '로그인이 필요합니다', null, 401);
-    }
-
-    // 관리자 권한 체크
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'ADMIN') {
-      return errorResponse(ErrorCode.FORBIDDEN, '관리자 권한이 필요합니다', null, 403);
-    }
 
     // 자료 존재 여부 확인
     const { data: existingResource, error: existingError } = await supabase

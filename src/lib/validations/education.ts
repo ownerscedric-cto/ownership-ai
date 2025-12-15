@@ -251,7 +251,7 @@ export type ResourceType = (typeof ResourceType)[keyof typeof ResourceType];
 export const createResourceSchema = z.object({
   // 기본 정보 (필수)
   title: z.string().min(1, '제목은 필수입니다').max(200, '제목은 200자 이하여야 합니다'),
-  description: z.string().max(1000, '설명은 1000자 이하여야 합니다').optional(),
+  description: z.string().max(1000, '설명은 1000자 이하여야 합니다').nullable().optional(),
   type: z.enum(['template', 'checklist', 'document'], {
     message: '유효한 자료 타입을 선택해주세요',
   }),
@@ -259,7 +259,7 @@ export const createResourceSchema = z.object({
   // 파일 정보 (필수)
   fileUrl: z.string().url('올바른 URL 형식이 아닙니다'),
   fileName: z.string().min(1, '파일명은 필수입니다'),
-  fileSize: z.number().int().positive('파일 크기는 양수여야 합니다').optional(), // bytes
+  fileSize: z.number().int().positive('파일 크기는 양수여야 합니다').nullable().optional(), // bytes
 
   // 메타데이터 (선택)
   tags: z.array(z.string()).default([]),

@@ -266,17 +266,20 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
             .filter(Boolean)
         : [];
 
-      // Prepare payload
-      const payload = {
+      // Prepare payload - fileSize를 안전하게 숫자로 변환
+      const fileSizeNum = data.fileSize ? parseInt(data.fileSize, 10) : null;
+      const payload: Record<string, unknown> = {
         title: data.title,
-        description: data.description || null,
         type: data.type,
         fileUrl: data.fileUrl,
         fileName: data.fileName,
-        fileSize: data.fileSize ? Number(data.fileSize) : null,
         tags: tagsArray,
-        videoId: data.videoId || null,
       };
+
+      // Optional 필드는 값이 있을 때만 추가 (null 대신 undefined로 처리)
+      if (data.description) payload.description = data.description;
+      if (fileSizeNum && !isNaN(fileSizeNum) && fileSizeNum > 0) payload.fileSize = fileSizeNum;
+      if (data.videoId) payload.videoId = data.videoId;
 
       const url =
         mode === 'create' ? '/api/education/resources' : `/api/education/resources/${resource!.id}`;
@@ -292,7 +295,13 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error?.message || 'Failed to save resource');
+        // Zod validation 에러일 경우 상세 메시지 표시
+        const errorMsg = result.error?.details
+          ? result.error.details
+              .map((d: { path: string[]; message: string }) => `${d.path.join('.')}: ${d.message}`)
+              .join(', ')
+          : result.error?.message || 'Failed to save resource';
+        throw new Error(errorMsg);
       }
 
       toast.success(mode === 'create' ? '자료가 추가되었습니다.' : '자료가 수정되었습니다.');

@@ -122,8 +122,9 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: {
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to create resource',
+            code: 'DB_ERROR',
+            message: createError.message || 'Failed to create resource',
+            details: createError,
           },
         },
         { status: 500 }
