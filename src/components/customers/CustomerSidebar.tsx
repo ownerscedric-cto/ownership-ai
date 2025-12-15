@@ -89,7 +89,7 @@ export function CustomerSidebar({
                     <div className="space-y-1 pl-6">
                       {/* 기본 정보 버튼 */}
                       <button
-                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2"
+                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2 cursor-pointer"
                         onClick={() => {
                           onSelect(customer.id);
                           onViewChange?.(customer.id, 'detail');
@@ -101,7 +101,7 @@ export function CustomerSidebar({
 
                       {/* 매칭 결과 버튼 */}
                       <button
-                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2"
+                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2 cursor-pointer"
                         onClick={() => {
                           onSelect(customer.id);
                           onViewChange?.(customer.id, 'matching');
@@ -113,7 +113,7 @@ export function CustomerSidebar({
 
                       {/* 사업진행현황 버튼 */}
                       <button
-                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2"
+                        className="w-full text-left text-sm hover:bg-gray-100 p-2 rounded flex items-center gap-2 cursor-pointer"
                         onClick={() => {
                           onSelect(customer.id);
                           onViewChange?.(customer.id, 'progress');
