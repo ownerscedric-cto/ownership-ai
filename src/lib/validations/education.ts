@@ -263,6 +263,9 @@ export const createResourceSchema = z.object({
 
   // 메타데이터 (선택)
   tags: z.array(z.string()).default([]),
+
+  // 비디오 연결 (선택)
+  videoId: z.string().uuid().nullable().optional(), // 연결된 비디오 ID
 });
 
 // 자료 수정 스키마
@@ -274,6 +277,7 @@ export const updateResourceSchema = z.object({
   fileName: z.string().min(1).optional(),
   fileSize: z.number().int().positive().optional(),
   tags: z.array(z.string()).optional(),
+  videoId: z.string().uuid().nullable().optional(), // 연결된 비디오 ID
 });
 
 // 자료 필터링 스키마
@@ -289,6 +293,7 @@ export const resourceFilterSchema = z.object({
   // 필터링
   type: z.enum(['template', 'checklist', 'document']).optional(),
   search: z.string().optional(), // 제목, 설명, 태그 검색
+  videoId: z.string().uuid().optional(), // 연결된 비디오 ID로 필터링
 });
 
 // ============================================

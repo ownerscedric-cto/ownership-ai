@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
+import { updateResourceSchema } from '@/lib/validations/education';
+import { z } from 'zod';
 
 // GET /api/education/resources/[id] - 자료 상세 조회
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -24,5 +26,141 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   } catch (error) {
     console.error('Resource detail error:', error);
     return errorResponse(ErrorCode.INTERNAL_ERROR, '자료 조회 중 오류가 발생했습니다', null, 500);
+  }
+}
+
+// PATCH /api/education/resources/[id] - 자료 수정 (관리자 전용)
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+
+    // 인증 체크
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return errorResponse(ErrorCode.UNAUTHORIZED, '로그인이 필요합니다', null, 401);
+    }
+
+    // 관리자 권한 체크
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'ADMIN') {
+      return errorResponse(ErrorCode.FORBIDDEN, '관리자 권한이 필요합니다', null, 403);
+    }
+
+    // 자료 존재 여부 확인
+    const { data: existingResource, error: existingError } = await supabase
+      .from('resources')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (existingError || !existingResource) {
+      return errorResponse(ErrorCode.NOT_FOUND, '자료를 찾을 수 없습니다', null, 404);
+    }
+
+    // Body 파싱 및 검증
+    const body = await request.json();
+    const validated = updateResourceSchema.parse(body);
+
+    // 업데이트할 데이터 구성
+    const updateData: Record<string, unknown> = {};
+    if (validated.title !== undefined) updateData.title = validated.title;
+    if (validated.description !== undefined) updateData.description = validated.description;
+    if (validated.type !== undefined) updateData.type = validated.type;
+    if (validated.fileUrl !== undefined) updateData.fileUrl = validated.fileUrl;
+    if (validated.fileName !== undefined) updateData.fileName = validated.fileName;
+    if (validated.fileSize !== undefined) updateData.fileSize = validated.fileSize;
+    if (validated.tags !== undefined) updateData.tags = validated.tags;
+    if (validated.videoId !== undefined) updateData.videoId = validated.videoId;
+
+    // 자료 수정
+    const { data: resource, error: updateError } = await supabase
+      .from('resources')
+      .update(updateData)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      console.error('Resource update error:', updateError);
+      return errorResponse(ErrorCode.INTERNAL_ERROR, '자료 수정에 실패했습니다', null, 500);
+    }
+
+    return successResponse(resource);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return errorResponse(
+        ErrorCode.VALIDATION_ERROR,
+        '입력값이 올바르지 않습니다',
+        error.issues,
+        400
+      );
+    }
+
+    console.error('Resource update error:', error);
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '자료 수정 중 오류가 발생했습니다', null, 500);
+  }
+}
+
+// DELETE /api/education/resources/[id] - 자료 삭제 (관리자 전용)
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+
+    // 인증 체크
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return errorResponse(ErrorCode.UNAUTHORIZED, '로그인이 필요합니다', null, 401);
+    }
+
+    // 관리자 권한 체크
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'ADMIN') {
+      return errorResponse(ErrorCode.FORBIDDEN, '관리자 권한이 필요합니다', null, 403);
+    }
+
+    // 자료 존재 여부 확인
+    const { data: existingResource, error: existingError } = await supabase
+      .from('resources')
+      .select('id, fileUrl')
+      .eq('id', id)
+      .single();
+
+    if (existingError || !existingResource) {
+      return errorResponse(ErrorCode.NOT_FOUND, '자료를 찾을 수 없습니다', null, 404);
+    }
+
+    // 자료 삭제
+    const { error: deleteError } = await supabase.from('resources').delete().eq('id', id);
+
+    if (deleteError) {
+      console.error('Resource delete error:', deleteError);
+      return errorResponse(ErrorCode.INTERNAL_ERROR, '자료 삭제에 실패했습니다', null, 500);
+    }
+
+    return successResponse({ message: '자료가 삭제되었습니다' });
+  } catch (error) {
+    console.error('Resource delete error:', error);
+    return errorResponse(ErrorCode.INTERNAL_ERROR, '자료 삭제 중 오류가 발생했습니다', null, 500);
   }
 }

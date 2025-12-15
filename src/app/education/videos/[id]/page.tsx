@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { VideoPlayer } from '@/components/education/VideoPlayer';
 import { VideoComments } from '@/components/education/VideoComments';
+import { VideoResources } from '@/components/education/VideoResources';
 import { useEducationVideo, useIncrementVideoViewCount } from '@/hooks/useEducation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -162,6 +163,11 @@ export default function VideoDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 관련 자료 다운로드 */}
+        <div className="mt-8">
+          <VideoResources videoId={videoId} />
+        </div>
 
         {/* 댓글 섹션 */}
         <div className="mt-8">

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const filters = resourceFilterSchema.parse(searchParams);
 
-    const { page, limit, sortBy, sortOrder, type, search } = filters;
+    const { page, limit, sortBy, sortOrder, type, search, videoId } = filters;
     const supabase = await createClient();
 
     let query = supabase.from('resources').select('*', { count: 'exact' });
@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
     }
     if (search) {
       query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+    if (videoId) {
+      query = query.eq('videoId', videoId);
     }
 
     // 정렬 (Supabase 테이블이 camelCase이므로 그대로 사용)
@@ -108,6 +111,7 @@ export async function POST(request: NextRequest) {
         fileName: validated.fileName,
         fileSize: validated.fileSize,
         tags: validated.tags || [],
+        videoId: validated.videoId || null,
       })
       .select('*')
       .single();
