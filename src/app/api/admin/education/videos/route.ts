@@ -4,6 +4,17 @@ import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 /**
+ * Resource Schema (for attached resources)
+ */
+const resourceSchema = z.object({
+  title: z.string().min(1),
+  fileName: z.string().min(1),
+  fileUrl: z.string().url(),
+  fileSize: z.number().int().positive(),
+  categoryId: z.string().min(1),
+});
+
+/**
  * Request Schema
  */
 const createVideoSchema = z.object({
@@ -15,6 +26,8 @@ const createVideoSchema = z.object({
   thumbnailUrl: z.string().url().nullable().optional(),
   duration: z.number().int().positive().nullable().optional(),
   tags: z.array(z.string()).default([]),
+  // 첨부자료 (선택)
+  resources: z.array(resourceSchema).default([]),
 });
 
 /**
@@ -85,12 +98,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. 성공 응답
+    // 5. 첨부자료가 있으면 resources 테이블에도 저장 (비디오와 연결)
+    let createdResourcesCount = 0;
+    if (validatedData.resources.length > 0) {
+      const resourcesData = validatedData.resources.map(resource => ({
+        title: resource.title,
+        fileName: resource.fileName,
+        fileUrl: resource.fileUrl,
+        fileSize: resource.fileSize,
+        categoryId: resource.categoryId,
+        videoId: video.id, // 비디오와 연결
+        type: 'document', // 기본 타입
+        tags: [], // 빈 태그
+      }));
+
+      const { data: createdResources, error: resourcesError } = await supabase
+        .from('resources')
+        .insert(resourcesData)
+        .select();
+
+      if (resourcesError) {
+        // 자료 생성 실패해도 비디오는 이미 생성되었으므로 경고만 로그
+        console.error('첨부자료 생성 실패:', resourcesError);
+      } else {
+        createdResourcesCount = createdResources?.length || 0;
+      }
+    }
+
+    // 6. 성공 응답
     return NextResponse.json(
       {
         success: true,
-        data: video,
-        message: '비디오가 추가되었습니다.',
+        data: {
+          ...video,
+          resourcesCreated: createdResourcesCount,
+        },
+        message:
+          createdResourcesCount > 0
+            ? `비디오가 추가되었습니다. (첨부자료 ${createdResourcesCount}개)`
+            : '비디오가 추가되었습니다.',
       },
       { status: 201 }
     );
