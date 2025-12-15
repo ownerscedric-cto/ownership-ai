@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useMatchingResults } from '@/lib/hooks/useMatching';
-import { useAddToWatchlist } from '@/lib/hooks/useWatchlist';
+import { useAddToWatchlist, useWatchlist, useRemoveFromWatchlist } from '@/lib/hooks/useWatchlist';
 import { MatchingFilters } from './MatchingFilters';
 import { DeadlineBadge } from '../programs/DeadlineBadge';
 import { cn } from '@/lib/utils';
@@ -68,6 +68,13 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
   const [minScore, setMinScore] = useState(30);
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const addToWatchlist = useAddToWatchlist();
+  const removeFromWatchlist = useRemoveFromWatchlist();
+
+  // 해당 고객의 watchlist 조회
+  const { data: watchlistData } = useWatchlist(customerId);
+
+  // watchlist에 있는 programId Set 생성 (빠른 조회용)
+  const watchlistProgramIds = new Set(watchlistData?.items.map(item => item.programId) ?? []);
 
   const {
     data: results,
@@ -79,21 +86,33 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
     minScore,
   });
 
-  // 관심목록 추가 핸들러
-  const handleAddToWatchlist = async (e: React.MouseEvent, programId: string) => {
+  // 관심목록 토글 핸들러
+  const handleToggleWatchlist = async (e: React.MouseEvent, programId: string) => {
     e.stopPropagation(); // Card 클릭 이벤트 전파 방지
+
+    const isInWatchlist = watchlistProgramIds.has(programId);
+
     try {
-      await addToWatchlist.mutateAsync({
-        customerId,
-        programId,
-      });
-      toast.success('관심 목록에 추가되었습니다');
+      if (isInWatchlist) {
+        // 관심목록에서 제거
+        await removeFromWatchlist.mutateAsync({
+          customerId,
+          programId,
+        });
+        toast.success('관심 목록에서 제거되었습니다');
+      } else {
+        // 관심목록에 추가
+        await addToWatchlist.mutateAsync({
+          customerId,
+          programId,
+        });
+        toast.success('관심 목록에 추가되었습니다');
+      }
     } catch (error) {
-      // 이미 추가된 경우
       if (error instanceof Error && error.message.includes('already')) {
         toast.info('이미 관심 목록에 있습니다');
       } else {
-        toast.error('관심 목록 추가에 실패했습니다');
+        toast.error('관심 목록 처리에 실패했습니다');
       }
     }
   };
@@ -253,16 +272,30 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
                       deadline={result.program.deadline}
                       rawData={result.program.rawData}
                     />
-                    {/* 관심목록 추가 버튼 */}
+                    {/* 관심목록 토글 버튼 */}
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={e => handleAddToWatchlist(e, result.program.id)}
-                      className="h-8 w-8 p-0 hover:bg-yellow-50 hover:text-yellow-600 transition-colors"
-                      title="관심 목록에 추가"
-                      disabled={addToWatchlist.isPending}
+                      onClick={e => handleToggleWatchlist(e, result.program.id)}
+                      className={cn(
+                        'h-8 w-8 p-0 transition-colors',
+                        watchlistProgramIds.has(result.program.id)
+                          ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50'
+                          : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
+                      )}
+                      title={
+                        watchlistProgramIds.has(result.program.id)
+                          ? '관심 목록에서 제거'
+                          : '관심 목록에 추가'
+                      }
+                      disabled={addToWatchlist.isPending || removeFromWatchlist.isPending}
                     >
-                      <Star className="w-4 h-4" />
+                      <Star
+                        className={cn(
+                          'w-4 h-4',
+                          watchlistProgramIds.has(result.program.id) && 'fill-current'
+                        )}
+                      />
                     </Button>
                   </div>
                 </div>
