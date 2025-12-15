@@ -52,6 +52,7 @@ export interface Resource {
   fileSize: number | null;
   downloadCount: number;
   tags: string[];
+  videoId: string | null; // 연결된 비디오 ID
   createdAt: string;
   updatedAt: string;
 }

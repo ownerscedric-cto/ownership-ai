@@ -2,31 +2,35 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResourceCard } from '@/components/education/ResourceCard';
+import { ResourceList } from '@/components/education/ResourceList';
 import { useResources } from '@/hooks/useEducation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, ArrowLeft } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import type { Resource } from '@/hooks/useEducation';
 
 /**
  * 자료실 페이지
  * - 타입별 필터링 (템플릿, 체크리스트, 문서)
  * - 검색 기능
- * - Grid 레이아웃 (3열)
+ * - 게시판(테이블) 형식 레이아웃
  */
 export default function ResourcesPage() {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   // React Query 데이터 조회
   const { data, isLoading, error } = useResources({
     type: selectedType,
     search,
-    limit: 12,
+    page,
+    limit,
   });
 
   // 타입 목록
@@ -39,6 +43,7 @@ export default function ResourcesPage() {
   // 검색 실행
   const handleSearch = () => {
     setSearch(searchInput);
+    setPage(1); // 검색 시 첫 페이지로
   };
 
   // 엔터 키 검색
@@ -48,9 +53,28 @@ export default function ResourcesPage() {
     }
   };
 
+  // 타입 필터 변경
+  const handleTypeChange = (type: string | undefined) => {
+    setSelectedType(type);
+    setPage(1); // 필터 변경 시 첫 페이지로
+  };
+
+  // 다운로드 핸들러 - 직접 파일 URL로 이동 + 카운트 증가
+  const handleDownload = async (resource: Resource) => {
+    // 1. 백그라운드에서 다운로드 카운트 증가
+    fetch(`/api/education/resources/${resource.id}/download`, {
+      method: 'GET',
+    }).catch(() => {
+      // 카운트 증가 실패해도 다운로드는 진행
+    });
+
+    // 2. 파일 직접 다운로드 (새 탭에서 열기)
+    window.open(resource.fileUrl, '_blank');
+  };
+
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* 뒤로가기 버튼 */}
         <Button onClick={() => router.push('/education')} variant="ghost" className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -88,7 +112,7 @@ export default function ResourcesPage() {
             <Badge
               variant={selectedType === undefined ? 'default' : 'outline'}
               className={`cursor-pointer ${selectedType === undefined ? 'bg-[#0052CC]' : ''}`}
-              onClick={() => setSelectedType(undefined)}
+              onClick={() => handleTypeChange(undefined)}
             >
               전체
             </Badge>
@@ -97,32 +121,13 @@ export default function ResourcesPage() {
                 key={value}
                 variant={selectedType === value ? 'default' : 'outline'}
                 className={`cursor-pointer ${selectedType === value ? 'bg-[#0052CC]' : ''}`}
-                onClick={() => setSelectedType(value)}
+                onClick={() => handleTypeChange(value)}
               >
                 {label}
               </Badge>
             ))}
           </div>
         </div>
-
-        {/* 결과 요약 */}
-        {data && (
-          <div className="mb-4 text-sm text-gray-600">총 {data.metadata.total}개의 자료</div>
-        )}
-
-        {/* 로딩 상태 */}
-        {isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-gray-200 rounded-lg p-6 space-y-4">
-                <div className="h-4 bg-gray-300 rounded w-1/3" />
-                <div className="h-6 bg-gray-300 rounded w-full" />
-                <div className="h-4 bg-gray-300 rounded w-full" />
-                <div className="h-10 bg-gray-300 rounded" />
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* 에러 상태 */}
         {error && (
@@ -134,20 +139,17 @@ export default function ResourcesPage() {
           </div>
         )}
 
-        {/* 데이터 없음 */}
-        {!isLoading && !error && (!data?.data || data.data.length === 0) && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-gray-600">등록된 자료가 없습니다</p>
-          </div>
-        )}
-
-        {/* 자료 목록 */}
-        {!isLoading && !error && data?.data && data.data.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.data.map(resource => (
-              <ResourceCard key={resource.id} resource={resource} />
-            ))}
-          </div>
+        {/* 자료 목록 (게시판 형식) */}
+        {!error && (
+          <ResourceList
+            resources={data?.data || []}
+            total={data?.metadata.total || 0}
+            page={page}
+            limit={limit}
+            onPageChange={setPage}
+            onDownload={handleDownload}
+            isLoading={isLoading}
+          />
         )}
       </div>
     </AppLayout>

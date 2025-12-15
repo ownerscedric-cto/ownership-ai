@@ -13,10 +13,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     const supabase = await createClient();
 
-    // 리소스 조회
+    // 리소스 조회 (camelCase 컬럼명 사용)
     const { data: resource, error: resourceError } = await supabase
       .from('resources')
-      .select('id, file_url, download_count')
+      .select('id, fileUrl, downloadCount')
       .eq('id', id)
       .single();
 
@@ -36,7 +36,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     // 다운로드 카운트 증가 (비동기로 백그라운드에서 처리)
     supabase
       .from('resources')
-      .update({ download_count: (resource.download_count || 0) + 1 })
+      .update({ downloadCount: (resource.downloadCount || 0) + 1 })
       .eq('id', id)
       .then(({ error }) => {
         if (error) {
@@ -45,8 +45,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       });
 
     // 파일 URL로 리다이렉트
-    // 한글 파일명 지원을 위해 Content-Disposition 헤더 설정
-    return NextResponse.redirect(resource.file_url);
+    return NextResponse.redirect(resource.fileUrl);
   } catch (error) {
     console.error(`GET /api/education/resources/[id]/download error:`, error);
 
