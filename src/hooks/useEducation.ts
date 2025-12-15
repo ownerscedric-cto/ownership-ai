@@ -42,6 +42,18 @@ export interface KnowHow {
   updatedAt: string;
 }
 
+export interface ResourceCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    resources: number;
+  };
+}
+
 export interface Resource {
   id: string;
   title: string;
@@ -53,6 +65,8 @@ export interface Resource {
   downloadCount: number;
   tags: string[];
   videoId: string | null; // 연결된 비디오 ID
+  categoryId: string | null; // 카테고리 ID
+  category: { id: string; name: string } | null; // 카테고리 정보 (JOIN)
   createdAt: string;
   updatedAt: string;
 }
@@ -203,12 +217,14 @@ export function useIncrementKnowHowViewCount() {
 
 export function useResources(params?: {
   type?: string;
+  categoryId?: string;
   search?: string;
   page?: number;
   limit?: number;
 }) {
   const queryParams = new URLSearchParams();
   if (params?.type) queryParams.append('type', params.type);
+  if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
   if (params?.search) queryParams.append('search', params.search);
   if (params?.page) queryParams.append('page', params.page.toString());
   if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -218,6 +234,18 @@ export function useResources(params?: {
     queryFn: async () => {
       const res = await fetch(`/api/education/resources?${queryParams}`);
       if (!res.ok) throw new Error('Failed to fetch resources');
+      return res.json();
+    },
+  });
+}
+
+// 자료실 카테고리 목록 조회
+export function useResourceCategories() {
+  return useQuery<DetailResponse<ResourceCategory[]>>({
+    queryKey: ['resourceCategories'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/education/resource-categories');
+      if (!res.ok) throw new Error('Failed to fetch resource categories');
       return res.json();
     },
   });

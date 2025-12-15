@@ -11,14 +11,20 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const filters = resourceFilterSchema.parse(searchParams);
 
-    const { page, limit, sortBy, sortOrder, type, search, videoId } = filters;
+    const { page, limit, sortBy, sortOrder, type, search, videoId, categoryId } = filters;
     const supabase = await createClient();
 
-    let query = supabase.from('resources').select('*', { count: 'exact' });
+    // 카테고리 정보를 포함하여 조회
+    let query = supabase
+      .from('resources')
+      .select('*, category:resource_categories(id, name)', { count: 'exact' });
 
     // WHERE 조건
     if (type) {
       query = query.eq('type', type);
+    }
+    if (categoryId) {
+      query = query.eq('categoryId', categoryId);
     }
     if (search) {
       query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
@@ -112,8 +118,9 @@ export async function POST(request: NextRequest) {
         fileSize: validated.fileSize,
         tags: validated.tags || [],
         videoId: validated.videoId || null,
+        categoryId: validated.categoryId || null,
       })
-      .select('*')
+      .select('*, category:resource_categories(id, name)')
       .single();
 
     if (createError) {

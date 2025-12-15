@@ -266,6 +266,9 @@ export const createResourceSchema = z.object({
 
   // 비디오 연결 (선택)
   videoId: z.string().uuid().nullable().optional(), // 연결된 비디오 ID
+
+  // 카테고리 연결 (선택)
+  categoryId: z.string().uuid().nullable().optional(), // 연결된 카테고리 ID
 });
 
 // 자료 수정 스키마
@@ -278,6 +281,7 @@ export const updateResourceSchema = z.object({
   fileSize: z.number().int().positive().optional(),
   tags: z.array(z.string()).optional(),
   videoId: z.string().uuid().nullable().optional(), // 연결된 비디오 ID
+  categoryId: z.string().uuid().nullable().optional(), // 연결된 카테고리 ID
 });
 
 // 자료 필터링 스키마
@@ -292,8 +296,30 @@ export const resourceFilterSchema = z.object({
 
   // 필터링
   type: z.enum(['template', 'checklist', 'document']).optional(),
+  categoryId: z.string().uuid().optional(), // 카테고리 ID로 필터링
   search: z.string().optional(), // 제목, 설명, 태그 검색
   videoId: z.string().uuid().optional(), // 연결된 비디오 ID로 필터링
+});
+
+// ============================================
+// ResourceCategory (자료 카테고리) Schemas
+// ============================================
+
+// 자료 카테고리 생성 스키마
+export const createResourceCategorySchema = z.object({
+  name: z
+    .string()
+    .min(1, '카테고리 이름은 필수입니다')
+    .max(50, '카테고리 이름은 50자 이하여야 합니다'),
+  description: z.string().max(200, '설명은 200자 이하여야 합니다').optional(),
+  order: z.number().int().min(0, '순서는 0 이상이어야 합니다').default(0),
+});
+
+// 자료 카테고리 수정 스키마
+export const updateResourceCategorySchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  description: z.string().max(200).optional(),
+  order: z.number().int().min(0).optional(),
 });
 
 // ============================================
@@ -314,6 +340,9 @@ export type ResourceFilterInput = z.infer<typeof resourceFilterSchema>;
 
 export type CreateKnowHowCategoryInput = z.infer<typeof createKnowHowCategorySchema>;
 export type UpdateKnowHowCategoryInput = z.infer<typeof updateKnowHowCategorySchema>;
+
+export type CreateResourceCategoryInput = z.infer<typeof createResourceCategorySchema>;
+export type UpdateResourceCategoryInput = z.infer<typeof updateResourceCategorySchema>;
 
 export type CreateKnowHowPostInput = z.infer<typeof createKnowHowPostSchema>;
 export type UpdateKnowHowPostInput = z.infer<typeof updateKnowHowPostSchema>;

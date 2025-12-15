@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ResourceList } from '@/components/education/ResourceList';
-import { useResources } from '@/hooks/useEducation';
+import { useResources, useResourceCategories } from '@/hooks/useEducation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,32 +13,29 @@ import type { Resource } from '@/hooks/useEducation';
 
 /**
  * 자료실 페이지
- * - 타입별 필터링 (템플릿, 체크리스트, 문서)
+ * - 카테고리별 필터링
  * - 검색 기능
  * - 게시판(테이블) 형식 레이아웃
  */
 export default function ResourcesPage() {
   const router = useRouter();
-  const [selectedType, setSelectedType] = useState<string | undefined>(undefined);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
 
+  // 카테고리 목록 조회
+  const { data: categoriesData } = useResourceCategories();
+  const categories = categoriesData?.data || [];
+
   // React Query 데이터 조회
   const { data, isLoading, error } = useResources({
-    type: selectedType,
+    categoryId: selectedCategoryId,
     search,
     page,
     limit,
   });
-
-  // 타입 목록
-  const types = [
-    { value: 'template', label: '템플릿' },
-    { value: 'checklist', label: '체크리스트' },
-    { value: 'document', label: '문서' },
-  ];
 
   // 검색 실행
   const handleSearch = () => {
@@ -53,9 +50,9 @@ export default function ResourcesPage() {
     }
   };
 
-  // 타입 필터 변경
-  const handleTypeChange = (type: string | undefined) => {
-    setSelectedType(type);
+  // 카테고리 필터 변경
+  const handleCategoryChange = (categoryId: string | undefined) => {
+    setSelectedCategoryId(categoryId);
     setPage(1); // 필터 변경 시 첫 페이지로
   };
 
@@ -107,23 +104,26 @@ export default function ResourcesPage() {
             </Button>
           </div>
 
-          {/* 타입 필터 */}
+          {/* 카테고리 필터 */}
           <div className="flex flex-wrap gap-2">
             <Badge
-              variant={selectedType === undefined ? 'default' : 'outline'}
-              className={`cursor-pointer ${selectedType === undefined ? 'bg-[#0052CC]' : ''}`}
-              onClick={() => handleTypeChange(undefined)}
+              variant={selectedCategoryId === undefined ? 'default' : 'outline'}
+              className={`cursor-pointer ${selectedCategoryId === undefined ? 'bg-[#0052CC]' : ''}`}
+              onClick={() => handleCategoryChange(undefined)}
             >
               전체
             </Badge>
-            {types.map(({ value, label }) => (
+            {categories.map(category => (
               <Badge
-                key={value}
-                variant={selectedType === value ? 'default' : 'outline'}
-                className={`cursor-pointer ${selectedType === value ? 'bg-[#0052CC]' : ''}`}
-                onClick={() => handleTypeChange(value)}
+                key={category.id}
+                variant={selectedCategoryId === category.id ? 'default' : 'outline'}
+                className={`cursor-pointer ${selectedCategoryId === category.id ? 'bg-[#0052CC]' : ''}`}
+                onClick={() => handleCategoryChange(category.id)}
               >
-                {label}
+                {category.name}
+                {category._count && category._count.resources > 0 && (
+                  <span className="ml-1 text-xs opacity-70">({category._count.resources})</span>
+                )}
               </Badge>
             ))}
           </div>

@@ -28,6 +28,8 @@ interface Resource {
   tags: string[];
   videoId: string | null;
   video?: { id: string; title: string } | null;
+  categoryId: string | null;
+  category?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,18 +37,6 @@ interface Resource {
 interface AdminResourceTableProps {
   resources: Resource[];
 }
-
-const typeLabels: Record<string, string> = {
-  template: '템플릿',
-  checklist: '체크리스트',
-  document: '문서',
-};
-
-const typeColors: Record<string, string> = {
-  template: 'bg-blue-100 text-blue-800',
-  checklist: 'bg-green-100 text-green-800',
-  document: 'bg-purple-100 text-purple-800',
-};
 
 function formatFileSize(bytes: number | null): string {
   if (!bytes) return '-';
@@ -115,7 +105,7 @@ export function AdminResourceTable({ resources }: AdminResourceTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>제목</TableHead>
-            <TableHead>타입</TableHead>
+            <TableHead>카테고리</TableHead>
             <TableHead>연결된 비디오</TableHead>
             <TableHead>파일크기</TableHead>
             <TableHead>다운로드</TableHead>
@@ -139,11 +129,13 @@ export function AdminResourceTable({ resources }: AdminResourceTableProps) {
                 </div>
               </TableCell>
 
-              {/* Type */}
+              {/* Category */}
               <TableCell>
-                <Badge className={typeColors[resource.type] || 'bg-gray-100 text-gray-800'}>
-                  {typeLabels[resource.type] || resource.type}
-                </Badge>
+                {resource.category ? (
+                  <Badge className="bg-blue-100 text-blue-800">{resource.category.name}</Badge>
+                ) : (
+                  <span className="text-gray-400">미분류</span>
+                )}
               </TableCell>
 
               {/* Linked Video */}

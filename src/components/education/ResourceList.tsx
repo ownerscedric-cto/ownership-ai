@@ -28,7 +28,7 @@ interface ResourceListProps {
 /**
  * 자료실 목록 컴포넌트 (테이블 형식)
  * - 노하우 커뮤니티와 동일한 게시판 구조
- * - 번호, 타입, 제목, 파일크기, 등록일, 다운로드수, 액션
+ * - 번호, 카테고리, 제목, 파일크기, 등록일, 다운로드수, 액션
  * - 페이지네이션
  */
 export function ResourceList({
@@ -41,26 +41,6 @@ export function ResourceList({
   isLoading,
 }: ResourceListProps) {
   const totalPages = Math.ceil(total / limit);
-
-  // 타입 라벨
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      template: '템플릿',
-      checklist: '체크리스트',
-      document: '문서',
-    };
-    return labels[type] || type;
-  };
-
-  // 타입별 색상
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      template: 'bg-blue-100 text-blue-800',
-      checklist: 'bg-green-100 text-green-800',
-      document: 'bg-purple-100 text-purple-800',
-    };
-    return colors[type] || 'bg-gray-100 text-gray-800';
-  };
 
   // 파일 크기 포맷팅
   const formatFileSize = (bytes: number | null) => {
@@ -102,7 +82,7 @@ export function ResourceList({
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-16 text-center">번호</TableHead>
-              <TableHead className="w-28 text-center">타입</TableHead>
+              <TableHead className="w-28 text-center">카테고리</TableHead>
               <TableHead>제목</TableHead>
               <TableHead className="w-24 text-center">파일크기</TableHead>
               <TableHead className="w-32 text-center">등록일</TableHead>
@@ -121,11 +101,15 @@ export function ResourceList({
                     {resourceNumber}
                   </TableCell>
 
-                  {/* 타입 */}
+                  {/* 카테고리 */}
                   <TableCell className="text-center">
-                    <Badge className={`text-xs ${getTypeColor(resource.type)}`}>
-                      {getTypeLabel(resource.type)}
-                    </Badge>
+                    {resource.category ? (
+                      <Badge variant="secondary" className="text-xs">
+                        {resource.category.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-gray-400">미분류</span>
+                    )}
                   </TableCell>
 
                   {/* 제목 */}
