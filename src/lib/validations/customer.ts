@@ -41,8 +41,13 @@ export const createCustomerSchema = z
     goals: z.array(z.string()).optional(),
     preferredKeywords: z.array(z.string()).optional(),
 
-    // 연락처 정보 (선택)
-    contactEmail: z.string().email('올바른 이메일 형식이 아닙니다').optional(),
+    // 연락처 정보 (선택) - 빈 문자열 허용
+    contactEmail: z
+      .string()
+      .refine(val => val === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+        message: '올바른 이메일 형식이 아닙니다',
+      })
+      .optional(),
     contactPhone: z.string().optional(),
 
     // 기타 (선택)
@@ -87,7 +92,13 @@ export const updateCustomerSchema = z
     challenges: z.array(z.string()).optional(),
     goals: z.array(z.string()).optional(),
     preferredKeywords: z.array(z.string()).optional(),
-    contactEmail: z.string().email('올바른 이메일 형식이 아닙니다').optional(),
+    // 연락처 정보 (선택) - 빈 문자열 허용
+    contactEmail: z
+      .string()
+      .refine(val => val === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+        message: '올바른 이메일 형식이 아닙니다',
+      })
+      .optional(),
     contactPhone: z.string().optional(),
     notes: z.string().optional(),
   })
