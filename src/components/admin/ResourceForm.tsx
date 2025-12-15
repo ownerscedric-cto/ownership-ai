@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload, X, CheckCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface Resource {
   id: string;
@@ -43,7 +44,7 @@ const resourceFormSchema = z.object({
   title: z.string().min(1, { message: '제목을 입력해주세요' }),
   description: z.string().optional(),
   type: z.enum(['template', 'checklist', 'document']),
-  fileUrl: z.string().min(1, { message: '파일 URL을 입력해주세요' }),
+  fileUrl: z.string().min(1, { message: '파일을 업로드하거나 URL을 입력해주세요' }),
   fileName: z.string().min(1, { message: '파일명을 입력해주세요' }),
   fileSize: z.string().optional().or(z.literal('')),
   tags: z.string().optional(),
@@ -57,11 +58,30 @@ interface ResourceFormProps {
   resource?: Resource;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function ResourceForm({ mode, resource }: ResourceFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(true);
+
+  // File upload states
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<{
+    name: string;
+    size: number;
+    url: string;
+  } | null>(
+    mode === 'edit' && resource
+      ? { name: resource.fileName, size: resource.fileSize || 0, url: resource.fileUrl }
+      : null
+  );
+  const [isDragging, setIsDragging] = useState(false);
 
   // Fetch videos for linking
   useEffect(() => {
@@ -110,6 +130,129 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
 
   const resourceType = watch('type');
   const videoId = watch('videoId');
+
+  // File upload handler
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      // 파일 크기 체크 (50MB 제한)
+      const MAX_SIZE = 50 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        toast.error('파일 크기 초과', {
+          description: '파일 크기는 50MB를 초과할 수 없습니다.',
+        });
+        return;
+      }
+
+      setIsUploading(true);
+
+      try {
+        const supabase = createClient();
+
+        // 고유한 파일명 생성
+        const timestamp = Date.now();
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
+        const storagePath = `resources/${timestamp}_${safeFileName}`;
+
+        // Supabase Storage에 업로드
+        const { error: uploadError } = await supabase.storage
+          .from('resources')
+          .upload(storagePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Public URL 가져오기
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('resources').getPublicUrl(storagePath);
+
+        // 폼 값 업데이트
+        setValue('fileUrl', publicUrl);
+        setValue('fileName', file.name);
+        setValue('fileSize', String(file.size));
+
+        // 제목이 비어있으면 파일명으로 자동 설정
+        const currentTitle = watch('title');
+        if (!currentTitle) {
+          const titleFromFile = file.name.replace(/\.[^/.]+$/, ''); // 확장자 제거
+          setValue('title', titleFromFile);
+        }
+
+        setUploadedFile({
+          name: file.name,
+          size: file.size,
+          url: publicUrl,
+        });
+
+        toast.success('파일 업로드 완료', {
+          description: `${file.name} (${formatFileSize(file.size)})`,
+        });
+      } catch (error) {
+        console.error('File upload error:', error);
+        toast.error('파일 업로드 실패', {
+          description: error instanceof Error ? error.message : '다시 시도해주세요.',
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [setValue, watch]
+  );
+
+  // Drag & Drop handlers
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    },
+    [handleFileUpload]
+  );
+
+  // File input handler
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    },
+    [handleFileUpload]
+  );
+
+  // Remove uploaded file
+  const handleRemoveFile = useCallback(() => {
+    setUploadedFile(null);
+    setValue('fileUrl', '');
+    setValue('fileName', '');
+    setValue('fileSize', '');
+  }, [setValue]);
 
   const onSubmit = async (data: ResourceFormData) => {
     setIsSubmitting(true);
@@ -169,11 +312,106 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-        {/* Step 1: Basic Info */}
+        {/* Step 1: File Upload */}
         <div className="space-y-4 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0052CC] text-white text-sm font-semibold">
               1
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">파일 업로드</h3>
+          </div>
+
+          {/* Drag & Drop Zone */}
+          {!uploadedFile ? (
+            <div
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              className={`
+                relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
+                ${isDragging ? 'border-[#0052CC] bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+                ${isUploading ? 'pointer-events-none opacity-50' : ''}
+              `}
+            >
+              <input
+                type="file"
+                onChange={handleFileInputChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt,.zip,.csv"
+                disabled={isUploading}
+              />
+
+              {isUploading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-10 h-10 text-[#0052CC] animate-spin" />
+                  <p className="text-gray-600">파일 업로드 중...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <Upload className="w-10 h-10 text-gray-400" />
+                  <div>
+                    <p className="text-gray-700 font-medium">파일을 드래그하여 업로드</p>
+                    <p className="text-gray-500 text-sm mt-1">또는 클릭하여 파일 선택</p>
+                  </div>
+                  <p className="text-gray-400 text-xs mt-2">
+                    PDF, Word, Excel, PowerPoint, 한글 등 (최대 50MB)
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                <div>
+                  <p className="font-medium text-gray-900">{uploadedFile.name}</p>
+                  <p className="text-sm text-gray-600">{formatFileSize(uploadedFile.size)}</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveFile}
+                className="text-gray-500 hover:text-red-600"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Manual URL input (alternative) */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-gray-500">또는 URL 직접 입력</span>
+            </div>
+          </div>
+
+          <div>
+            <Input
+              {...register('fileUrl')}
+              placeholder="https://example.com/file.pdf"
+              className="mt-1"
+            />
+            {errors.fileUrl && (
+              <p className="text-sm text-red-600 mt-1">{errors.fileUrl.message}</p>
+            )}
+          </div>
+
+          {/* Hidden inputs for file info */}
+          <input type="hidden" {...register('fileName')} />
+          <input type="hidden" {...register('fileSize')} />
+        </div>
+
+        {/* Step 2: Basic Info */}
+        <div className="space-y-4 pb-6 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0052CC] text-white text-sm font-semibold">
+              2
             </div>
             <h3 className="text-lg font-semibold text-gray-900">기본 정보</h3>
           </div>
@@ -220,60 +458,6 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
                 <SelectItem value="document">문서</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-        </div>
-
-        {/* Step 2: File Info */}
-        <div className="space-y-4 pb-6 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0052CC] text-white text-sm font-semibold">
-              2
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">파일 정보</h3>
-          </div>
-
-          {/* File URL */}
-          <div>
-            <Label htmlFor="fileUrl">파일 URL *</Label>
-            <Input
-              id="fileUrl"
-              {...register('fileUrl')}
-              placeholder="https://example.com/file.pdf"
-              className="mt-1"
-            />
-            {errors.fileUrl && (
-              <p className="text-sm text-red-600 mt-1">{errors.fileUrl.message}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-1">
-              Supabase Storage 또는 외부 URL을 입력하세요
-            </p>
-          </div>
-
-          {/* File Name */}
-          <div>
-            <Label htmlFor="fileName">파일명 *</Label>
-            <Input
-              id="fileName"
-              {...register('fileName')}
-              placeholder="사업계획서_템플릿.docx"
-              className="mt-1"
-            />
-            {errors.fileName && (
-              <p className="text-sm text-red-600 mt-1">{errors.fileName.message}</p>
-            )}
-          </div>
-
-          {/* File Size */}
-          <div>
-            <Label htmlFor="fileSize">파일 크기 (bytes)</Label>
-            <Input
-              id="fileSize"
-              type="number"
-              {...register('fileSize')}
-              placeholder="예: 1048576 (1MB)"
-              className="mt-1"
-            />
-            <p className="text-sm text-gray-500 mt-1">선택사항입니다</p>
           </div>
         </div>
 
