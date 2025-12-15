@@ -11,6 +11,9 @@ export interface VideoCategory {
   order: number;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    videos: number;
+  };
 }
 
 export interface EducationVideo {
@@ -316,6 +319,10 @@ export interface KnowHowCategory {
   id: string;
   name: string;
   description: string | null;
+  _count?: {
+    posts: number;
+    archives: number;
+  };
 }
 
 export interface KnowHowPost {

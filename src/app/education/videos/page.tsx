@@ -97,6 +97,9 @@ export default function VideosPage() {
                 onClick={() => setSelectedCategory(category.name)}
               >
                 {category.name}
+                {category._count && category._count.videos > 0 && (
+                  <span className="ml-1 text-xs opacity-70">({category._count.videos})</span>
+                )}
               </Badge>
             ))}
           </div>

@@ -3,30 +3,38 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Search, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useKnowHowPosts } from '@/hooks/useEducation';
+import { useKnowHowPosts, useKnowHowCategories } from '@/hooks/useEducation';
 import { KnowHowPostList } from '@/components/education/KnowHowPostList';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 /**
  * 노하우 커뮤니티 메인 페이지
  * - 전체/공지/이벤트 탭
- * - 카테고리 필터링
+ * - 카테고리 필터링 (Badge 형식)
  * - 검색 기능
  * - 게시글 목록 (KnowHowPostList)
  */
 export default function KnowHowCommunityPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [selectedTab, setSelectedTab] = useState<'all' | 'announcement' | 'event'>('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
   const limit = 20;
+
+  // 카테고리 목록 조회
+  const { data: categoriesData } = useKnowHowCategories();
+  const categories = categoriesData?.data || [];
 
   // 전체 게시글
   const { data: allPosts, isLoading: allLoading } = useKnowHowPosts({
     search: searchQuery,
+    categoryId: selectedCategoryId,
     page,
     limit,
   });
@@ -35,6 +43,7 @@ export default function KnowHowCommunityPage() {
   const { data: announcements, isLoading: announcementsLoading } = useKnowHowPosts({
     isAnnouncement: true,
     search: searchQuery,
+    categoryId: selectedCategoryId,
     page,
     limit,
   });
@@ -43,9 +52,29 @@ export default function KnowHowCommunityPage() {
   const { data: events, isLoading: eventsLoading } = useKnowHowPosts({
     isEvent: true,
     search: searchQuery,
+    categoryId: selectedCategoryId,
     page,
     limit,
   });
+
+  // 검색 실행
+  const handleSearch = () => {
+    setSearchQuery(searchInput);
+    setPage(1);
+  };
+
+  // 엔터 키 검색
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  // 카테고리 필터 변경
+  const handleCategoryChange = (categoryId: string | undefined) => {
+    setSelectedCategoryId(categoryId);
+    setPage(1);
+  };
 
   return (
     <AppLayout>
@@ -86,17 +115,48 @@ export default function KnowHowCommunityPage() {
           </TabsList>
 
           {/* 검색 및 필터 */}
-          <div className="flex flex-col sm:flex-row gap-4 my-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                placeholder="제목, 내용 검색..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
+          <div className="my-6 space-y-4">
+            {/* 검색창 */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="제목, 내용 검색..."
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="pl-10"
+                />
+              </div>
+              <Button onClick={handleSearch} className="bg-[#0052CC] hover:bg-[#0052CC]/90">
+                검색
+              </Button>
             </div>
-            {/* TODO: 카테고리 필터 추가 */}
+
+            {/* 카테고리 필터 (Badge 형식) */}
+            <div className="flex flex-wrap gap-2">
+              <Badge
+                variant={selectedCategoryId === undefined ? 'default' : 'outline'}
+                className={`cursor-pointer ${selectedCategoryId === undefined ? 'bg-[#0052CC]' : ''}`}
+                onClick={() => handleCategoryChange(undefined)}
+              >
+                전체
+              </Badge>
+              {categories.map(category => (
+                <Badge
+                  key={category.id}
+                  variant={selectedCategoryId === category.id ? 'default' : 'outline'}
+                  className={`cursor-pointer ${selectedCategoryId === category.id ? 'bg-[#0052CC]' : ''}`}
+                  onClick={() => handleCategoryChange(category.id)}
+                >
+                  {category.name}
+                  {category._count && category._count.posts > 0 && (
+                    <span className="ml-1 text-xs opacity-70">({category._count.posts})</span>
+                  )}
+                </Badge>
+              ))}
+            </div>
           </div>
 
           {/* 게시글 목록 - 전체 */}

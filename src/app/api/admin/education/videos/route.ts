@@ -67,13 +67,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. 비디오 생성 (category는 TEXT 필드이므로 카테고리 이름 저장)
+    // 4. 비디오 생성 (categoryId + category 이름 모두 저장)
     const { data: video, error: createError } = await supabase
       .from('education_videos')
       .insert({
         title: validatedData.title,
         description: validatedData.description,
-        category: category.name, // 카테고리 이름 저장
+        categoryId: validatedData.categoryId, // FK 연결
+        category: category.name, // 카테고리 이름 저장 (조회 편의용)
         videoUrl: validatedData.videoUrl,
         videoType: validatedData.videoType,
         thumbnailUrl: validatedData.thumbnailUrl,

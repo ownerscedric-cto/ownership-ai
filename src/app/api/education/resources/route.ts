@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const filters = resourceFilterSchema.parse(searchParams);
 
-    const { page, limit, sortBy, sortOrder, type, search, videoId, categoryId } = filters;
+    const { page, limit, sortBy, sortOrder, search, videoId, categoryId } = filters;
     const supabase = await createClient();
 
     // 카테고리 정보를 포함하여 조회
@@ -20,9 +20,6 @@ export async function GET(request: NextRequest) {
       .select('*, category:resource_categories(id, name)', { count: 'exact' });
 
     // WHERE 조건
-    if (type) {
-      query = query.eq('type', type);
-    }
     if (categoryId) {
       query = query.eq('categoryId', categoryId);
     }
@@ -112,13 +109,12 @@ export async function POST(request: NextRequest) {
       .insert({
         title: validated.title,
         description: validated.description,
-        type: validated.type,
+        categoryId: validated.categoryId,
         fileUrl: validated.fileUrl,
         fileName: validated.fileName,
         fileSize: validated.fileSize,
         tags: validated.tags || [],
         videoId: validated.videoId || null,
-        categoryId: validated.categoryId || null,
       })
       .select('*, category:resource_categories(id, name)')
       .single();

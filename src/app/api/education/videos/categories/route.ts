@@ -30,9 +30,26 @@ export async function GET() {
       );
     }
 
+    // 각 카테고리별 비디오 개수 조회
+    const categoriesWithCount = await Promise.all(
+      (categories || []).map(async category => {
+        const { count } = await supabase
+          .from('education_videos')
+          .select('*', { count: 'exact', head: true })
+          .eq('categoryId', category.id);
+
+        return {
+          ...category,
+          _count: {
+            videos: count || 0,
+          },
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: categories || [],
+      data: categoriesWithCount,
     });
   } catch (error) {
     console.error('GET /api/education/videos/categories error:', error);

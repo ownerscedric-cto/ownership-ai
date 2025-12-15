@@ -252,9 +252,9 @@ export const createResourceSchema = z.object({
   // 기본 정보 (필수)
   title: z.string().min(1, '제목은 필수입니다').max(200, '제목은 200자 이하여야 합니다'),
   description: z.string().max(1000, '설명은 1000자 이하여야 합니다').nullable().optional(),
-  type: z.enum(['template', 'checklist', 'document'], {
-    message: '유효한 자료 타입을 선택해주세요',
-  }),
+
+  // 카테고리 연결 (필수)
+  categoryId: z.string().min(1, '카테고리를 선택해주세요'),
 
   // 파일 정보 (필수)
   fileUrl: z.string().url('올바른 URL 형식이 아닙니다'),
@@ -266,22 +266,18 @@ export const createResourceSchema = z.object({
 
   // 비디오 연결 (선택)
   videoId: z.string().uuid().nullable().optional(), // 연결된 비디오 ID
-
-  // 카테고리 연결 (선택)
-  categoryId: z.string().uuid().nullable().optional(), // 연결된 카테고리 ID
 });
 
 // 자료 수정 스키마
 export const updateResourceSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(1000).optional(),
-  type: z.enum(['template', 'checklist', 'document']).optional(),
   fileUrl: z.string().url().optional(),
   fileName: z.string().min(1).optional(),
   fileSize: z.number().int().positive().optional(),
   tags: z.array(z.string()).optional(),
   videoId: z.string().uuid().nullable().optional(), // 연결된 비디오 ID
-  categoryId: z.string().uuid().nullable().optional(), // 연결된 카테고리 ID
+  categoryId: z.string().min(1).optional(), // 연결된 카테고리 ID (필수)
 });
 
 // 자료 필터링 스키마
@@ -295,8 +291,7 @@ export const resourceFilterSchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 
   // 필터링
-  type: z.enum(['template', 'checklist', 'document']).optional(),
-  categoryId: z.string().uuid().optional(), // 카테고리 ID로 필터링
+  categoryId: z.string().optional(), // 카테고리 ID로 필터링
   search: z.string().optional(), // 제목, 설명, 태그 검색
   videoId: z.string().uuid().optional(), // 연결된 비디오 ID로 필터링
 });

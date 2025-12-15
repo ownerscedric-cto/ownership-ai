@@ -31,6 +31,9 @@ export interface VideoCategory {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    videos: number;
+  };
 }
 
 /**
@@ -60,6 +63,10 @@ export interface KnowHowCategory {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    posts: number;
+    archives: number;
+  };
 }
 
 /**

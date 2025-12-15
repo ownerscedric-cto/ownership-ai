@@ -22,7 +22,32 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    return successResponse(categories || []);
+    // 각 카테고리별 개수 조회 (커뮤니티 게시글 + 아카이브)
+    const categoriesWithCount = await Promise.all(
+      (categories || []).map(async category => {
+        // 커뮤니티 게시글 개수 (knowhow_posts)
+        const { count: postsCount } = await supabase
+          .from('knowhow_posts')
+          .select('*', { count: 'exact', head: true })
+          .eq('categoryId', category.id);
+
+        // 아카이브 개수 (knowhow)
+        const { count: archiveCount } = await supabase
+          .from('knowhow')
+          .select('*', { count: 'exact', head: true })
+          .eq('categoryId', category.id);
+
+        return {
+          ...category,
+          _count: {
+            posts: postsCount || 0,
+            archives: archiveCount || 0,
+          },
+        };
+      })
+    );
+
+    return successResponse(categoriesWithCount);
   } catch (error) {
     console.error('KnowHow category list error:', error);
     return errorResponse(

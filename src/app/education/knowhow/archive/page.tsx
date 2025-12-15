@@ -101,6 +101,9 @@ export default function KnowHowPage() {
                 onClick={() => setSelectedCategory(category.id)}
               >
                 {category.name}
+                {category._count && category._count.archives > 0 && (
+                  <span className="ml-1 text-xs opacity-70">({category._count.archives})</span>
+                )}
               </Badge>
             ))}
           </div>

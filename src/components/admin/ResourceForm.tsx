@@ -30,11 +30,17 @@ interface Resource {
   fileSize: number | null;
   tags: string[];
   videoId: string | null;
+  categoryId: string | null;
 }
 
 interface Video {
   id: string;
   title: string;
+}
+
+interface ResourceCategory {
+  id: string;
+  name: string;
 }
 
 /**
@@ -43,7 +49,7 @@ interface Video {
 const resourceFormSchema = z.object({
   title: z.string().min(1, { message: '제목을 입력해주세요' }),
   description: z.string().optional(),
-  type: z.enum(['template', 'checklist', 'document']),
+  categoryId: z.string().min(1, { message: '카테고리를 선택해주세요' }),
   fileUrl: z.string().min(1, { message: '파일을 업로드하거나 URL을 입력해주세요' }),
   fileName: z.string().min(1, { message: '파일명을 입력해주세요' }),
   fileSize: z.string().optional().or(z.literal('')),
@@ -69,6 +75,8 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(true);
+  const [categories, setCategories] = useState<ResourceCategory[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   // File upload states
   const [isUploading, setIsUploading] = useState(false);
@@ -82,6 +90,25 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
       : null
   );
   const [isDragging, setIsDragging] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch('/api/admin/education/resource-categories');
+        const json = await res.json();
+        if (json.success) {
+          setCategories(json.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        toast.error('카테고리 목록을 불러오지 못했습니다.');
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    }
+    fetchCategories();
+  }, []);
 
   // Fetch videos for linking
   useEffect(() => {
@@ -114,7 +141,7 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
         ? {
             title: resource.title,
             description: resource.description || '',
-            type: resource.type as 'template' | 'checklist' | 'document',
+            categoryId: resource.categoryId || '',
             fileUrl: resource.fileUrl,
             fileName: resource.fileName,
             fileSize: resource.fileSize ? String(resource.fileSize) : '',
@@ -122,13 +149,13 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
             videoId: resource.videoId || '',
           }
         : {
-            type: 'document' as const,
+            categoryId: '',
             tags: '',
             videoId: '',
           },
   });
 
-  const resourceType = watch('type');
+  const categoryId = watch('categoryId');
   const videoId = watch('videoId');
 
   // File upload handler
@@ -270,7 +297,7 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
       const fileSizeNum = data.fileSize ? parseInt(data.fileSize, 10) : null;
       const payload: Record<string, unknown> = {
         title: data.title,
-        type: data.type,
+        categoryId: data.categoryId,
         fileUrl: data.fileUrl,
         fileName: data.fileName,
         tags: tagsArray,
@@ -449,24 +476,30 @@ export function ResourceForm({ mode, resource }: ResourceFormProps) {
             />
           </div>
 
-          {/* Type */}
+          {/* Category */}
           <div>
-            <Label htmlFor="type">자료 타입 *</Label>
+            <Label htmlFor="categoryId">카테고리 *</Label>
             <Select
-              value={resourceType}
-              onValueChange={value =>
-                setValue('type', value as 'template' | 'checklist' | 'document')
-              }
+              value={categoryId}
+              onValueChange={value => setValue('categoryId', value)}
+              disabled={isLoadingCategories}
             >
               <SelectTrigger className="mt-1">
-                <SelectValue />
+                <SelectValue
+                  placeholder={isLoadingCategories ? '로딩 중...' : '카테고리를 선택하세요'}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="template">템플릿</SelectItem>
-                <SelectItem value="checklist">체크리스트</SelectItem>
-                <SelectItem value="document">문서</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {errors.categoryId && (
+              <p className="text-sm text-red-600 mt-1">{errors.categoryId.message}</p>
+            )}
           </div>
         </div>
 
