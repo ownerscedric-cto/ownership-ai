@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Calendar, ArrowLeft } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { KnowHowArchiveComments } from '@/components/education/KnowHowArchiveComments';
 import { hasViewedContent, addViewedContentId } from '@/lib/cookies';
 import { formatRelativeTime } from '@/lib/utils/date';
 
@@ -136,6 +137,9 @@ export default function KnowHowArchiveDetailPage() {
             />
           </CardContent>
         </Card>
+
+        {/* 댓글 섹션 */}
+        <KnowHowArchiveComments archiveId={archiveId} />
       </div>
     </AppLayout>
   );

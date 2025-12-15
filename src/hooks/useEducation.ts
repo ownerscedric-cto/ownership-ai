@@ -672,3 +672,111 @@ export function useDeleteVideoComment(videoId: string) {
     },
   });
 }
+
+// ============================================
+// 노하우 아카이브 댓글 관련 Hooks
+// ============================================
+
+export interface KnowHowArchiveComment {
+  id: string;
+  content: string;
+  authorName: string;
+  userId: string;
+  archiveId: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  replies?: KnowHowArchiveComment[];
+}
+
+/**
+ * 아카이브 댓글 목록 조회
+ */
+export function useKnowHowArchiveComments(archiveId: string) {
+  return useQuery<DetailResponse<KnowHowArchiveComment[]>>({
+    queryKey: ['knowhowArchiveComments', archiveId],
+    queryFn: async () => {
+      const res = await fetch(`/api/education/knowhow/archive/${archiveId}/comments`);
+      if (!res.ok) throw new Error('Failed to fetch archive comments');
+      return res.json();
+    },
+    enabled: !!archiveId,
+  });
+}
+
+/**
+ * 아카이브 댓글 작성 (대댓글 지원)
+ */
+export function useCreateKnowHowArchiveComment(archiveId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { content: string; parentId?: string | null }) => {
+      const res = await fetch(`/api/education/knowhow/archive/${archiveId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to create comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowArchiveComments', archiveId] });
+    },
+  });
+}
+
+/**
+ * 아카이브 댓글 수정
+ */
+export function useUpdateKnowHowArchiveComment(archiveId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
+      const res = await fetch(`/api/education/knowhow/archive/${archiveId}/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to update comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowArchiveComments', archiveId] });
+    },
+  });
+}
+
+/**
+ * 아카이브 댓글 삭제
+ */
+export function useDeleteKnowHowArchiveComment(archiveId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      const res = await fetch(`/api/education/knowhow/archive/${archiveId}/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error?.message || 'Failed to delete comment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowhowArchiveComments', archiveId] });
+    },
+  });
+}
