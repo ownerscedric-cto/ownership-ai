@@ -30,6 +30,8 @@ export async function fetchPrograms(
   if (filters.targetAudience) params.append('targetAudience', filters.targetAudience);
   if (filters.targetLocation) params.append('targetLocation', filters.targetLocation);
   if (filters.keyword) params.append('keyword', filters.keyword);
+  // showActiveOnly는 기본값이 true이므로 false일 때만 전달
+  if (filters.showActiveOnly === false) params.append('showActiveOnly', 'false');
 
   const url = `/api/programs?${params.toString()}`;
   const response = await fetch(url);
@@ -61,6 +63,8 @@ export async function fetchProgramsWithMetadata(
   if (filters.targetAudience) params.append('targetAudience', filters.targetAudience);
   if (filters.targetLocation) params.append('targetLocation', filters.targetLocation);
   if (filters.keyword) params.append('keyword', filters.keyword);
+  // showActiveOnly는 기본값이 true이므로 false일 때만 전달
+  if (filters.showActiveOnly === false) params.append('showActiveOnly', 'false');
 
   const url = `/api/programs?${params.toString()}`;
   const response = await fetch(url);

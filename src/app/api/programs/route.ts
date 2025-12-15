@@ -21,12 +21,14 @@ import { createErrorResponse, logError } from '@/lib/utils/error-handler';
  * - targetAudience: 대상 업종 필터
  * - targetLocation: 대상 지역 필터
  * - keyword: 키워드 검색
+ * - showActiveOnly: 진행중인 공고만 표시 (기본: true)
  *
  * 핵심 기능:
  * - ⭐ 교차 정렬: registeredAt 기준 내림차순 정렬 (최신순)
  * - 출처별 분포 통계 포함
  * - 페이지네이션
  * - 필터링
+ * - 진행중인 공고만 필터링 (deadline 기반)
  *
  * 응답:
  * - success: true
@@ -45,6 +47,8 @@ export async function GET(request: NextRequest) {
     const targetAudience = searchParams.get('targetAudience');
     const targetLocation = searchParams.get('targetLocation');
     const keyword = searchParams.get('keyword');
+    // showActiveOnly: 'false'일 때만 false, 그 외에는 기본값 true
+    const showActiveOnly = searchParams.get('showActiveOnly') !== 'false';
 
     const supabase = await createClient();
 
@@ -75,6 +79,13 @@ export async function GET(request: NextRequest) {
 
     if (keyword) {
       query = query.or(`title.ilike.%${keyword}%,keywords.cs.{${keyword}}`);
+    }
+
+    // 진행중인 공고만 필터링 (deadline이 현재 시간 이후이거나 null인 경우)
+    if (showActiveOnly) {
+      const now = new Date().toISOString();
+      // deadline이 null이거나 현재 시간 이후인 경우만 표시
+      query = query.or(`deadline.is.null,deadline.gte.${now}`);
     }
 
     // ⭐ 교차 정렬: registeredAt 기준 내림차순 정렬 (최신순)

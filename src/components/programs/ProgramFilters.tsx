@@ -11,6 +11,8 @@ import { Search, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -107,6 +109,17 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
   };
 
   /**
+   * 진행중인 공고만 보기 필터 변경
+   */
+  const handleShowActiveOnlyChange = (checked: boolean) => {
+    onFiltersChange({
+      ...filters,
+      showActiveOnly: checked,
+      page: 1, // 필터 변경 시 첫 페이지로 이동
+    });
+  };
+
+  /**
    * 전체 필터 초기화
    */
   const handleResetFilters = () => {
@@ -114,11 +127,16 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
     onFiltersChange({
       page: 1,
       limit: filters.limit, // limit은 유지
+      showActiveOnly: true, // 진행중인 공고만 보기 기본값 유지
     });
   };
 
-  // 활성 필터 개수 계산
-  const activeFiltersCount = [filters.dataSource, filters.keyword].filter(Boolean).length;
+  // 활성 필터 개수 계산 (showActiveOnly는 기본값이 true이므로 false일 때만 활성 필터로 표시)
+  const activeFiltersCount = [
+    filters.dataSource,
+    filters.keyword,
+    filters.showActiveOnly === false ? 'inactive' : null,
+  ].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -149,13 +167,13 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
         </div>
       </div>
 
-      {/* 페이지당 개수 선택 + 키워드 검색 (한 줄로 배치) */}
+      {/* 페이지당 개수 선택 + 키워드 검색 + 진행중인 공고만 보기 */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
           <Search className="w-4 h-4" />
           검색 및 필터
         </h3>
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap gap-2 items-center">
           {/* 페이지당 개수 Select */}
           <Select
             value={(filters.limit || 50).toString()}
@@ -204,6 +222,21 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
             <span className="hidden sm:inline">검색</span>
           </Button>
         </form>
+
+        {/* 진행중인 공고만 보기 체크박스 - 검색창 아래 별도 영역 */}
+        <div className="flex items-center gap-2 mt-2">
+          <Checkbox
+            id="show-active-only"
+            checked={filters.showActiveOnly !== false}
+            onCheckedChange={handleShowActiveOnlyChange}
+          />
+          <Label
+            htmlFor="show-active-only"
+            className="text-sm font-medium text-gray-700 cursor-pointer whitespace-nowrap"
+          >
+            진행중인 공고만 보기
+          </Label>
+        </div>
       </div>
 
       {/* 활성 필터 표시 및 초기화 */}

@@ -42,6 +42,7 @@ export interface ProgramFilters {
   targetAudience?: string;
   targetLocation?: string;
   keyword?: string;
+  showActiveOnly?: boolean;
 }
 
 /**
