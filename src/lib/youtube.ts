@@ -30,7 +30,8 @@ export function getYouTubeThumbnail(videoId: string): string {
 }
 
 /**
- * Fetch YouTube video metadata using oEmbed API
+ * Fetch YouTube video metadata using oEmbed API (no API key required)
+ * Note: oEmbed API does NOT provide duration
  */
 export async function fetchYouTubeMetadata(url: string): Promise<{
   title: string;
@@ -64,6 +65,80 @@ export async function fetchYouTubeMetadata(url: string): Promise<{
     console.error('Failed to fetch YouTube metadata:', error);
     return null;
   }
+}
+
+/**
+ * YouTube Data API response types
+ */
+interface YouTubeVideoItem {
+  snippet: {
+    title: string;
+    description: string;
+    thumbnails: {
+      maxres?: { url: string };
+      high?: { url: string };
+      medium?: { url: string };
+      default?: { url: string };
+    };
+    channelTitle: string;
+  };
+  contentDetails: {
+    duration: string; // ISO 8601 duration format (e.g., PT1H2M10S)
+  };
+}
+
+interface YouTubeAPIResponse {
+  items: YouTubeVideoItem[];
+}
+
+/**
+ * Fetch YouTube video duration using YouTube Data API v3
+ * Requires NEXT_PUBLIC_YOUTUBE_API_KEY environment variable
+ *
+ * @param url YouTube video URL
+ * @returns Duration in seconds, or null if not available
+ */
+export async function fetchYouTubeDuration(url: string): Promise<number | null> {
+  try {
+    const videoId = extractYouTubeVideoId(url);
+    if (!videoId) {
+      return null;
+    }
+
+    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+    if (!apiKey) {
+      console.warn('YouTube API key not configured (NEXT_PUBLIC_YOUTUBE_API_KEY)');
+      return null;
+    }
+
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=contentDetails&key=${apiKey}`;
+
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      console.error('YouTube Data API error:', response.status);
+      return null;
+    }
+
+    const data: YouTubeAPIResponse = await response.json();
+
+    if (!data.items || data.items.length === 0) {
+      return null;
+    }
+
+    const duration = data.items[0].contentDetails.duration;
+    return parseISO8601Duration(duration);
+  } catch (error) {
+    console.error('Failed to fetch YouTube duration:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if YouTube Data API is available (API key configured)
+ */
+export function isYouTubeDataAPIAvailable(): boolean {
+  return !!process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 }
 
 /**

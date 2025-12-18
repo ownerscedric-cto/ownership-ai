@@ -17,9 +17,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Sparkles, Upload, X, FileText } from 'lucide-react';
+import { Loader2, Sparkles, Upload, X, FileText, Clock } from 'lucide-react';
 import type { EducationVideo } from '@/lib/types/education';
-import { fetchYouTubeMetadata } from '@/lib/youtube';
+import {
+  fetchYouTubeMetadata,
+  fetchYouTubeDuration,
+  isYouTubeDataAPIAvailable,
+} from '@/lib/youtube';
 import { createClient } from '@/lib/supabase/client';
 
 interface VideoCategory {
@@ -70,8 +74,12 @@ export function VideoForm({ mode, video }: VideoFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [isFetchingDuration, setIsFetchingDuration] = useState(false);
   const [categories, setCategories] = useState<VideoCategory[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+  // Check if YouTube Data API is available (has API key)
+  const youtubeAPIAvailable = isYouTubeDataAPIAvailable();
 
   // Resource upload states
   const [resourceCategories, setResourceCategories] = useState<ResourceCategory[]>([]);
@@ -312,6 +320,52 @@ export function VideoForm({ mode, video }: VideoFormProps) {
     }
   };
 
+  /**
+   * Fetch YouTube duration using YouTube Data API v3 (optional)
+   */
+  const handleFetchDuration = async () => {
+    if (!videoUrl || videoType !== 'youtube') {
+      toast.error('YouTube URL을 먼저 입력해주세요.');
+      return;
+    }
+
+    if (!youtubeAPIAvailable) {
+      toast.error('YouTube API 키가 설정되지 않았습니다.', {
+        description: 'NEXT_PUBLIC_YOUTUBE_API_KEY 환경변수를 설정해주세요.',
+      });
+      return;
+    }
+
+    setIsFetchingDuration(true);
+
+    try {
+      const duration = await fetchYouTubeDuration(videoUrl);
+
+      if (duration === null) {
+        toast.error('재생시간을 가져올 수 없습니다.', {
+          description: 'URL을 확인하거나 API 키를 확인해주세요.',
+        });
+        return;
+      }
+
+      setValue('duration', String(duration));
+
+      // Format duration for display
+      const minutes = Math.floor(duration / 60);
+      const seconds = duration % 60;
+      const formatted = minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
+
+      toast.success('재생시간을 가져왔습니다!', {
+        description: `${formatted} (${duration}초)`,
+      });
+    } catch (error) {
+      console.error('Fetch duration error:', error);
+      toast.error('재생시간을 가져오는 중 오류가 발생했습니다.');
+    } finally {
+      setIsFetchingDuration(false);
+    }
+  };
+
   const onSubmit = async (data: VideoFormData) => {
     setIsSubmitting(true);
 
@@ -544,15 +598,43 @@ export function VideoForm({ mode, video }: VideoFormProps) {
           {/* Duration */}
           <div>
             <Label htmlFor="duration">재생시간 (초)</Label>
-            <Input
-              id="duration"
-              type="number"
-              {...register('duration')}
-              placeholder="예: 180 (선택사항)"
-              className="mt-1"
-            />
+            <div className="flex gap-2 mt-1">
+              <Input
+                id="duration"
+                type="number"
+                {...register('duration')}
+                placeholder="예: 180 (선택사항)"
+                className="flex-1"
+              />
+              {videoType === 'youtube' && youtubeAPIAvailable && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleFetchDuration}
+                  disabled={isFetchingDuration || !videoUrl}
+                  className="whitespace-nowrap"
+                >
+                  {isFetchingDuration ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      가져오는 중...
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-4 h-4 mr-2" />
+                      재생시간 가져오기
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
             {errors.duration && (
               <p className="text-sm text-red-600 mt-1">{errors.duration.message}</p>
+            )}
+            {videoType === 'youtube' && !youtubeAPIAvailable && (
+              <p className="text-sm text-gray-500 mt-1">
+                💡 NEXT_PUBLIC_YOUTUBE_API_KEY를 설정하면 재생시간을 자동으로 가져올 수 있습니다.
+              </p>
             )}
           </div>
 
