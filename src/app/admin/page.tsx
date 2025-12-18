@@ -9,6 +9,18 @@ export default async function AdminDashboardPage() {
   // 통계 데이터 수집 (순차 실행으로 connection pool 타임아웃 방지)
   const usersResult = await supabaseAdmin.auth.admin.listUsers();
 
+  // 역할별 사용자 수 조회 (user_roles + roles 테이블 기반)
+  const { data: roleStats } = await supabaseAdmin
+    .from('roles')
+    .select(
+      `
+      name,
+      "displayName",
+      user_roles(count)
+    `
+    )
+    .order('order');
+
   // Supabase count queries
   const { count: videosCount } = await supabaseAdmin
     .from('education_videos')
@@ -27,12 +39,31 @@ export default async function AdminDashboardPage() {
     .select('*', { count: 'exact', head: true });
 
   const users = usersResult.data.users || [];
+
+  // 역할별 사용자 수 계산 (동적으로 모든 역할 표시)
+  const roleCountList: { name: string; displayName: string; count: number }[] = [];
+  let assignedUserCount = 0;
+
+  if (roleStats) {
+    for (const role of roleStats) {
+      const userRolesData = role.user_roles as { count: number }[] | undefined;
+      const count = userRolesData?.[0]?.count || 0;
+      roleCountList.push({
+        name: role.name,
+        displayName: role.displayName,
+        count,
+      });
+      assignedUserCount += count;
+    }
+  }
+
+  // 역할이 없는 사용자 수 (user_roles에 등록되지 않은 사용자)
+  const unassignedUserCount = users.length - assignedUserCount;
+
   const stats = {
     totalUsers: users.length,
-    adminUsers: users.filter(u => u.app_metadata?.role === 'admin').length,
-    consultantUsers: users.filter(
-      u => !u.app_metadata?.role || u.app_metadata?.role === 'consultant'
-    ).length,
+    roleCountList,
+    unassignedUserCount,
     videosCount: videosCount || 0,
     knowhowCount: knowhowCount || 0,
     resourcesCount: resourcesCount || 0,
@@ -57,9 +88,16 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-gray-900">{stats.totalUsers}</div>
-            <p className="text-xs text-gray-500 mt-2">
-              관리자: {stats.adminUsers} / 컨설턴트: {stats.consultantUsers}
-            </p>
+            <div className="text-xs text-gray-500 mt-2 space-y-0.5">
+              {stats.roleCountList.map(role => (
+                <p key={role.name}>
+                  {role.displayName}: {role.count}
+                </p>
+              ))}
+              {stats.unassignedUserCount > 0 && (
+                <p className="text-gray-400">미지정: {stats.unassignedUserCount}</p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
