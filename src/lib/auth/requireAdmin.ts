@@ -1,6 +1,6 @@
 /**
  * @file requireAdmin.ts
- * @description Admin role verification middleware for API routes
+ * @description Admin role verification middleware for API routes (DB-based)
  *
  * 사용법:
  * ```typescript
@@ -20,6 +20,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getUserRole } from '@/lib/auth/roles';
 import type { User } from '@supabase/supabase-js';
 
 interface RequireAdminSuccess {
@@ -35,7 +36,7 @@ interface RequireAdminError {
 type RequireAdminResult = RequireAdminSuccess | RequireAdminError;
 
 /**
- * Require admin role for API route access
+ * Require admin role for API route access (DB-based)
  *
  * @param request - Next.js request object
  * @returns Success with user object, or error response (401/403)
@@ -66,10 +67,11 @@ export async function requireAdmin(_request: NextRequest): Promise<RequireAdminR
       };
     }
 
-    // 3. Check admin role in app_metadata
-    const role = user.app_metadata?.role || 'consultant';
+    // 3. Check admin role from DB (user_roles table)
+    const userRoleInfo = await getUserRole(user.id);
+    const isAdminRole = userRoleInfo.role.name === 'admin';
 
-    if (role !== 'admin') {
+    if (!isAdminRole) {
       return {
         success: false,
         response: NextResponse.json(
@@ -78,7 +80,7 @@ export async function requireAdmin(_request: NextRequest): Promise<RequireAdminR
             error: {
               code: 'FORBIDDEN',
               message: 'Admin access required',
-              details: `Current role: ${role}`,
+              details: `Current role: ${userRoleInfo.role.name}`,
             },
           },
           { status: 403 }
@@ -112,7 +114,7 @@ export async function requireAdmin(_request: NextRequest): Promise<RequireAdminR
 }
 
 /**
- * Check if current user is admin (without throwing errors)
+ * Check if current user is admin (without throwing errors) (DB-based)
  *
  * @returns true if user is admin, false otherwise
  */
@@ -128,8 +130,8 @@ export async function isAdmin(): Promise<boolean> {
       return false;
     }
 
-    const role = user.app_metadata?.role || 'consultant';
-    return role === 'admin';
+    const userRoleInfo = await getUserRole(user.id);
+    return userRoleInfo.role.name === 'admin';
   } catch (error) {
     console.error('isAdmin check error:', error);
     return false;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getUserRole } from '@/lib/auth/roles';
 
 /**
  * POST /api/admin/test/make-admin - 현재 사용자를 관리자로 설정 (테스트용)
@@ -8,6 +9,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
  * ⚠️ 이 엔드포인트는 개발/테스트 용도입니다.
  * 프로덕션에서는 Supabase Dashboard에서 직접 role을 설정하거나,
  * 별도의 관리자 승인 프로세스를 구현해야 합니다.
+ *
+ * 역할 관리: DB user_roles 테이블 기반
  */
 export async function POST(_request: NextRequest) {
   try {
@@ -28,43 +31,67 @@ export async function POST(_request: NextRequest) {
       );
     }
 
-    // 2. Supabase Admin API로 app_metadata 업데이트
-    const { data: updatedUser, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      user.id,
-      {
-        app_metadata: {
-          role: 'admin',
-        },
-      }
-    );
+    // 2. 현재 역할 조회 (DB 기반)
+    const currentRoleInfo = await getUserRole(user.id);
+    const previousRole = currentRoleInfo.role.name;
 
-    if (updateError) {
+    // 3. admin 역할 ID 조회
+    const { data: adminRole, error: roleError } = await supabaseAdmin
+      .from('roles')
+      .select('id, name, displayName')
+      .eq('name', 'admin')
+      .single();
+
+    if (roleError || !adminRole) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to update user role',
-          details: updateError.message,
+          error: 'Admin role not found in database',
         },
         { status: 500 }
       );
     }
 
-    // 3. 성공 응답
+    // 4. user_roles 테이블에 admin 역할 할당 (upsert)
+    const { error: upsertError } = await supabaseAdmin.from('user_roles').upsert(
+      {
+        userId: user.id,
+        roleId: adminRole.id,
+        assignedBy: user.id, // 자신이 할당
+        assignedAt: new Date().toISOString(),
+      },
+      {
+        onConflict: 'userId',
+      }
+    );
+
+    if (upsertError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to update user role in database',
+          details: upsertError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    // 5. 성공 응답
     return NextResponse.json({
       success: true,
       message: '✅ 관리자 권한이 부여되었습니다!',
       data: {
         userId: user.id,
         email: user.email,
-        previousRole: user.app_metadata?.role || 'consultant',
+        previousRole,
         newRole: 'admin',
-        updatedUser: {
-          id: updatedUser.user.id,
-          email: updatedUser.user.email,
-          app_metadata: updatedUser.user.app_metadata,
+        roleInfo: {
+          id: adminRole.id,
+          name: adminRole.name,
+          displayName: adminRole.displayName,
         },
       },
-      note: '변경사항을 적용하려면 로그아웃 후 다시 로그인하세요.',
+      note: '변경사항이 즉시 적용됩니다. (DB 기반 역할 관리)',
     });
   } catch (error) {
     console.error('POST /api/admin/test/make-admin error:', error);

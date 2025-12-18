@@ -33,7 +33,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 // PATCH /api/education/resources/[id] - 자료 수정 (관리자 전용)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // 관리자 권한 체크 (app_metadata.role 기반)
+    // 관리자 권한 체크 (DB user_roles 테이블 기반)
     const authResult = await requireAdmin(request);
     if (!authResult.success) {
       return authResult.response;
@@ -103,7 +103,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 관리자 권한 체크 (app_metadata.role 기반)
+    // 관리자 권한 체크 (DB user_roles 테이블 기반)
     const authResult = await requireAdmin(request);
     if (!authResult.success) {
       return authResult.response;
