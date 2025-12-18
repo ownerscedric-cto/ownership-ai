@@ -90,12 +90,26 @@ export default async function AdminUsersPage() {
     };
   });
 
-  // Calculate stats by role
+  // Calculate stats by role (동적으로 모든 역할 집계)
+  const roleStats: { name: string; displayName: string; count: number }[] = [];
+  if (roles) {
+    for (const role of roles) {
+      roleStats.push({
+        name: role.name,
+        displayName: role.displayName,
+        count: usersData.filter(u => u.role.name === role.name).length,
+      });
+    }
+  }
+
+  // 미지정 사용자 (역할이 할당되지 않은 경우)
+  const assignedCount = roleStats.reduce((sum, r) => sum + r.count, 0);
+  const unassignedCount = usersData.length - assignedCount;
+
   const stats = {
     total: usersData.length,
-    admin: usersData.filter(u => u.role.name === 'admin').length,
-    premium: usersData.filter(u => u.role.name === 'premium').length,
-    consultant: usersData.filter(u => u.role.name === 'consultant').length,
+    roleStats,
+    unassignedCount,
   };
 
   return (
@@ -106,8 +120,14 @@ export default async function AdminUsersPage() {
         <p className="text-gray-600 mt-2">전체 사용자 목록 및 역할 관리</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Stats - 동적 역할 기반 */}
+      <div
+        className="grid gap-6"
+        style={{
+          gridTemplateColumns: `repeat(${Math.min(stats.roleStats.length + 1 + (stats.unassignedCount > 0 ? 1 : 0), 5)}, minmax(0, 1fr))`,
+        }}
+      >
+        {/* 전체 사용자 */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -118,35 +138,52 @@ export default async function AdminUsersPage() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">관리자</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.admin}</p>
-            </div>
-            <Shield className="w-10 h-10 text-purple-600" />
-          </div>
-        </div>
+        {/* 역할별 통계 - 동적 렌더링 */}
+        {stats.roleStats.map((role, index) => {
+          // 역할별 아이콘 및 색상 (순서 기반 또는 이름 기반)
+          const iconColors = [
+            'text-purple-600',
+            'text-amber-500',
+            'text-green-600',
+            'text-blue-500',
+            'text-pink-500',
+          ];
+          const color = iconColors[index % iconColors.length];
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">프리미엄</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.premium}</p>
+          return (
+            <div
+              key={role.name}
+              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">{role.displayName}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">{role.count}</p>
+                </div>
+                {role.name === 'admin' ? (
+                  <Shield className={`w-10 h-10 ${color}`} />
+                ) : role.name === 'premium' ? (
+                  <Star className={`w-10 h-10 ${color}`} />
+                ) : (
+                  <Users className={`w-10 h-10 ${color}`} />
+                )}
+              </div>
             </div>
-            <Star className="w-10 h-10 text-amber-500" />
-          </div>
-        </div>
+          );
+        })}
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">컨설턴트</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.consultant}</p>
+        {/* 미지정 사용자 */}
+        {stats.unassignedCount > 0 && (
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">미지정</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.unassignedCount}</p>
+              </div>
+              <Users className="w-10 h-10 text-gray-400" />
             </div>
-            <Users className="w-10 h-10 text-green-600" />
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tabs: 회원 목록 + 업그레이드 문의 */}
