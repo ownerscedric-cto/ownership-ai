@@ -62,12 +62,12 @@ export async function incrementEducationVideoViewCount(videoId: string): Promise
   if (viewedIds.includes(videoId)) {
     const { data: video } = await supabase
       .from('education_videos')
-      .select('view_count')
+      .select('viewCount')
       .eq('id', videoId)
       .single();
 
     return {
-      viewCount: video?.view_count ?? 0,
+      viewCount: video?.viewCount ?? 0,
       incremented: false,
     };
   }
@@ -75,23 +75,23 @@ export async function incrementEducationVideoViewCount(videoId: string): Promise
   // 현재 조회수 가져오기
   const { data: currentVideo } = await supabase
     .from('education_videos')
-    .select('view_count')
+    .select('viewCount')
     .eq('id', videoId)
     .single();
 
   // 조회수 증가
   const { data: updatedVideo } = await supabase
     .from('education_videos')
-    .update({ view_count: (currentVideo?.view_count ?? 0) + 1 })
+    .update({ viewCount: (currentVideo?.viewCount ?? 0) + 1 })
     .eq('id', videoId)
-    .select('view_count')
+    .select('viewCount')
     .single();
 
   // 쿠키에 추가
   await addViewedContentId(cookieName, videoId);
 
   return {
-    viewCount: updatedVideo?.view_count ?? 0,
+    viewCount: updatedVideo?.viewCount ?? 0,
     incremented: true,
   };
 }
@@ -156,12 +156,12 @@ export async function incrementKnowHowViewCount(knowhowId: string): Promise<View
   if (viewedIds.includes(knowhowId)) {
     const { data: knowhow } = await supabase
       .from('knowhow')
-      .select('view_count')
+      .select('viewCount')
       .eq('id', knowhowId)
       .single();
 
     return {
-      viewCount: knowhow?.view_count ?? 0,
+      viewCount: knowhow?.viewCount ?? 0,
       incremented: false,
     };
   }
@@ -169,23 +169,23 @@ export async function incrementKnowHowViewCount(knowhowId: string): Promise<View
   // 현재 조회수 가져오기
   const { data: currentKnowHow } = await supabase
     .from('knowhow')
-    .select('view_count')
+    .select('viewCount')
     .eq('id', knowhowId)
     .single();
 
   // 조회수 증가
   const { data: updatedKnowHow } = await supabase
     .from('knowhow')
-    .update({ view_count: (currentKnowHow?.view_count ?? 0) + 1 })
+    .update({ viewCount: (currentKnowHow?.viewCount ?? 0) + 1 })
     .eq('id', knowhowId)
-    .select('view_count')
+    .select('viewCount')
     .single();
 
   // 쿠키에 추가
   await addViewedContentId(cookieName, knowhowId);
 
   return {
-    viewCount: updatedKnowHow?.view_count ?? 0,
+    viewCount: updatedKnowHow?.viewCount ?? 0,
     incremented: true,
   };
 }

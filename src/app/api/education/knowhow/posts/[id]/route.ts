@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // 2. 댓글 수 조회
     const { count: commentsCount } = await supabase
-      .from('knowhow_post_comments')
+      .from('knowhow_comments')
       .select('*', { count: 'exact', head: true })
       .eq('postId', id);
 

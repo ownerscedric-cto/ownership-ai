@@ -145,7 +145,7 @@ export function useIncrementVideoViewCount() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/education/videos/${id}`, {
+      const res = await fetch(`/api/education/videos/${id}/view`, {
         method: 'PATCH',
       });
       if (!res.ok) throw new Error('Failed to increment view count');
