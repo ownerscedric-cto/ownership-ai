@@ -3,21 +3,27 @@
  * @description 날짜/시간 유틸리티 함수 (한국 시간 KST 변환)
  *
  * Supabase는 UTC로 저장하므로, 클라이언트에서 표시할 때 KST(UTC+9)로 변환
+ * JavaScript Date는 브라우저의 로컬 타임존을 자동으로 적용하므로,
+ * 한국(KST)에서 실행 시 추가 변환이 필요 없음
  */
 
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
+
+const KOREA_TIMEZONE = 'Asia/Seoul';
 
 /**
  * UTC 시간을 KST(한국 시간)로 변환
+ * date-fns-tz를 사용하여 정확한 타임존 변환
  *
  * @param date - UTC 날짜 문자열 또는 Date 객체
  * @returns KST Date 객체
  */
 export function toKST(date: string | Date): Date {
-  const utcDate = typeof date === 'string' ? parseISO(date) : date;
-  // UTC 시간에 9시간 추가 (KST = UTC+9)
-  return new Date(utcDate.getTime() + 9 * 60 * 60 * 1000);
+  const parsedDate = typeof date === 'string' ? parseISO(date) : date;
+  // date-fns-tz를 사용하여 KST 타임존으로 변환
+  return toZonedTime(parsedDate, KOREA_TIMEZONE);
 }
 
 /**

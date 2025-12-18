@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { getUserRole } from '@/lib/auth/roles';
 
 /**
  * Admin Layout
  * - Dark sidebar navigation
- * - Admin role verification (server-side)
+ * - Admin role verification (server-side, DB-based)
  * - Redirect to home if not admin
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,9 +21,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/auth/login?redirect=/admin');
   }
 
-  const role = user.app_metadata?.role || 'consultant';
+  // DB 기반 역할 체크 (user_roles 테이블)
+  const userRoleInfo = await getUserRole(user.id);
+  const isAdmin = userRoleInfo.role.name === 'admin';
 
-  if (role !== 'admin') {
+  if (!isAdmin) {
     redirect('/'); // Redirect non-admin users to home
   }
 
