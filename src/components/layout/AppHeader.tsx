@@ -3,10 +3,11 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/common/Button';
-import { LogOut, User, Home, Users, FileText, GraduationCap } from 'lucide-react';
+import { LogOut, User, Home, Users, FileText, GraduationCap, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useIsAdmin } from '@/hooks/useRoles';
 
 interface AppHeaderProps {
   user: SupabaseUser | null;
@@ -16,6 +17,7 @@ export function AppHeader({ user }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { isAdmin } = useIsAdmin();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -100,6 +102,14 @@ export function AppHeader({ user }: AppHeaderProps) {
               <User className="w-5 h-5 text-[var(--text-secondary)]" />
               <span className="text-[var(--text-primary)] font-medium">{userName}</span>
             </div>
+            {isAdmin && (
+              <Link href="/admin">
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">관리자</span>
+                </Button>
+              </Link>
+            )}
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">로그아웃</span>
