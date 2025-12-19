@@ -9,12 +9,24 @@ export async function GET(request: Request) {
   const type = searchParams.get('type') as EmailOtpType | null;
   const next = searchParams.get('next') ?? '/dashboard';
 
+  // 디버깅: 전달받은 파라미터 로깅
+  console.log('[Auth Callback] Params:', {
+    code: code ? `${code.substring(0, 10)}...` : null,
+    token_hash: token_hash ? `${token_hash.substring(0, 10)}...` : null,
+    type,
+    next,
+    origin,
+  });
+
   const supabase = await createClient();
 
   // PKCE flow: code 파라미터로 세션 교환
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    if (error) {
+      console.error('[Auth Callback] PKCE exchange error:', error.message);
+    } else {
+      console.log('[Auth Callback] PKCE exchange successful');
       return redirectToNext(request, origin, next);
     }
   }
@@ -25,9 +37,17 @@ export async function GET(request: Request) {
       type,
       token_hash,
     });
-    if (!error) {
+    if (error) {
+      console.error('[Auth Callback] OTP verify error:', error.message);
+    } else {
+      console.log('[Auth Callback] OTP verify successful');
       return redirectToNext(request, origin, next);
     }
+  }
+
+  // 파라미터가 없는 경우
+  if (!code && !token_hash) {
+    console.error('[Auth Callback] No code or token_hash provided');
   }
 
   // return the user to an error page with instructions
