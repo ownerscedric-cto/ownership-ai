@@ -21,15 +21,17 @@ export function toKST(date: string | Date): Date {
   if (typeof date === 'string') {
     // Supabase timestamp without time zone은 UTC로 저장되지만
     // 타임존 정보가 없이 반환되므로 명시적으로 UTC로 파싱
-    // ISO 형식이 아닌 경우 (예: "2025-12-18 17:38:46.101") UTC로 처리
-    if (date.includes('T') || date.endsWith('Z')) {
-      // 이미 ISO 형식이면 그대로 파싱
+
+    // 이미 타임존 정보가 있는 경우 (Z 또는 +/-offset)
+    if (date.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(date)) {
       return parseISO(date);
-    } else {
-      // 타임존 없는 형식이면 UTC로 명시적 파싱
-      // 브라우저가 자동으로 로컬 타임존(KST)으로 표시
-      return new Date(date + 'Z');
     }
+
+    // 타임존 없는 형식은 모두 UTC로 처리
+    // "2025-12-18 17:38:46.101" 또는 "2025-12-18T17:38:46.101"
+    // 공백을 T로 변환하고 Z 추가
+    const normalized = date.includes('T') ? date : date.replace(' ', 'T');
+    return new Date(normalized + 'Z');
   }
   return date;
 }
@@ -96,17 +98,8 @@ export function formatTime(date: string | Date): string {
  * @returns "3분 전" 형식
  */
 export function formatRelativeTime(date: string | Date): string {
-  // UTC 문자열을 명시적으로 파싱
-  let parsedDate: Date;
-  if (typeof date === 'string') {
-    if (date.includes('T') || date.endsWith('Z')) {
-      parsedDate = parseISO(date);
-    } else {
-      parsedDate = new Date(date + 'Z');
-    }
-  } else {
-    parsedDate = date;
-  }
+  // toKST를 사용하여 일관된 UTC 파싱
+  const parsedDate = toKST(date);
 
   return formatDistanceToNow(parsedDate, {
     addSuffix: true,
