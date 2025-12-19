@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard,
   Users,
@@ -73,7 +74,14 @@ const menuItems: MenuItem[] = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   const isActive = (href: string) => {
     if (href === '/admin') {
@@ -192,13 +200,13 @@ export function AdminSidebar() {
           <Home className="w-5 h-5" />
           <span className="font-medium">대시보드로 이동</span>
         </Link>
-        <Link
-          href="/auth/logout"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-colors"
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-colors cursor-pointer"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">로그아웃</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );
