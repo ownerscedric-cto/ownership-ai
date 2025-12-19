@@ -9,9 +9,6 @@
 
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { toZonedTime } from 'date-fns-tz';
-
-const KOREA_TIMEZONE = 'Asia/Seoul';
 
 /**
  * UTC 시간을 KST(한국 시간)로 변환
@@ -21,9 +18,20 @@ const KOREA_TIMEZONE = 'Asia/Seoul';
  * @returns KST Date 객체
  */
 export function toKST(date: string | Date): Date {
-  const parsedDate = typeof date === 'string' ? parseISO(date) : date;
-  // date-fns-tz를 사용하여 KST 타임존으로 변환
-  return toZonedTime(parsedDate, KOREA_TIMEZONE);
+  if (typeof date === 'string') {
+    // Supabase timestamp without time zone은 UTC로 저장되지만
+    // 타임존 정보가 없이 반환되므로 명시적으로 UTC로 파싱
+    // ISO 형식이 아닌 경우 (예: "2025-12-18 17:38:46.101") UTC로 처리
+    if (date.includes('T') || date.endsWith('Z')) {
+      // 이미 ISO 형식이면 그대로 파싱
+      return parseISO(date);
+    } else {
+      // 타임존 없는 형식이면 UTC로 명시적 파싱
+      // 브라우저가 자동으로 로컬 타임존(KST)으로 표시
+      return new Date(date + 'Z');
+    }
+  }
+  return date;
 }
 
 /**
@@ -88,8 +96,17 @@ export function formatTime(date: string | Date): string {
  * @returns "3분 전" 형식
  */
 export function formatRelativeTime(date: string | Date): string {
-  // Supabase UTC 시간을 브라우저가 자동으로 로컬 시간으로 변환
-  const parsedDate = typeof date === 'string' ? parseISO(date) : date;
+  // UTC 문자열을 명시적으로 파싱
+  let parsedDate: Date;
+  if (typeof date === 'string') {
+    if (date.includes('T') || date.endsWith('Z')) {
+      parsedDate = parseISO(date);
+    } else {
+      parsedDate = new Date(date + 'Z');
+    }
+  } else {
+    parsedDate = date;
+  }
 
   return formatDistanceToNow(parsedDate, {
     addSuffix: true,
