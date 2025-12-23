@@ -26,6 +26,7 @@ import {
   Pause,
   Check,
   BarChart3,
+  ArrowUpDown,
 } from 'lucide-react';
 
 // 진행사업 상태 타입
@@ -178,6 +179,30 @@ const PROJECT_STATUS_OPTIONS: Array<{ value: ProjectStatus; label: string }> = [
 ];
 
 /**
+ * 진행 중인 사업 정렬 옵션
+ */
+type InProgressSortType = 'status' | 'startedAt' | 'deadline';
+
+const IN_PROGRESS_SORT_OPTIONS: Array<{ value: InProgressSortType; label: string }> = [
+  { value: 'status', label: '단계순' },
+  { value: 'startedAt', label: '시작일순' },
+  { value: 'deadline', label: '마감일순' },
+];
+
+/**
+ * 상태 우선순위 (단계 진행 순서)
+ */
+const STATUS_PRIORITY: Record<ProjectStatus, number> = {
+  preparing: 1,
+  submitted: 2,
+  reviewing: 3,
+  selected: 4,
+  rejected: 5,
+  cancelled: 6,
+  completed: 7,
+};
+
+/**
  * 단계별 현황 카드
  */
 interface StatusSummaryCardProps {
@@ -207,6 +232,7 @@ export function CustomerProgressPanel({ customer, isLoading = false }: CustomerP
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatingProjectId, setUpdatingProjectId] = useState<string | null>(null);
+  const [inProgressSort, setInProgressSort] = useState<InProgressSortType>('status');
 
   /**
    * 사업진행현황 데이터 로드
@@ -303,6 +329,31 @@ export function CustomerProgressPanel({ customer, isLoading = false }: CustomerP
     if (!progressData?.projects) return 0;
     return progressData.projects.filter(p => p.status === status).length;
   };
+
+  // 진행 중인 사업 정렬
+  const sortedInProgressProjects = (() => {
+    const projects = progressData?.projectsByStatus?.inProgress || [];
+    if (projects.length === 0) return [];
+
+    return [...projects].sort((a, b) => {
+      switch (inProgressSort) {
+        case 'status':
+          // 단계순 (preparing → submitted → reviewing)
+          return STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status];
+        case 'startedAt':
+          // 시작일순 (최신순)
+          return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
+        case 'deadline':
+          // 마감일순 (임박한 순, null은 맨 뒤로)
+          if (!a.deadline && !b.deadline) return 0;
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        default:
+          return 0;
+      }
+    });
+  })();
 
   // 빈 상태
   if (!customer && !isLoading) {
@@ -441,20 +492,39 @@ export function CustomerProgressPanel({ customer, isLoading = false }: CustomerP
 
         {/* 진행 중인 사업 (서류준비, 신청완료, 심사중) */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Play className="h-5 w-5 text-green-600" />
-            진행 중인 사업
-            {progressData?.projectsByStatus?.inProgress &&
-              progressData.projectsByStatus.inProgress.length > 0 && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Play className="h-5 w-5 text-green-600" />
+              진행 중인 사업
+              {sortedInProgressProjects.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {progressData.projectsByStatus.inProgress.length}건
+                  {sortedInProgressProjects.length}건
                 </Badge>
               )}
-          </h2>
-          {progressData?.projectsByStatus?.inProgress &&
-          progressData.projectsByStatus.inProgress.length > 0 ? (
+            </h2>
+            {/* 정렬 드롭다운 */}
+            {sortedInProgressProjects.length > 0 && (
+              <Select
+                value={inProgressSort}
+                onValueChange={value => setInProgressSort(value as InProgressSortType)}
+              >
+                <SelectTrigger className="w-32 h-8 text-xs">
+                  <ArrowUpDown className="h-3 w-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IN_PROGRESS_SORT_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          {sortedInProgressProjects.length > 0 ? (
             <div className="space-y-3">
-              {progressData.projectsByStatus.inProgress.map(project => {
+              {sortedInProgressProjects.map(project => {
                 const statusStyle = PROJECT_STATUS_STYLES[project.status];
                 return (
                   <div
