@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Customer } from '@/lib/types/customer';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,6 +28,22 @@ export function CustomerSidebar({
   isLoading = false,
 }: CustomerSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [manualOpenItems, setManualOpenItems] = useState<string[]>([]);
+
+  // selectedId가 있으면 항상 열린 상태로 유지 (useMemo로 계산)
+  const openItems = useMemo(() => {
+    const items = new Set(manualOpenItems);
+    if (selectedId) {
+      items.add(selectedId);
+    }
+    return Array.from(items);
+  }, [manualOpenItems, selectedId]);
+
+  // 아코디언 열기/닫기 핸들러
+  const handleValueChange = (values: string[]) => {
+    // selectedId는 항상 열린 상태로 유지하므로, 수동 조작 목록만 업데이트
+    setManualOpenItems(values.filter(v => v !== selectedId));
+  };
 
   // 검색 필터링
   const filteredCustomers = customers.filter(customer =>
@@ -65,7 +81,12 @@ export function CustomerSidebar({
             <p className="text-gray-500 text-sm">검색 결과가 없습니다</p>
           </div>
         ) : (
-          <Accordion type="multiple" className="w-full">
+          <Accordion
+            type="multiple"
+            className="w-full"
+            value={openItems}
+            onValueChange={handleValueChange}
+          >
             {filteredCustomers.map(customer => (
               <AccordionItem key={customer.id} value={customer.id} className="border-b-0">
                 <div

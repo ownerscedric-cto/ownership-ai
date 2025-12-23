@@ -25,6 +25,7 @@ function CustomersPageContent() {
     () => searchParams.get('subtab') as 'ai-matching' | 'watchlist' | null,
     [searchParams]
   );
+  const actionFromUrl = useMemo(() => searchParams.get('action'), [searchParams]);
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(selectedIdFromUrl);
 
@@ -48,7 +49,6 @@ function CustomersPageContent() {
   // URL 파라미터와 동기화 (고객 ID)
   useEffect(() => {
     if (selectedIdFromUrl && selectedIdFromUrl !== selectedCustomerId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedCustomerId(selectedIdFromUrl);
     }
   }, [selectedIdFromUrl, selectedCustomerId]);
@@ -56,10 +56,20 @@ function CustomersPageContent() {
   // URL 파라미터와 동기화 (탭)
   useEffect(() => {
     if (tabFromUrl && tabFromUrl !== currentView) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentView(tabFromUrl);
     }
   }, [tabFromUrl, currentView]);
+
+  // URL 파라미터로 모달 자동 열기 (action=new)
+  useEffect(() => {
+    if (actionFromUrl === 'new' && !dialogOpen) {
+      setEditingCustomerId(null);
+      setDialogOpen(true);
+      // URL에서 action 파라미터 제거 (모달 열린 후)
+      router.replace('/customers', { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionFromUrl]);
 
   // 고객 선택 시 URL 업데이트 (항상 기본 정보로 리셋)
   const handleSelectCustomer = (id: string) => {

@@ -1,17 +1,31 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Card } from '@/components/common/Card';
-import { Button } from '@/components/common/Button';
-import { Users, FileText } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { Users, FileText, Zap, Calendar } from 'lucide-react';
+import { useDashboardData } from '@/lib/hooks/useAnalytics';
+import {
+  StatsCard,
+  StatsCardSkeleton,
+  TrendChart,
+  ProgramsBySourceChart,
+  RecentActivity,
+  TopProgramsList,
+  TopCustomersList,
+  QuickActions,
+} from '@/components/dashboard';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const supabase = createClient();
+
+  // 대시보드 통계 및 트렌드 데이터 조회
+  const { stats, trends, isLoading } = useDashboardData({
+    period: 'weekly',
+    days: 30,
+  });
 
   useEffect(() => {
     const getUser = async () => {
@@ -29,76 +43,91 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
+        {/* 헤더 */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
-            환영합니다, {userName}님!
-          </h2>
-          <p className="text-[var(--text-secondary)]">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">환영합니다, {userName}님!</h2>
+          <p className="text-gray-600">
             대시보드에서 고객 정보를 관리하고 정부지원사업을 추천받으세요.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-          {/* 고객 관리 카드 */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-6 h-6 text-[var(--primary-blue)]" />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--text-primary)]">고객 관리</h3>
-            </div>
-            <p className="text-[var(--text-secondary)] mb-4">고객 정보를 등록하고 관리하세요</p>
-            <Link href="/customers">
-              <Button variant="primary" className="w-full">
-                고객 관리 바로가기
-              </Button>
-            </Link>
-          </Card>
-
-          {/* 정부지원사업 카드 */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <FileText className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--text-primary)]">정부지원사업</h3>
-            </div>
-            <p className="text-[var(--text-secondary)] mb-4">
-              고객에게 맞는 정부지원사업을 추천받으세요
-            </p>
-            <Link href="/programs">
-              <Button variant="primary" className="w-full">
-                정부지원사업 바로가기
-              </Button>
-            </Link>
-          </Card>
+        {/* 통계 카드 그리드 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {isLoading ? (
+            <>
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatsCard
+                title="총 고객 수"
+                value={stats?.totalCustomers || 0}
+                icon={Users}
+                trend={
+                  stats?.recentCustomers
+                    ? { value: stats.recentCustomers, label: '최근 7일' }
+                    : undefined
+                }
+                iconColor="text-blue-600"
+                iconBgColor="bg-blue-50"
+              />
+              <StatsCard
+                title="총 프로그램"
+                value={stats?.totalPrograms || 0}
+                description={`진행중 ${stats?.activePrograms || 0}개`}
+                icon={FileText}
+                trend={
+                  stats?.recentPrograms
+                    ? { value: stats.recentPrograms, label: '최근 7일' }
+                    : undefined
+                }
+                iconColor="text-green-600"
+                iconBgColor="bg-green-50"
+              />
+              <StatsCard
+                title="총 매칭"
+                value={stats?.totalMatchings || 0}
+                icon={Zap}
+                trend={
+                  stats?.recentMatchings
+                    ? { value: stats.recentMatchings, label: '최근 7일' }
+                    : undefined
+                }
+                iconColor="text-amber-600"
+                iconBgColor="bg-amber-50"
+              />
+              <StatsCard
+                title="진행중 프로그램"
+                value={stats?.activePrograms || 0}
+                description="마감 전"
+                icon={Calendar}
+                iconColor="text-purple-600"
+                iconBgColor="bg-purple-50"
+              />
+            </>
+          )}
         </div>
 
-        {user && (
-          <div className="mt-8">
-            <Card>
-              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">계정 정보</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">이메일:</span>
-                  <span className="text-[var(--text-primary)] font-medium">{user.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">이름:</span>
-                  <span className="text-[var(--text-primary)] font-medium">{userName}</span>
-                </div>
-                {user.user_metadata?.company_name && (
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-secondary)]">회사명:</span>
-                    <span className="text-[var(--text-primary)] font-medium">
-                      {user.user_metadata.company_name}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </div>
-        )}
+        {/* 빠른 작업 */}
+        <div className="mb-8">
+          <QuickActions />
+        </div>
+
+        {/* 차트 영역 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <TrendChart data={trends} isLoading={isLoading} />
+          <ProgramsBySourceChart data={stats?.programsBySource} isLoading={isLoading} />
+        </div>
+
+        {/* 하단 그리드: 인기 프로그램, 활성 고객, 최근 활동 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <TopProgramsList programs={stats?.topPrograms} isLoading={isLoading} />
+          <TopCustomersList customers={stats?.topCustomers} isLoading={isLoading} />
+          <RecentActivity activities={stats?.recentActivity} isLoading={isLoading} />
+        </div>
       </div>
     </AppLayout>
   );
