@@ -1,19 +1,18 @@
 /**
  * @file MatchingResults.tsx
- * @description Matching results list component with compact grid layout
+ * @description Matching results list component with accordion for details
  * Phase 4: 업종/키워드/지역 기반 매칭 시스템 UI
  */
 
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { MapPin, Building2, Tag, CheckCircle2, XCircle, Star } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChevronDown, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useMatchingResults } from '@/lib/hooks/useMatching';
 import { useAddToWatchlist, useWatchlist, useRemoveFromWatchlist } from '@/lib/hooks/useWatchlist';
 import { MatchingFilters } from './MatchingFilters';
@@ -21,6 +20,7 @@ import { DeadlineBadge } from '../programs/DeadlineBadge';
 import { cn } from '@/lib/utils';
 import { truncateText, decodeHtmlEntities } from '@/lib/utils/html';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface MatchingResultsProps {
   customerId: string;
@@ -58,15 +58,15 @@ const getScoreBadgeColor = (score: number): string => {
 };
 
 /**
- * MatchingResults Component - Compact Grid Layout
+ * MatchingResults Component - List Layout with Accordion
  *
  * @example
  * <MatchingResults customerId="customer-id-123" />
  */
 export function MatchingResults({ customerId, className }: MatchingResultsProps) {
-  const router = useRouter();
   const [minScore, setMinScore] = useState(30);
   const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const addToWatchlist = useAddToWatchlist();
   const removeFromWatchlist = useRemoveFromWatchlist();
 
@@ -86,9 +86,22 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
     minScore,
   });
 
+  // 아코디언 토글
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
   // 관심목록 토글 핸들러
   const handleToggleWatchlist = async (e: React.MouseEvent, programId: string) => {
-    e.stopPropagation(); // Card 클릭 이벤트 전파 방지
+    e.stopPropagation(); // 이벤트 전파 방지
 
     const isInWatchlist = watchlistProgramIds.has(programId);
 
@@ -130,21 +143,13 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
     return deadline >= now;
   });
 
-  // Loading State - Grid Skeleton
+  // Loading State - List Skeleton
   if (isLoading) {
     return (
       <div className={cn('space-y-4', className)}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-6 w-full mt-2" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-16 w-full" />
-              </CardContent>
-            </Card>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
       </div>
@@ -224,202 +229,168 @@ export function MatchingResults({ customerId, className }: MatchingResultsProps)
         </p>
       </div>
 
-      {/* Results Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Results List */}
+      <div className="space-y-2">
         {filteredResults.map(result => {
-          // 설명 최대 150자 제한
+          const isExpanded = expandedIds.has(result.id);
+          const isInWatchlist = watchlistProgramIds.has(result.program.id);
+
+          // 설명 최대 200자 제한
           const truncatedDescription = result.program.description
-            ? truncateText(result.program.description, 150)
+            ? truncateText(result.program.description, 200)
             : null;
 
-          // 대상 업종/지역 최대 3개만 표시
-          const displayedAudiences = result.program.targetAudience?.slice(0, 3) || [];
-          const remainingAudiencesCount = Math.max(
-            0,
-            (result.program.targetAudience?.length || 0) - 3
-          );
-
-          const displayedLocations = result.program.targetLocation?.slice(0, 3) || [];
-          const remainingLocationsCount = Math.max(
-            0,
-            (result.program.targetLocation?.length || 0) - 3
-          );
-
           return (
-            <Card
+            <Collapsible
               key={result.id}
-              onClick={() => router.push(`/programs/${result.program.id}`)}
-              className="h-full transition-all duration-200 hover:shadow-md hover:border-[#0052CC]/50 cursor-pointer"
+              open={isExpanded}
+              onOpenChange={() => toggleExpanded(result.id)}
             >
-              <CardHeader className="space-y-2">
-                {/* 데이터 소스 Badge + 매칭 점수 Badge + 마감일 Badge + 별표 버튼 */}
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      className={
-                        dataSourceColors[normalizeDataSource(result.program.dataSource)] ||
-                        'bg-gray-100 text-gray-800'
-                      }
-                    >
-                      {normalizeDataSource(result.program.dataSource)}
-                    </Badge>
-                    <Badge className={getScoreBadgeColor(result.score)}>
-                      {Math.round(result.score)}점
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <DeadlineBadge
-                      deadline={result.program.deadline}
-                      rawData={result.program.rawData}
-                    />
-                    {/* 관심목록 토글 버튼 */}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={e => handleToggleWatchlist(e, result.program.id)}
-                      className={cn(
-                        'h-8 w-8 p-0 transition-colors',
-                        watchlistProgramIds.has(result.program.id)
-                          ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50'
-                          : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
-                      )}
-                      title={
-                        watchlistProgramIds.has(result.program.id)
-                          ? '관심 목록에서 제거'
-                          : '관심 목록에 추가'
-                      }
-                      disabled={addToWatchlist.isPending || removeFromWatchlist.isPending}
-                    >
-                      <Star
+              <div className="border rounded-lg hover:bg-gray-50 transition-colors">
+                {/* 메인 row */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    {/* 왼쪽: 프로그램 정보 */}
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={`/programs/${result.program.id}`}
+                        className="text-base font-semibold text-gray-900 hover:text-[#0052CC] transition-colors line-clamp-1"
+                      >
+                        {decodeHtmlEntities(result.program.title)}
+                      </Link>
+
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <Badge
+                          className={
+                            dataSourceColors[normalizeDataSource(result.program.dataSource)] ||
+                            'bg-gray-100 text-gray-800'
+                          }
+                        >
+                          {normalizeDataSource(result.program.dataSource)}
+                        </Badge>
+                        <DeadlineBadge
+                          deadline={result.program.deadline}
+                          rawData={result.program.rawData}
+                        />
+                        <Badge className={getScoreBadgeColor(result.score)}>
+                          {Math.round(result.score)}점
+                        </Badge>
+                      </div>
+
+                      {/* 요약보기 버튼 */}
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-7 px-2 text-xs text-gray-600 hover:text-[#0052CC]"
+                        >
+                          <ChevronDown
+                            className={cn(
+                              'w-4 h-4 mr-1 transition-transform',
+                              isExpanded && 'rotate-180'
+                            )}
+                          />
+                          {isExpanded ? '접기' : '요약보기'}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </div>
+
+                    {/* 오른쪽: 액션 버튼 */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* 관심목록 토글 버튼 */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={e => handleToggleWatchlist(e, result.program.id)}
                         className={cn(
-                          'w-4 h-4',
-                          watchlistProgramIds.has(result.program.id) && 'fill-current'
+                          'h-8 w-8 p-0 transition-colors',
+                          isInWatchlist
+                            ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50'
+                            : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
                         )}
-                      />
-                    </Button>
+                        title={isInWatchlist ? '관심 목록에서 제거' : '관심 목록에 추가'}
+                        disabled={addToWatchlist.isPending || removeFromWatchlist.isPending}
+                      >
+                        <Star className={cn('w-4 h-4', isInWatchlist && 'fill-current')} />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
-                {/* 제목 */}
-                <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
-                  {decodeHtmlEntities(result.program.title)}
-                </CardTitle>
-
-                {/* 카테고리 */}
-                {result.program.category && (
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <Tag className="w-4 h-4" />
-                    <span>{result.program.category}</span>
-                  </div>
-                )}
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                {/* 매칭 상세 정보 */}
-                <div className="flex flex-col gap-1 text-xs border-l-2 border-[#0052CC] pl-3 py-1 bg-blue-50/50">
-                  {/* 업종 일치 */}
-                  <div className="flex items-center gap-1.5">
-                    {result.matchedIndustry ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5 text-gray-400" />
+                {/* 아코디언 콘텐츠 - 요약 + 매칭 근거 */}
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* 설명 */}
+                    {truncatedDescription && (
+                      <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+                        {truncatedDescription}
+                      </div>
                     )}
-                    <span
-                      className={
-                        result.matchedIndustry ? 'text-green-700 font-medium' : 'text-gray-500'
-                      }
-                    >
-                      업종 {result.matchedIndustry ? '일치' : '불일치'}
-                    </span>
-                  </div>
 
-                  {/* 지역 일치 */}
-                  <div className="flex items-center gap-1.5">
-                    {result.matchedLocation ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5 text-gray-400" />
-                    )}
-                    <span
-                      className={
-                        result.matchedLocation ? 'text-green-700 font-medium' : 'text-gray-500'
-                      }
-                    >
-                      지역 {result.matchedLocation ? '일치' : '불일치'}
-                    </span>
-                  </div>
-
-                  {/* 키워드 일치 */}
-                  {result.matchedKeywords.length > 0 && (
-                    <div className="flex items-start gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <div className="flex flex-wrap gap-1 items-center">
-                        <span className="text-green-700 font-medium">키워드:</span>
-                        {result.matchedKeywords.slice(0, 3).map((keyword, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            className="text-[10px] px-1.5 py-0 h-4 bg-green-50 border-green-200 text-green-700"
+                    {/* 매칭 근거 */}
+                    <div className="border-l-2 border-[#0052CC] pl-3 py-2 bg-blue-50/50 rounded-r-lg">
+                      <p className="text-xs font-semibold text-[#0052CC] mb-2">매칭 근거</p>
+                      <div className="flex flex-col gap-1.5 text-sm">
+                        {/* 업종 일치 */}
+                        <div className="flex items-center gap-1.5">
+                          {result.matchedIndustry ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-gray-400" />
+                          )}
+                          <span
+                            className={
+                              result.matchedIndustry
+                                ? 'text-green-700 font-medium'
+                                : 'text-gray-500'
+                            }
                           >
-                            {keyword}
-                          </Badge>
-                        ))}
-                        {result.matchedKeywords.length > 3 && (
-                          <span className="text-green-600 text-[10px]">
-                            +{result.matchedKeywords.length - 3}
+                            업종 {result.matchedIndustry ? '일치' : '불일치'}
                           </span>
+                        </div>
+
+                        {/* 지역 일치 */}
+                        <div className="flex items-center gap-1.5">
+                          {result.matchedLocation ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-gray-400" />
+                          )}
+                          <span
+                            className={
+                              result.matchedLocation
+                                ? 'text-green-700 font-medium'
+                                : 'text-gray-500'
+                            }
+                          >
+                            지역 {result.matchedLocation ? '일치' : '불일치'}
+                          </span>
+                        </div>
+
+                        {/* 키워드 일치 */}
+                        {result.matchedKeywords.length > 0 && (
+                          <div className="flex items-start gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex flex-wrap gap-1 items-center">
+                              <span className="text-green-700 font-medium">키워드:</span>
+                              {result.matchedKeywords.map((keyword, idx) => (
+                                <Badge
+                                  key={idx}
+                                  variant="outline"
+                                  className="text-xs px-1.5 py-0 h-5 bg-green-50 border-green-200 text-green-700"
+                                >
+                                  {keyword}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
-                  )}
-                </div>
-
-                {/* 설명 (최대 150자) */}
-                {truncatedDescription && (
-                  <CardDescription className="text-sm text-gray-600 line-clamp-2">
-                    {truncatedDescription}
-                  </CardDescription>
-                )}
-
-                {/* 대상 업종 */}
-                {displayedAudiences.length > 0 && (
-                  <div className="flex items-start gap-2">
-                    <Building2 className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div className="flex flex-wrap gap-1">
-                      {displayedAudiences.map((audience, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {decodeHtmlEntities(audience)}
-                        </Badge>
-                      ))}
-                      {remainingAudiencesCount > 0 && (
-                        <Badge variant="outline" className="text-xs text-gray-500">
-                          +{remainingAudiencesCount}
-                        </Badge>
-                      )}
-                    </div>
                   </div>
-                )}
-
-                {/* 대상 지역 */}
-                {displayedLocations.length > 0 && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div className="flex flex-wrap gap-1">
-                      {displayedLocations.map((location, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {decodeHtmlEntities(location)}
-                        </Badge>
-                      ))}
-                      {remainingLocationsCount > 0 && (
-                        <Badge variant="outline" className="text-xs text-gray-500">
-                          +{remainingLocationsCount}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
           );
         })}
       </div>

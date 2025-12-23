@@ -11,3 +11,6 @@ export { RecentActivity, RecentActivitySkeleton } from './RecentActivity';
 export { TopProgramsList, TopProgramsListSkeleton } from './TopProgramsList';
 export { TopCustomersList, TopCustomersListSkeleton } from './TopCustomersList';
 export { QuickActions } from './QuickActions';
+export { ReportGenerator, ReportGeneratorCard } from './ReportGenerator';
+export { ReportPDFTemplate } from './ReportPDFTemplate';
+export { CustomerReportPDFTemplate } from './CustomerReportPDFTemplate';

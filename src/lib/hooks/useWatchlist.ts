@@ -29,6 +29,7 @@ export interface WatchlistProgram {
     registeredAt: Date;
     startDate: Date | null;
     endDate: Date | null;
+    rawData: Record<string, unknown> | null;
   };
 }
 

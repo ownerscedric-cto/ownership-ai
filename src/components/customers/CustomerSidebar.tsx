@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import type { Customer } from '@/lib/types/customer';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,21 +28,20 @@ export function CustomerSidebar({
   isLoading = false,
 }: CustomerSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [manualOpenItems, setManualOpenItems] = useState<string[]>([]);
+  const [openItems, setOpenItems] = useState<string[]>([]);
 
-  // selectedId가 있으면 항상 열린 상태로 유지 (useMemo로 계산)
-  const openItems = useMemo(() => {
-    const items = new Set(manualOpenItems);
-    if (selectedId) {
-      items.add(selectedId);
-    }
-    return Array.from(items);
-  }, [manualOpenItems, selectedId]);
-
-  // 아코디언 열기/닫기 핸들러
+  // 아코디언 열기/닫기 핸들러 - 여러 개 동시에 열 수 있음
   const handleValueChange = (values: string[]) => {
-    // selectedId는 항상 열린 상태로 유지하므로, 수동 조작 목록만 업데이트
-    setManualOpenItems(values.filter(v => v !== selectedId));
+    setOpenItems(values);
+  };
+
+  // 고객 선택 시 해당 아코디언 열기
+  const handleSelect = (customerId: string) => {
+    onSelect(customerId);
+    // 선택된 고객의 아코디언이 닫혀있으면 열기
+    if (!openItems.includes(customerId)) {
+      setOpenItems(prev => [...prev, customerId]);
+    }
   };
 
   // 검색 필터링
@@ -94,7 +93,7 @@ export function CustomerSidebar({
                 >
                   <AccordionTrigger
                     className="px-4 py-3 hover:bg-gray-100 hover:no-underline"
-                    onClick={() => onSelect(customer.id)}
+                    onClick={() => handleSelect(customer.id)}
                   >
                     <div className="flex items-center gap-2 text-left">
                       <Building2 className="h-4 w-4 text-gray-500 flex-shrink-0" />

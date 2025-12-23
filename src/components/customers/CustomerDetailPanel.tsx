@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { pdf } from '@react-pdf/renderer';
 import type { Customer } from '@/lib/types/customer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +16,11 @@ import {
   Edit,
   Trash2,
   Target,
+  FileDown,
+  Loader2,
 } from 'lucide-react';
+import { CustomerReportPDFTemplate } from '@/components/dashboard/CustomerReportPDFTemplate';
+import type { CustomerReportData } from '@/lib/validations/report';
 
 interface CustomerDetailPanelProps {
   customer: Customer | null;
@@ -29,6 +35,46 @@ export function CustomerDetailPanel({
   onEdit,
   onDelete,
 }: CustomerDetailPanelProps) {
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+  /**
+   * 고객 리포트 PDF 다운로드
+   */
+  const handleDownloadReport = async () => {
+    if (!customer) return;
+
+    setIsGeneratingReport(true);
+    try {
+      // API에서 리포트 데이터 가져오기
+      const response = await fetch(`/api/analytics/report/customer/${customer.id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || '리포트 생성에 실패했습니다');
+      }
+
+      const result = await response.json();
+      const reportData: CustomerReportData = result.data;
+
+      // PDF 생성
+      const blob = await pdf(<CustomerReportPDFTemplate data={reportData} />).toBlob();
+
+      // 다운로드
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${customer.name}_매칭리포트_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('리포트 생성 오류:', error);
+      alert(error instanceof Error ? error.message : '리포트 생성에 실패했습니다');
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   // 빈 상태
   if (!customer && !isLoading) {
     return (
@@ -79,6 +125,25 @@ export function CustomerDetailPanel({
 
           {/* 액션 버튼 */}
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReport}
+              disabled={isGeneratingReport}
+              className="text-[#0052CC] hover:text-[#0052CC] hover:bg-blue-50"
+            >
+              {isGeneratingReport ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  리포트
+                </>
+              )}
+            </Button>
             {onEdit && (
               <Button variant="outline" size="sm" onClick={() => onEdit(customer.id)}>
                 <Edit className="h-4 w-4 mr-2" />

@@ -165,7 +165,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           sourceUrl,
           registeredAt,
           startDate,
-          endDate
+          endDate,
+          rawData
         )
       `
       )
