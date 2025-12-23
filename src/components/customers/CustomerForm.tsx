@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useForm, type FieldErrors } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,10 +24,62 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
 import { createCustomerSchema, type CreateCustomerInput } from '@/lib/validations/customer';
 import type { Customer } from '@/lib/types/customer';
 import { LOCATIONS } from '@/lib/constants/locations';
-import { CUSTOMER_KEYWORDS } from '@/lib/constants/keywords';
+
+// 키워드 타입 정의
+interface KeywordItem {
+  id: string;
+  keyword: string;
+  order: number;
+}
+
+interface KeywordCategory {
+  id: string;
+  name: string;
+  displayName: string;
+  color: string;
+  order: number;
+  keywords: KeywordItem[];
+}
+
+interface KeywordsResponse {
+  success: boolean;
+  data: {
+    categories: KeywordCategory[];
+  };
+}
+
+// 색상 매핑
+const colorClassMap: Record<string, { selected: string; hover: string }> = {
+  red: { selected: 'bg-red-500 hover:bg-red-600', hover: 'hover:bg-red-100 hover:border-red-300' },
+  green: {
+    selected: 'bg-green-500 hover:bg-green-600',
+    hover: 'hover:bg-green-100 hover:border-green-300',
+  },
+  blue: {
+    selected: 'bg-blue-500 hover:bg-blue-600',
+    hover: 'hover:bg-blue-100 hover:border-blue-300',
+  },
+  yellow: {
+    selected: 'bg-yellow-500 hover:bg-yellow-600',
+    hover: 'hover:bg-yellow-100 hover:border-yellow-300',
+  },
+  purple: {
+    selected: 'bg-purple-500 hover:bg-purple-600',
+    hover: 'hover:bg-purple-100 hover:border-purple-300',
+  },
+  orange: {
+    selected: 'bg-orange-500 hover:bg-orange-600',
+    hover: 'hover:bg-orange-100 hover:border-orange-300',
+  },
+  gray: {
+    selected: 'bg-gray-500 hover:bg-gray-600',
+    hover: 'hover:bg-gray-100 hover:border-gray-300',
+  },
+};
 
 interface CustomerFormProps {
   customer?: Customer;
@@ -44,6 +97,21 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
   } | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState('');
+
+  // DB에서 키워드 가져오기
+  const { data: keywordsData, isLoading: isKeywordsLoading } = useQuery<KeywordsResponse>({
+    queryKey: ['customer-keywords'],
+    queryFn: async () => {
+      const response = await fetch('/api/customer-keywords');
+      if (!response.ok) {
+        throw new Error('키워드를 불러오는데 실패했습니다');
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5분
+  });
+
+  const keywordCategories = keywordsData?.data?.categories || [];
 
   const form = useForm<CreateCustomerInput>({
     resolver: zodResolver(createCustomerSchema),
@@ -396,113 +464,64 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
               <FormDescription>클릭하여 선택/해제하세요 (최소 1개 이상 필수)</FormDescription>
               <FormControl>
                 <div className="space-y-6 p-4 border rounded-lg bg-gray-50">
-                  {/* 도전과제 */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      {CUSTOMER_KEYWORDS.challenges.label}
-                    </p>
-                    <p className="text-xs text-gray-500 mb-3">
-                      {CUSTOMER_KEYWORDS.challenges.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {CUSTOMER_KEYWORDS.challenges.keywords.map(keyword => {
-                        const isSelected = field.value?.includes(keyword);
+                  {isKeywordsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                      <span className="ml-2 text-gray-500">키워드 로딩 중...</span>
+                    </div>
+                  ) : keywordCategories.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">등록된 키워드가 없습니다</div>
+                  ) : (
+                    <>
+                      {/* 카테고리별 키워드 렌더링 */}
+                      {keywordCategories.map(category => {
+                        const colorClass = colorClassMap[category.color] || colorClassMap.gray;
                         return (
-                          <Badge
-                            key={keyword}
-                            variant={isSelected ? 'default' : 'outline'}
-                            className={`cursor-pointer transition-all ${
-                              isSelected
-                                ? 'bg-red-500 hover:bg-red-600'
-                                : 'hover:bg-red-100 hover:border-red-300'
-                            }`}
-                            onClick={() =>
-                              field.onChange(toggleKeyword(field.value || [], keyword))
-                            }
-                          >
-                            {keyword}
-                          </Badge>
+                          <div key={category.id}>
+                            <p className="text-sm font-medium text-gray-700 mb-2">
+                              {category.displayName}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {category.keywords.map(keywordItem => {
+                                const isSelected = field.value?.includes(keywordItem.keyword);
+                                return (
+                                  <Badge
+                                    key={keywordItem.id}
+                                    variant={isSelected ? 'default' : 'outline'}
+                                    className={`cursor-pointer transition-all ${
+                                      isSelected ? colorClass.selected : colorClass.hover
+                                    }`}
+                                    onClick={() =>
+                                      field.onChange(
+                                        toggleKeyword(field.value || [], keywordItem.keyword)
+                                      )
+                                    }
+                                  >
+                                    {keywordItem.keyword}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
                         );
                       })}
-                    </div>
-                  </div>
 
-                  {/* 목표 */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      {CUSTOMER_KEYWORDS.goals.label}
-                    </p>
-                    <p className="text-xs text-gray-500 mb-3">
-                      {CUSTOMER_KEYWORDS.goals.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {CUSTOMER_KEYWORDS.goals.keywords.map(keyword => {
-                        const isSelected = field.value?.includes(keyword);
-                        return (
-                          <Badge
-                            key={keyword}
-                            variant={isSelected ? 'default' : 'outline'}
-                            className={`cursor-pointer transition-all ${
-                              isSelected
-                                ? 'bg-green-500 hover:bg-green-600'
-                                : 'hover:bg-green-100 hover:border-green-300'
-                            }`}
-                            onClick={() =>
-                              field.onChange(toggleKeyword(field.value || [], keyword))
-                            }
-                          >
-                            {keyword}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 원하는 지원 */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      {CUSTOMER_KEYWORDS.supports.label}
-                    </p>
-                    <p className="text-xs text-gray-500 mb-3">
-                      {CUSTOMER_KEYWORDS.supports.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {CUSTOMER_KEYWORDS.supports.keywords.map(keyword => {
-                        const isSelected = field.value?.includes(keyword);
-                        return (
-                          <Badge
-                            key={keyword}
-                            variant={isSelected ? 'default' : 'outline'}
-                            className={`cursor-pointer transition-all ${
-                              isSelected
-                                ? 'bg-blue-500 hover:bg-blue-600'
-                                : 'hover:bg-blue-100 hover:border-blue-300'
-                            }`}
-                            onClick={() =>
-                              field.onChange(toggleKeyword(field.value || [], keyword))
-                            }
-                          >
-                            {keyword}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 선택된 키워드 요약 */}
-                  {field.value && field.value.length > 0 && (
-                    <div className="pt-4 border-t">
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        선택된 키워드 ({field.value.length}개)
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {field.value.map(keyword => (
-                          <Badge key={keyword} variant="secondary" className="bg-gray-200">
-                            {keyword}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                      {/* 선택된 키워드 요약 */}
+                      {field.value && field.value.length > 0 && (
+                        <div className="pt-4 border-t">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            선택된 키워드 ({field.value.length}개)
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {field.value.map(keyword => (
+                              <Badge key={keyword} variant="secondary" className="bg-gray-200">
+                                {keyword}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </FormControl>
