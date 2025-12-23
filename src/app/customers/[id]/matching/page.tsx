@@ -126,16 +126,10 @@ export default function MatchingPage({ params }: MatchingPageProps) {
                   <span className="ml-2 font-medium">{customer.companySize}</span>
                 </div>
               )}
-              {customer.challenges && customer.challenges.length > 0 && (
+              {customer.keywords && customer.keywords.length > 0 && (
                 <div className="col-span-full">
-                  <span className="text-gray-500">해결 과제:</span>
-                  <span className="ml-2 font-medium">{customer.challenges.join(', ')}</span>
-                </div>
-              )}
-              {customer.goals && customer.goals.length > 0 && (
-                <div className="col-span-full">
-                  <span className="text-gray-500">목표:</span>
-                  <span className="ml-2 font-medium">{customer.goals.join(', ')}</span>
+                  <span className="text-gray-500">관심 키워드:</span>
+                  <span className="ml-2 font-medium">{customer.keywords.join(', ')}</span>
                 </div>
               )}
             </div>

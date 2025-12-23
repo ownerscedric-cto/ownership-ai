@@ -62,56 +62,37 @@ export function matchLocation(
 }
 
 /**
- * 고객의 니즈(challenges/goals)와 프로그램의 키워드가 일치하는지 확인
- * 선호 키워드(영업자가 선택한 프로그램 기반)는 가중치 +50% 적용
+ * 고객의 키워드와 프로그램의 키워드가 일치하는지 확인
+ * 통합된 keywords 필드 사용 (도전과제, 목표, 선호 지원 유형 통합)
  *
- * @param customerChallenges - 고객 challenges
- * @param customerGoals - 고객 goals
- * @param customerPreferredKeywords - 고객 선호 키워드 (영업자가 선택한 프로그램 기반)
+ * @param customerKeywords - 고객 키워드 배열 (통합된 필드)
  * @param programKeywords - 프로그램 키워드 배열
  * @returns 일치한 키워드 목록
  */
-export function matchKeywords(
-  customerChallenges: string[],
-  customerGoals: string[],
-  customerPreferredKeywords: string[],
-  programKeywords: string[]
-): { keywords: string[]; preferredKeywords: string[] } {
-  if (programKeywords.length === 0) {
-    return { keywords: [], preferredKeywords: [] };
+export function matchKeywords(customerKeywords: string[], programKeywords: string[]): string[] {
+  if (programKeywords.length === 0 || customerKeywords.length === 0) {
+    return [];
   }
 
-  // 고객 니즈 키워드 (challenges + goals)
-  const customerNeedsKeywords = [...customerChallenges, ...customerGoals];
-
-  // 기본 키워드 매칭 (대소문자 무시, 부분 일치)
+  // 키워드 매칭 (대소문자 무시, 부분 일치)
   const matchedKeywords: string[] = [];
-  const matchedPreferredKeywords: string[] = [];
 
   for (const programKeyword of programKeywords) {
     const programKeywordLower = programKeyword.toLowerCase();
 
-    // 기본 키워드 매칭 (challenges, goals)
-    const isBasicMatch = customerNeedsKeywords.some(needKeyword =>
-      needKeyword.toLowerCase().includes(programKeywordLower)
+    // 고객 키워드와 프로그램 키워드 매칭
+    const isMatch = customerKeywords.some(
+      customerKeyword =>
+        customerKeyword.toLowerCase().includes(programKeywordLower) ||
+        programKeywordLower.includes(customerKeyword.toLowerCase())
     );
 
-    // 선호 키워드 매칭 (preferredKeywords)
-    const isPreferredMatch = customerPreferredKeywords.some(preferredKeyword =>
-      preferredKeyword.toLowerCase().includes(programKeywordLower)
-    );
-
-    if (isPreferredMatch) {
-      matchedPreferredKeywords.push(programKeyword);
-    } else if (isBasicMatch) {
+    if (isMatch) {
       matchedKeywords.push(programKeyword);
     }
   }
 
-  return {
-    keywords: matchedKeywords,
-    preferredKeywords: matchedPreferredKeywords,
-  };
+  return matchedKeywords;
 }
 
 /**
@@ -119,15 +100,13 @@ export function matchKeywords(
  *
  * @param matchedIndustry - 업종 일치 여부
  * @param matchedLocation - 지역 일치 여부
- * @param matchedKeywords - 일치한 기본 키워드 수
- * @param matchedPreferredKeywords - 일치한 선호 키워드 수
+ * @param matchedKeywordsCount - 일치한 키워드 수
  * @returns 매칭 점수 구성 (0-100점)
  */
 export function calculateScore(
   matchedIndustry: boolean,
   matchedLocation: boolean,
-  matchedKeywords: number,
-  matchedPreferredKeywords: number
+  matchedKeywordsCount: number
 ): MatchingScoreBreakdown {
   // 업종 점수: 30점
   const industryScore = matchedIndustry ? MATCHING_CONFIG.WEIGHTS.INDUSTRY : 0;
@@ -135,17 +114,9 @@ export function calculateScore(
   // 지역 점수: 30점
   const locationScore = matchedLocation ? MATCHING_CONFIG.WEIGHTS.LOCATION : 0;
 
-  // 키워드 점수: 기본 10점 + 선호 15점 (최대 40점)
-  const basicKeywordScore = Math.min(
-    matchedKeywords * MATCHING_CONFIG.WEIGHTS.KEYWORD_BASE,
-    MATCHING_CONFIG.WEIGHTS.KEYWORD_MAX
-  );
-  const preferredKeywordScore = Math.min(
-    matchedPreferredKeywords * MATCHING_CONFIG.WEIGHTS.KEYWORD_PREFERRED,
-    MATCHING_CONFIG.WEIGHTS.KEYWORD_MAX
-  );
+  // 키워드 점수: 키워드당 10점 (최대 40점)
   const keywordScore = Math.min(
-    basicKeywordScore + preferredKeywordScore,
+    matchedKeywordsCount * MATCHING_CONFIG.WEIGHTS.KEYWORD_BASE,
     MATCHING_CONFIG.WEIGHTS.KEYWORD_MAX
   );
 
@@ -179,7 +150,7 @@ export async function runMatching(options: MatchingOptions) {
   // 1. 고객 정보 조회
   const { data: customer, error: customerError } = await supabase
     .from('customers')
-    .select('id, industry, location, challenges, goals, preferredKeywords')
+    .select('id, industry, location, keywords')
     .eq('id', customerId)
     .single();
 
@@ -191,9 +162,7 @@ export async function runMatching(options: MatchingOptions) {
     id: customer.id,
     industry: customer.industry,
     location: customer.location,
-    challenges: customer.challenges,
-    goals: customer.goals,
-    preferredKeywords: customer.preferredKeywords,
+    keywords: customer.keywords,
   });
 
   // 2. 기존 매칭 결과 삭제 (forceRefresh = true인 경우)
@@ -222,21 +191,14 @@ export async function runMatching(options: MatchingOptions) {
     // 지역 일치 여부
     const matchedLocation = matchLocation(customer.location, program.targetLocation);
 
-    // 키워드 일치 여부
-    const { keywords: matchedBasicKeywords, preferredKeywords: matchedPreferredKeywords } =
-      matchKeywords(
-        customer.challenges,
-        customer.goals,
-        customer.preferredKeywords,
-        program.keywords
-      );
+    // 키워드 일치 여부 (통합된 keywords 필드 사용)
+    const matchedKeywordsList = matchKeywords(customer.keywords || [], program.keywords || []);
 
     // 점수 계산
     const scoreBreakdown = calculateScore(
       matchedIndustry,
       matchedLocation,
-      matchedBasicKeywords.length,
-      matchedPreferredKeywords.length
+      matchedKeywordsList.length
     );
 
     // 첫 3개 프로그램의 상세 매칭 결과 로깅
@@ -248,8 +210,7 @@ export async function runMatching(options: MatchingOptions) {
         keywords: program.keywords,
         matchedIndustry,
         matchedLocation,
-        matchedBasicKeywords,
-        matchedPreferredKeywords,
+        matchedKeywords: matchedKeywordsList,
         score: scoreBreakdown.totalScore,
       });
     }
@@ -263,7 +224,7 @@ export async function runMatching(options: MatchingOptions) {
         score: scoreBreakdown.totalScore,
         matchedIndustry,
         matchedLocation,
-        matchedKeywords: [...matchedBasicKeywords, ...matchedPreferredKeywords],
+        matchedKeywords: matchedKeywordsList,
       });
     }
   }

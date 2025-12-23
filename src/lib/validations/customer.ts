@@ -36,10 +36,8 @@ export const createCustomerSchema = z.object({
   location: z.string().min(1, '지역은 필수입니다'),
   budget: z.number().int().positive().optional(),
 
-  // 니즈 정보 (선택)
-  challenges: z.array(z.string()).optional(),
-  goals: z.array(z.string()).optional(),
-  preferredKeywords: z.array(z.string()).optional(),
+  // 관심 키워드 (필수 - 최소 1개 이상)
+  keywords: z.array(z.string()).min(1, '최소 1개 이상의 키워드를 선택해주세요'),
 
   // 연락처 정보 (선택) - 빈 문자열 허용
   contactEmail: z
@@ -75,9 +73,7 @@ export const updateCustomerSchema = z.object({
   companySize: z.string().optional(),
   location: z.string().optional(),
   budget: z.number().int().positive().optional(),
-  challenges: z.array(z.string()).optional(),
-  goals: z.array(z.string()).optional(),
-  preferredKeywords: z.array(z.string()).optional(),
+  keywords: z.array(z.string()).optional(),
   // 연락처 정보 (선택) - 빈 문자열 허용
   contactEmail: z
     .union([z.literal(''), z.string().email('올바른 이메일 형식이 아닙니다')])

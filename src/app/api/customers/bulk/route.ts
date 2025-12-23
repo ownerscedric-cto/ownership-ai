@@ -22,9 +22,7 @@ interface ParsedCustomerData {
   companySize?: string;
   location?: string;
   budget?: number;
-  challenges?: string[];
-  goals?: string[];
-  preferredKeywords?: string[];
+  keywords?: string[];
   contactEmail?: string;
   contactPhone?: string;
   notes?: string;
@@ -146,12 +144,10 @@ export async function POST(request: NextRequest) {
           companySize: parseStringField(row[5]),
           location: parseStringField(row[6]),
           budget: parseNumberField(row[7]),
-          challenges: parseArrayField(row[8]),
-          goals: parseArrayField(row[9]),
-          preferredKeywords: parseArrayField(row[10]),
-          contactEmail: parseStringField(row[11]),
-          contactPhone: parseStringField(row[12]),
-          notes: parseStringField(row[13]),
+          keywords: parseArrayField(row[8]), // 통합된 키워드 필드
+          contactEmail: parseStringField(row[9]),
+          contactPhone: parseStringField(row[10]),
+          notes: parseStringField(row[11]),
         };
 
         // Zod 검증
@@ -203,9 +199,14 @@ export async function POST(request: NextRequest) {
       const { data: existingCustomers } = await supabase
         .from('customers')
         .select('businessNumber')
-        .in('businessNumber', uniqueCustomers.map(c => c.businessNumber));
+        .in(
+          'businessNumber',
+          uniqueCustomers.map(c => c.businessNumber)
+        );
 
-      const existingBusinessNumbers = new Set((existingCustomers || []).map((c: { businessNumber: string }) => c.businessNumber));
+      const existingBusinessNumbers = new Set(
+        (existingCustomers || []).map((c: { businessNumber: string }) => c.businessNumber)
+      );
 
       const duplicatesInDB: number[] = [];
       uniqueCustomers.forEach((customer, index) => {

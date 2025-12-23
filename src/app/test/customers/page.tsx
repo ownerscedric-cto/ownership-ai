@@ -24,9 +24,7 @@ interface Customer {
   companySize?: string;
   location?: string;
   budget?: number;
-  challenges: string[];
-  goals: string[];
-  preferredKeywords: string[];
+  keywords: string[];
   contactEmail?: string;
   contactPhone?: string;
   notes?: string;
@@ -162,9 +160,7 @@ export default function CustomerTestPage() {
         companySize: '10-50명',
         location: '서울',
         budget: 50000000,
-        challenges: ['인력 부족', '자금 확보'],
-        goals: ['매출 증대', '시장 확대'],
-        preferredKeywords: ['R&D', '정부지원'],
+        keywords: ['인력 부족', '자금 확보', '매출 증대', 'R&D 지원'], // 통합된 키워드
         contactEmail: 'test@example.com',
         contactPhone: '010-1234-5678',
         notes: `검증된 사업자 - 상태: ${businessStatus.status}, 과세유형: ${businessStatus.taxType}`,

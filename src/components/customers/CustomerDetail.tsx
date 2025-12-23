@@ -124,46 +124,13 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
         </Card>
       )}
 
-      {/* 도전과제 & 목표 */}
-      {(customer.challenges.length > 0 || customer.goals.length > 0) && (
+      {/* 관심 키워드 */}
+      {customer.keywords && customer.keywords.length > 0 && (
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">도전과제 & 목표</h3>
-
-          {customer.challenges.length > 0 && (
-            <div className="mb-4">
-              <p className="text-sm font-medium text-gray-500 mb-2">도전과제</p>
-              <div className="flex flex-wrap gap-2">
-                {customer.challenges.map((challenge, index) => (
-                  <Badge key={index} variant="outline">
-                    {challenge}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {customer.goals.length > 0 && (
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">목표</p>
-              <div className="flex flex-wrap gap-2">
-                {customer.goals.map((goal, index) => (
-                  <Badge key={index} variant="secondary">
-                    {goal}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-      )}
-
-      {/* 선호 키워드 */}
-      {customer.preferredKeywords.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">선호 키워드</h3>
+          <h3 className="text-lg font-semibold mb-4">관심 키워드</h3>
           <div className="flex flex-wrap gap-2">
-            {customer.preferredKeywords.map((keyword, index) => (
-              <Badge key={index} variant="default">
+            {customer.keywords.map((keyword, index) => (
+              <Badge key={index} variant="secondary">
                 {keyword}
               </Badge>
             ))}

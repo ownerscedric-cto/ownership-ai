@@ -23,10 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
 import { createCustomerSchema, type CreateCustomerInput } from '@/lib/validations/customer';
 import type { Customer } from '@/lib/types/customer';
 import { LOCATIONS } from '@/lib/constants/locations';
+import { CUSTOMER_KEYWORDS } from '@/lib/constants/keywords';
 
 interface CustomerFormProps {
   customer?: Customer;
@@ -45,11 +45,6 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState('');
 
-  // 태그 입력을 위한 state
-  const [challengeInput, setChallengeInput] = useState('');
-  const [goalInput, setGoalInput] = useState('');
-  const [keywordInput, setKeywordInput] = useState('');
-
   const form = useForm<CreateCustomerInput>({
     resolver: zodResolver(createCustomerSchema),
     defaultValues: {
@@ -61,9 +56,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
       companySize: customer?.companySize || '',
       location: customer?.location || '',
       budget: customer?.budget || undefined,
-      challenges: customer?.challenges || [],
-      goals: customer?.goals || [],
-      preferredKeywords: customer?.preferredKeywords || [],
+      keywords: customer?.keywords || [],
       contactEmail: customer?.contactEmail || '',
       contactPhone: customer?.contactPhone || '',
       notes: customer?.notes || '',
@@ -148,9 +141,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
         companySize: customer.companySize || '',
         location: customer.location || '',
         budget: customer.budget || undefined,
-        challenges: customer.challenges || [],
-        goals: customer.goals || [],
-        preferredKeywords: customer.preferredKeywords || [],
+        keywords: customer.keywords || [],
         contactEmail: customer.contactEmail || '',
         contactPhone: customer.contactPhone || '',
         notes: customer.notes || '',
@@ -165,6 +156,14 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
 
   const handleInvalidSubmit = (errors: FieldErrors<CreateCustomerInput>) => {
     console.error('Form validation error:', errors);
+  };
+
+  // 키워드 토글 함수
+  const toggleKeyword = (currentKeywords: string[], keyword: string): string[] => {
+    if (currentKeywords.includes(keyword)) {
+      return currentKeywords.filter(k => k !== keyword);
+    }
+    return [...currentKeywords, keyword];
   };
 
   return (
@@ -188,13 +187,13 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
               disabled={isVerifying || !businessNumber || !!customer}
               variant="outline"
             >
-              {isVerifying ? '⏳ 검증 중...' : '🔍 검증'}
+              {isVerifying ? '검증 중...' : '검증'}
             </Button>
           </div>
 
           {verificationError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-              ❌ {verificationError}
+              {verificationError}
             </div>
           )}
 
@@ -207,7 +206,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
               }`}
             >
               <p className="text-sm font-medium mb-1">
-                {businessStatus.isValid ? '✅ 유효한 사업자' : '⚠️ ' + businessStatus.status}
+                {businessStatus.isValid ? '유효한 사업자' : businessStatus.status}
               </p>
               <p className="text-xs text-gray-600">상태: {businessStatus.status}</p>
               <p className="text-xs text-gray-600">과세유형: {businessStatus.taxType}</p>
@@ -387,158 +386,126 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
           />
         </div>
 
-        {/* 도전과제 */}
+        {/* 관심 키워드 선택 */}
         <FormField
           control={form.control}
-          name="challenges"
+          name="keywords"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>도전과제</FormLabel>
+              <FormLabel>관심 키워드 *</FormLabel>
+              <FormDescription>클릭하여 선택/해제하세요 (최소 1개 이상 필수)</FormDescription>
               <FormControl>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="도전과제 입력 후 엔터"
-                    value={challengeInput}
-                    onChange={e => setChallengeInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                      }
-                    }}
-                    onKeyUp={e => {
-                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                        const trimmed = challengeInput.trim();
-                        if (trimmed && !field.value?.includes(trimmed)) {
-                          field.onChange([...(field.value || []), trimmed]);
-                          setChallengeInput('');
-                        }
-                      }
-                    }}
-                  />
-                  {field.value && field.value.length > 0 && (
+                <div className="space-y-6 p-4 border rounded-lg bg-gray-50">
+                  {/* 도전과제 */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      {CUSTOMER_KEYWORDS.challenges.label}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      {CUSTOMER_KEYWORDS.challenges.description}
+                    </p>
                     <div className="flex flex-wrap gap-2">
-                      {field.value.map((item, index) => (
-                        <Badge key={index} variant="outline" className="gap-1">
-                          {item}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newArray = field.value?.filter((_, i) => i !== index);
-                              field.onChange(newArray);
-                            }}
-                            className="ml-1 hover:bg-gray-200 rounded-full"
+                      {CUSTOMER_KEYWORDS.challenges.keywords.map(keyword => {
+                        const isSelected = field.value?.includes(keyword);
+                        return (
+                          <Badge
+                            key={keyword}
+                            variant={isSelected ? 'default' : 'outline'}
+                            className={`cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-red-500 hover:bg-red-600'
+                                : 'hover:bg-red-100 hover:border-red-300'
+                            }`}
+                            onClick={() =>
+                              field.onChange(toggleKeyword(field.value || [], keyword))
+                            }
                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                            {keyword}
+                          </Badge>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
-              </FormControl>
-              <FormDescription>입력 후 엔터키를 눌러 추가하세요</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  </div>
 
-        {/* 목표 */}
-        <FormField
-          control={form.control}
-          name="goals"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>목표</FormLabel>
-              <FormControl>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="목표 입력 후 엔터"
-                    value={goalInput}
-                    onChange={e => setGoalInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                        const trimmed = goalInput.trim();
-                        if (trimmed && !field.value?.includes(trimmed)) {
-                          field.onChange([...(field.value || []), trimmed]);
-                          setGoalInput('');
-                        }
-                      }
-                    }}
-                  />
-                  {field.value && field.value.length > 0 && (
+                  {/* 목표 */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      {CUSTOMER_KEYWORDS.goals.label}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      {CUSTOMER_KEYWORDS.goals.description}
+                    </p>
                     <div className="flex flex-wrap gap-2">
-                      {field.value.map((item, index) => (
-                        <Badge key={index} variant="secondary" className="gap-1">
-                          {item}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newArray = field.value?.filter((_, i) => i !== index);
-                              field.onChange(newArray);
-                            }}
-                            className="ml-1 hover:bg-gray-200 rounded-full"
+                      {CUSTOMER_KEYWORDS.goals.keywords.map(keyword => {
+                        const isSelected = field.value?.includes(keyword);
+                        return (
+                          <Badge
+                            key={keyword}
+                            variant={isSelected ? 'default' : 'outline'}
+                            className={`cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-green-500 hover:bg-green-600'
+                                : 'hover:bg-green-100 hover:border-green-300'
+                            }`}
+                            onClick={() =>
+                              field.onChange(toggleKeyword(field.value || [], keyword))
+                            }
                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                            {keyword}
+                          </Badge>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
-              </FormControl>
-              <FormDescription>입력 후 엔터키를 눌러 추가하세요</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  </div>
 
-        {/* 선호 키워드 */}
-        <FormField
-          control={form.control}
-          name="preferredKeywords"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>선호 키워드</FormLabel>
-              <FormControl>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="키워드 입력 후 엔터"
-                    value={keywordInput}
-                    onChange={e => setKeywordInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                        const trimmed = keywordInput.trim();
-                        if (trimmed && !field.value?.includes(trimmed)) {
-                          field.onChange([...(field.value || []), trimmed]);
-                          setKeywordInput('');
-                        }
-                      }
-                    }}
-                  />
-                  {field.value && field.value.length > 0 && (
+                  {/* 원하는 지원 */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      {CUSTOMER_KEYWORDS.supports.label}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      {CUSTOMER_KEYWORDS.supports.description}
+                    </p>
                     <div className="flex flex-wrap gap-2">
-                      {field.value.map((item, index) => (
-                        <Badge key={index} variant="default" className="gap-1">
-                          {item}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newArray = field.value?.filter((_, i) => i !== index);
-                              field.onChange(newArray);
-                            }}
-                            className="ml-1 hover:bg-blue-700 rounded-full"
+                      {CUSTOMER_KEYWORDS.supports.keywords.map(keyword => {
+                        const isSelected = field.value?.includes(keyword);
+                        return (
+                          <Badge
+                            key={keyword}
+                            variant={isSelected ? 'default' : 'outline'}
+                            className={`cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-blue-500 hover:bg-blue-600'
+                                : 'hover:bg-blue-100 hover:border-blue-300'
+                            }`}
+                            onClick={() =>
+                              field.onChange(toggleKeyword(field.value || [], keyword))
+                            }
                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                            {keyword}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 선택된 키워드 요약 */}
+                  {field.value && field.value.length > 0 && (
+                    <div className="pt-4 border-t">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        선택된 키워드 ({field.value.length}개)
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {field.value.map(keyword => (
+                          <Badge key={keyword} variant="secondary" className="bg-gray-200">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               </FormControl>
-              <FormDescription>입력 후 엔터키를 눌러 추가하세요</FormDescription>
               <FormMessage />
             </FormItem>
           )}

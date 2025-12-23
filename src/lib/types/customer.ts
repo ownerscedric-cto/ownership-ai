@@ -18,9 +18,7 @@ export interface Customer {
   companySize: string | null;
   location: string;
   budget: number | null;
-  challenges: string[];
-  goals: string[];
-  preferredKeywords: string[];
+  keywords: string[]; // 도전과제, 목표, 선호 지원 유형 통합
   contactEmail: string | null;
   contactPhone: string | null;
   notes: string | null;

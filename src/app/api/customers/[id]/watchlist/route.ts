@@ -51,7 +51,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Check if customer exists
     const { data: customer, error: customerError } = await supabase
       .from('customers')
-      .select('preferredKeywords')
+      .select('keywords')
       .eq('id', id)
       .single();
 
@@ -98,17 +98,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to add to watchlist', 500);
     }
 
-    // 2. Update customer's preferred keywords
+    // 2. Update customer's keywords with program keywords
     const updatedKeywords = Array.from(
-      new Set([
-        ...(customer.preferredKeywords || []),
-        ...(program.keywords || []),
-      ])
+      new Set([...(customer.keywords || []), ...(program.keywords || [])])
     ).slice(0, 100);
 
     const { error: updateError } = await supabase
       .from('customers')
-      .update({ preferredKeywords: updatedKeywords })
+      .update({ keywords: updatedKeywords })
       .eq('id', id);
 
     if (updateError) {
@@ -151,7 +148,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     // Get watchlist with program details
     const { data: watchlist, error: watchlistError } = await supabase
       .from('customer_programs')
-      .select(`
+      .select(
+        `
         *,
         program:programs (
           id,
@@ -169,7 +167,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           startDate,
           endDate
         )
-      `)
+      `
+      )
       .eq('customerId', id)
       .order('addedAt', { ascending: false });
 

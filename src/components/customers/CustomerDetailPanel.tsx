@@ -154,51 +154,22 @@ export function CustomerDetailPanel({
 
         <Separator />
 
-        {/* 니즈 정보 */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            니즈 정보
-          </h2>
-          <div className="space-y-4">
-            {customer.challenges && customer.challenges.length > 0 && (
-              <div>
-                <p className="text-sm text-gray-500 mb-2">해결 과제</p>
-                <div className="flex flex-wrap gap-2">
-                  {customer.challenges.map((challenge: string, index: number) => (
-                    <Badge key={index} variant="secondary">
-                      {challenge}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {customer.goals && customer.goals.length > 0 && (
-              <div>
-                <p className="text-sm text-gray-500 mb-2">목표</p>
-                <div className="flex flex-wrap gap-2">
-                  {customer.goals.map((goal: string, index: number) => (
-                    <Badge key={index} variant="secondary">
-                      {goal}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {customer.preferredKeywords && customer.preferredKeywords.length > 0 && (
-              <div>
-                <p className="text-sm text-gray-500 mb-2">선호 키워드</p>
-                <div className="flex flex-wrap gap-2">
-                  {customer.preferredKeywords.map((keyword: string, index: number) => (
-                    <Badge key={index} variant="outline">
-                      {keyword}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
+        {/* 관심 키워드 */}
+        {customer.keywords && customer.keywords.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              관심 키워드
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {customer.keywords.map((keyword: string, index: number) => (
+                <Badge key={index} variant="secondary">
+                  {keyword}
+                </Badge>
+              ))}
+            </div>
+          </section>
+        )}
 
         <Separator />
 
