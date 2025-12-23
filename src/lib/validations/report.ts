@@ -177,6 +177,35 @@ export const customerReportDataSchema = z.object({
       })
     ),
   }),
+
+  // 진행사업 요약
+  projectSummary: z
+    .object({
+      total: z.number(),
+      inProgress: z.number(), // 서류준비, 신청완료, 심사중
+      completed: z.number(), // 선정, 완료
+      ended: z.number(), // 탈락, 취소/보류
+    })
+    .optional(),
+
+  // 진행사업 목록
+  projects: z
+    .array(
+      z.object({
+        id: z.string(),
+        programId: z.string(),
+        title: z.string(),
+        dataSource: z.string(),
+        status: z.string(), // preparing, submitted, reviewing, selected, rejected, cancelled, completed
+        statusLabel: z.string(), // 서류준비, 신청완료 등
+        deadline: z.string().nullable(),
+        deadlineStatus: z.string(), // active, closing, closed
+        startedAt: z.string(),
+        submittedAt: z.string().nullable(),
+        resultAt: z.string().nullable(),
+      })
+    )
+    .optional(),
 });
 
 // 타입 추출

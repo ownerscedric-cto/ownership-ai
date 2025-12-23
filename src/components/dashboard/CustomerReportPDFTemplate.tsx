@@ -197,6 +197,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     color: '#6B7280',
   },
+  // 진행사업 상태
+  projectPreparing: {
+    backgroundColor: '#F3F4F6',
+    color: '#374151',
+  },
+  projectSubmitted: {
+    backgroundColor: '#DBEAFE',
+    color: '#1E40AF',
+  },
+  projectReviewing: {
+    backgroundColor: '#FEF3C7',
+    color: '#92400E',
+  },
+  projectSelected: {
+    backgroundColor: '#D1FAE5',
+    color: '#065F46',
+  },
+  projectRejected: {
+    backgroundColor: '#FEE2E2',
+    color: '#991B1B',
+  },
+  projectCancelled: {
+    backgroundColor: '#E5E7EB',
+    color: '#6B7280',
+  },
+  projectCompleted: {
+    backgroundColor: '#EDE9FE',
+    color: '#5B21B6',
+  },
   // 차트
   chartContainer: {
     marginTop: 10,
@@ -285,6 +314,30 @@ function getStatusStyle(status: string) {
   if (status === '진행중') return styles.statusActive;
   if (status === '마감임박') return styles.statusSoon;
   return styles.statusClosed;
+}
+
+/**
+ * 진행사업 상태에 따른 스타일 반환
+ */
+function getProjectStatusStyle(status: string) {
+  switch (status) {
+    case 'preparing':
+      return styles.projectPreparing;
+    case 'submitted':
+      return styles.projectSubmitted;
+    case 'reviewing':
+      return styles.projectReviewing;
+    case 'selected':
+      return styles.projectSelected;
+    case 'rejected':
+      return styles.projectRejected;
+    case 'cancelled':
+      return styles.projectCancelled;
+    case 'completed':
+      return styles.projectCompleted;
+    default:
+      return styles.projectPreparing;
+  }
 }
 
 /**
@@ -521,7 +574,108 @@ export function CustomerReportPDFTemplate({ data }: CustomerReportPDFTemplatePro
         </Page>
       )}
 
-      {/* 3페이지: 관심 목록 */}
+      {/* 3페이지: 진행사업 현황 */}
+      {data.projects && data.projects.length > 0 && (
+        <Page size="A4" style={styles.page}>
+          {/* 진행사업 요약 */}
+          {data.projectSummary && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>사업진행현황</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryLabel}>총 진행사업</Text>
+                  <Text style={styles.summaryValue}>{data.projectSummary.total}</Text>
+                </View>
+                <View style={[styles.summaryCard, { backgroundColor: '#DBEAFE' }]}>
+                  <Text style={styles.summaryLabel}>진행중</Text>
+                  <Text style={[styles.summaryValue, { color: '#1E40AF' }]}>
+                    {data.projectSummary.inProgress}
+                  </Text>
+                </View>
+                <View style={[styles.summaryCard, { backgroundColor: '#D1FAE5' }]}>
+                  <Text style={styles.summaryLabel}>선정/완료</Text>
+                  <Text style={[styles.summaryValue, { color: '#065F46' }]}>
+                    {data.projectSummary.completed}
+                  </Text>
+                </View>
+                <View style={[styles.summaryCard, { backgroundColor: '#FEE2E2' }]}>
+                  <Text style={styles.summaryLabel}>탈락/취소</Text>
+                  <Text style={[styles.summaryValue, { color: '#991B1B' }]}>
+                    {data.projectSummary.ended}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 진행사업 목록 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>진행사업 목록</Text>
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderCell, { width: '40%' }]}>프로그램명</Text>
+                <Text style={[styles.tableHeaderCell, { width: '18%' }]}>데이터소스</Text>
+                <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'center' }]}>
+                  상태
+                </Text>
+                <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'center' }]}>
+                  마감
+                </Text>
+                <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'center' }]}>
+                  시작일
+                </Text>
+              </View>
+              {data.projects.map((project, index) => (
+                <View key={index} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { width: '40%' }]}>
+                    {project.title.length > 30
+                      ? project.title.substring(0, 30) + '...'
+                      : project.title}
+                  </Text>
+                  <Text style={[styles.tableCell, { width: '18%' }]}>{project.dataSource}</Text>
+                  <View style={{ width: '14%', alignItems: 'center' }}>
+                    <Text style={[styles.statusBadge, getProjectStatusStyle(project.status)]}>
+                      {project.statusLabel}
+                    </Text>
+                  </View>
+                  <View style={{ width: '14%', alignItems: 'center' }}>
+                    <Text
+                      style={[
+                        styles.statusBadge,
+                        project.deadlineStatus === 'closing'
+                          ? styles.statusSoon
+                          : project.deadlineStatus === 'closed'
+                            ? styles.statusClosed
+                            : styles.statusActive,
+                      ]}
+                    >
+                      {project.deadlineStatus === 'closing'
+                        ? '마감임박'
+                        : project.deadlineStatus === 'closed'
+                          ? '마감'
+                          : '진행중'}
+                    </Text>
+                  </View>
+                  <Text style={[styles.tableCell, { width: '14%', textAlign: 'center' }]}>
+                    {formatDate(project.startedAt).split(' ').slice(0, 2).join(' ')}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <Text style={styles.footer} fixed>
+            Ownership AI - 정부지원사업 매칭 플랫폼
+          </Text>
+          <Text
+            style={styles.pageNumber}
+            render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+            fixed
+          />
+        </Page>
+      )}
+
+      {/* 4페이지: 관심 목록 */}
       {data.watchlistPrograms.length > 0 && (
         <Page size="A4" style={styles.page}>
           <View style={styles.section}>

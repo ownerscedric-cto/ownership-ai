@@ -105,6 +105,32 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       console.error('[Customer Report] Watchlist query error:', watchlistError);
     }
 
+    // 진행사업 조회
+    const { data: projectItems, error: projectsError } = await supabase
+      .from('customer_projects')
+      .select(
+        `
+        id,
+        status,
+        notes,
+        startedAt,
+        submittedAt,
+        resultAt,
+        program:programs(
+          id,
+          title,
+          dataSource,
+          deadline
+        )
+      `
+      )
+      .eq('customerId', customerId)
+      .order('startedAt', { ascending: false });
+
+    if (projectsError) {
+      console.error('[Customer Report] Projects query error:', projectsError);
+    }
+
     // 매칭 통계 계산
     const matchings = matchingResults || [];
     const allKeywords: string[] = [];
@@ -194,6 +220,57 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }))
       .sort((a, b) => b.count - a.count);
 
+    // 진행사업 상태 라벨 매핑
+    const PROJECT_STATUS_LABELS: Record<string, string> = {
+      preparing: '서류준비',
+      submitted: '신청완료',
+      reviewing: '심사중',
+      selected: '선정',
+      rejected: '탈락',
+      cancelled: '취소/보류',
+      completed: '완료',
+    };
+
+    // 진행사업 목록 구성
+    const projects = (projectItems || [])
+      .filter(p => p.program)
+      .map(p => {
+        const program = p.program as unknown as {
+          id: string;
+          title: string;
+          dataSource: string;
+          deadline: string | null;
+        };
+        const deadlineStatus = getProgramStatus(program.deadline);
+        return {
+          id: p.id,
+          programId: program.id,
+          title: program.title,
+          dataSource: program.dataSource,
+          status: p.status,
+          statusLabel: PROJECT_STATUS_LABELS[p.status] || p.status,
+          deadline: program.deadline,
+          deadlineStatus:
+            deadlineStatus === '마감'
+              ? 'closed'
+              : deadlineStatus === '마감임박'
+                ? 'closing'
+                : 'active',
+          startedAt: p.startedAt,
+          submittedAt: p.submittedAt,
+          resultAt: p.resultAt,
+        };
+      });
+
+    // 진행사업 요약 통계
+    const projectSummary = {
+      total: projects.length,
+      inProgress: projects.filter(p => ['preparing', 'submitted', 'reviewing'].includes(p.status))
+        .length,
+      completed: projects.filter(p => ['selected', 'completed'].includes(p.status)).length,
+      ended: projects.filter(p => ['rejected', 'cancelled'].includes(p.status)).length,
+    };
+
     // 리포트 데이터 구성
     const reportData: CustomerReportData = {
       customer: {
@@ -218,6 +295,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         topKeywords,
         byDataSource,
       },
+      projectSummary,
+      projects,
     };
 
     return successResponse(reportData);
