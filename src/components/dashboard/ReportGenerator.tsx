@@ -1,6 +1,6 @@
 /**
  * @file ReportGenerator.tsx
- * @description 리포트 생성 UI 컴포넌트
+ * @description 리포트 생성 UI 컴포넌트 (미리보기 + 다운로드)
  * Phase 6: 대시보드 및 분석 - 리포트 생성
  */
 
@@ -28,7 +28,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FileDown, Loader2, Calendar, AlertCircle, Users, BarChart3 } from 'lucide-react';
+import {
+  FileDown,
+  Loader2,
+  Calendar,
+  AlertCircle,
+  Users,
+  BarChart3,
+  Eye,
+  Download,
+} from 'lucide-react';
 import { ReportPDFTemplate } from './ReportPDFTemplate';
 import { CustomerReportPDFTemplate } from './CustomerReportPDFTemplate';
 import type { ReportData, CustomerReportData } from '@/lib/validations/report';
@@ -87,6 +96,12 @@ export function ReportGenerator({ className }: ReportGeneratorProps) {
   const [includePrograms, setIncludePrograms] = useState(true);
   const [includeMatchings, setIncludeMatchings] = useState(true);
 
+  // 미리보기 상태
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+
   /**
    * 다이얼로그 열릴 때 고객 목록 로드
    */
@@ -95,6 +110,17 @@ export function ReportGenerator({ className }: ReportGeneratorProps) {
       fetchCustomers();
     }
   }, [open, customers.length]);
+
+  /**
+   * 미리보기 URL 정리
+   */
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   /**
    * 고객 목록 조회
@@ -121,9 +147,9 @@ export function ReportGenerator({ className }: ReportGeneratorProps) {
   };
 
   /**
-   * 전체 활동 리포트 생성
+   * 전체 활동 리포트 데이터 조회
    */
-  const handleGenerateActivityReport = async () => {
+  const fetchActivityReportData = async (): Promise<ReportData> => {
     const response = await fetch('/api/analytics/report', {
       method: 'POST',
       headers: {
@@ -144,26 +170,13 @@ export function ReportGenerator({ className }: ReportGeneratorProps) {
     }
 
     const result = await response.json();
-    const reportData: ReportData = result.data;
-
-    // PDF 생성
-    const blob = await pdf(<ReportPDFTemplate data={reportData} />).toBlob();
-
-    // 다운로드
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `활동리포트_${startDate}_${endDate}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    return result.data;
   };
 
   /**
-   * 고객별 리포트 생성
+   * 고객별 리포트 데이터 조회
    */
-  const handleGenerateCustomerReport = async () => {
+  const fetchCustomerReportData = async (): Promise<CustomerReportData> => {
     if (!selectedCustomerId) {
       throw new Error('고객을 선택해주세요');
     }
@@ -176,37 +189,103 @@ export function ReportGenerator({ className }: ReportGeneratorProps) {
     }
 
     const result = await response.json();
-    const reportData: CustomerReportData = result.data;
-
-    // PDF 생성
-    const blob = await pdf(<CustomerReportPDFTemplate data={reportData} />).toBlob();
-
-    // 다운로드
-    const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
-    const customerName = selectedCustomer?.name || '고객';
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${customerName}_매칭리포트_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    return result.data;
   };
 
   /**
-   * 리포트 생성 및 다운로드
+   * PDF Blob 생성
+   */
+  const generatePDFBlob = async (): Promise<{ blob: Blob; fileName: string }> => {
+    if (reportType === 'activity') {
+      const reportData = await fetchActivityReportData();
+      const blob = await pdf(<ReportPDFTemplate data={reportData} />).toBlob();
+      return {
+        blob,
+        fileName: `활동리포트_${startDate}_${endDate}.pdf`,
+      };
+    } else {
+      const reportData = await fetchCustomerReportData();
+      const blob = await pdf(<CustomerReportPDFTemplate data={reportData} />).toBlob();
+      const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+      const customerName = selectedCustomer?.name || '고객';
+      return {
+        blob,
+        fileName: `${customerName}_매칭리포트_${new Date().toISOString().split('T')[0]}.pdf`,
+      };
+    }
+  };
+
+  /**
+   * 미리보기 열기
+   */
+  const handlePreview = async () => {
+    setIsGeneratingPreview(true);
+    setError(null);
+
+    try {
+      const { blob, fileName } = await generatePDFBlob();
+
+      // 이전 URL 정리
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewFileName(fileName);
+      setPreviewOpen(true);
+      setOpen(false); // 옵션 다이얼로그 닫기
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '미리보기 생성에 실패했습니다');
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
+
+  /**
+   * 미리보기에서 다운로드
+   */
+  const handleDownloadFromPreview = () => {
+    if (!previewUrl) return;
+
+    const link = document.createElement('a');
+    link.href = previewUrl;
+    link.download = previewFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  /**
+   * 미리보기 닫기
+   */
+  const handleClosePreview = () => {
+    setPreviewOpen(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
+  /**
+   * 리포트 생성 및 다운로드 (직접 다운로드)
    */
   const handleGenerateReport = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      if (reportType === 'activity') {
-        await handleGenerateActivityReport();
-      } else {
-        await handleGenerateCustomerReport();
-      }
+      const { blob, fileName } = await generatePDFBlob();
+
+      // 다운로드
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       // 성공 시 다이얼로그 닫기
       setOpen(false);
@@ -229,230 +308,296 @@ export function ReportGenerator({ className }: ReportGeneratorProps) {
     setEndDate(formatDateForInput(end));
   };
 
+  const isButtonDisabled =
+    isLoading || isGeneratingPreview || (reportType === 'customer' && !selectedCustomerId);
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className={className}>
-          <FileDown className="w-4 h-4 mr-2" />
-          리포트 다운로드
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileDown className="w-5 h-5 text-[#0052CC]" />
-            리포트 생성
-          </DialogTitle>
-          <DialogDescription>리포트 유형을 선택하고 PDF를 생성하세요.</DialogDescription>
-        </DialogHeader>
+    <>
+      {/* 옵션 선택 다이얼로그 */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className={className}>
+            <FileDown className="w-4 h-4 mr-2" />
+            리포트 다운로드
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileDown className="w-5 h-5 text-[#0052CC]" />
+              리포트 생성
+            </DialogTitle>
+            <DialogDescription>리포트 유형을 선택하고 PDF를 생성하세요.</DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* 리포트 유형 선택 */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">리포트 유형</Label>
-            <Select
-              value={reportType}
-              onValueChange={(value: 'activity' | 'customer') => {
-                setReportType(value);
-                setError(null);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="리포트 유형 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="activity">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4" />
-                    <span>전체 활동 리포트</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="customer">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    <span>고객별 매칭 리포트</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 고객 선택 (고객별 리포트인 경우) */}
-          {reportType === 'customer' && (
+          <div className="space-y-6 py-4">
+            {/* 리포트 유형 선택 */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">고객 선택</Label>
+              <Label className="text-sm font-medium">리포트 유형</Label>
               <Select
-                value={selectedCustomerId}
-                onValueChange={setSelectedCustomerId}
-                disabled={isLoadingCustomers}
+                value={reportType}
+                onValueChange={(value: 'activity' | 'customer') => {
+                  setReportType(value);
+                  setError(null);
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue
-                    placeholder={isLoadingCustomers ? '로딩 중...' : '고객을 선택하세요'}
-                  />
+                  <SelectValue placeholder="리포트 유형 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      <span>{customer.name}</span>
-                      {customer.industry && (
-                        <span className="text-gray-500 ml-2">({customer.industry})</span>
-                      )}
-                    </SelectItem>
-                  ))}
-                  {customers.length === 0 && !isLoadingCustomers && (
-                    <div className="py-2 px-3 text-sm text-gray-500">등록된 고객이 없습니다</div>
-                  )}
+                  <SelectItem value="activity">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4" />
+                      <span>전체 활동 리포트</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="customer">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      <span>고객별 매칭 리포트</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          )}
 
-          {/* 활동 리포트 옵션 (전체 활동 리포트인 경우) */}
-          {reportType === 'activity' && (
-            <>
-              {/* 기간 선택 */}
+            {/* 고객 선택 (고객별 리포트인 경우) */}
+            {reportType === 'customer' && (
               <div className="space-y-3">
-                <Label className="flex items-center gap-2 text-sm font-medium">
-                  <Calendar className="w-4 h-4" />
-                  기간 선택
-                </Label>
-
-                {/* 빠른 선택 버튼 */}
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuickRange(7)}
-                  >
-                    최근 7일
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuickRange(30)}
-                  >
-                    최근 30일
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuickRange(90)}
-                  >
-                    최근 90일
-                  </Button>
-                </div>
-
-                {/* 날짜 입력 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="startDate" className="text-xs text-gray-500">
-                      시작일
-                    </Label>
-                    <Input
-                      id="startDate"
-                      type="date"
-                      value={startDate}
-                      onChange={e => setStartDate(e.target.value)}
+                <Label className="text-sm font-medium">고객 선택</Label>
+                <Select
+                  value={selectedCustomerId}
+                  onValueChange={setSelectedCustomerId}
+                  disabled={isLoadingCustomers}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={isLoadingCustomers ? '로딩 중...' : '고객을 선택하세요'}
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="endDate" className="text-xs text-gray-500">
-                      종료일
-                    </Label>
-                    <Input
-                      id="endDate"
-                      type="date"
-                      value={endDate}
-                      onChange={e => setEndDate(e.target.value)}
-                    />
-                  </div>
-                </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        <span>{customer.name}</span>
+                        {customer.industry && (
+                          <span className="text-gray-500 ml-2">({customer.industry})</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                    {customers.length === 0 && !isLoadingCustomers && (
+                      <div className="py-2 px-3 text-sm text-gray-500">등록된 고객이 없습니다</div>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
+            )}
 
-              {/* 포함 항목 선택 */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">포함 항목</Label>
-
+            {/* 활동 리포트 옵션 (전체 활동 리포트인 경우) */}
+            {reportType === 'activity' && (
+              <>
+                {/* 기간 선택 */}
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="includeCustomers"
-                      checked={includeCustomers}
-                      onCheckedChange={(checked: boolean) => setIncludeCustomers(checked)}
-                    />
-                    <label
-                      htmlFor="includeCustomers"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Calendar className="w-4 h-4" />
+                    기간 선택
+                  </Label>
+
+                  {/* 빠른 선택 버튼 */}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuickRange(7)}
                     >
-                      고객 통계 (업종별 분포, Top 고객)
-                    </label>
+                      최근 7일
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuickRange(30)}
+                    >
+                      최근 30일
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuickRange(90)}
+                    >
+                      최근 90일
+                    </Button>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="includePrograms"
-                      checked={includePrograms}
-                      onCheckedChange={(checked: boolean) => setIncludePrograms(checked)}
-                    />
-                    <label
-                      htmlFor="includePrograms"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      프로그램 통계 (데이터소스별, Top 프로그램)
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="includeMatchings"
-                      checked={includeMatchings}
-                      onCheckedChange={(checked: boolean) => setIncludeMatchings(checked)}
-                    />
-                    <label
-                      htmlFor="includeMatchings"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      매칭 통계 (점수 분포, 일별 추이)
-                    </label>
+                  {/* 날짜 입력 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="startDate" className="text-xs text-gray-500">
+                        시작일
+                      </Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="endDate" className="text-xs text-gray-500">
+                        종료일
+                      </Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </>
-          )}
 
-          {/* 에러 메시지 */}
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+                {/* 포함 항목 선택 */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">포함 항목</Label>
 
-          {/* 생성 버튼 */}
-          <Button
-            onClick={handleGenerateReport}
-            disabled={isLoading || (reportType === 'customer' && !selectedCustomerId)}
-            className="w-full bg-[#0052CC] hover:bg-[#0052CC]/90"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                생성 중...
-              </>
-            ) : (
-              <>
-                <FileDown className="w-4 h-4 mr-2" />
-                {reportType === 'activity' ? 'PDF 활동 리포트 생성' : 'PDF 고객 리포트 생성'}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="includeCustomers"
+                        checked={includeCustomers}
+                        onCheckedChange={(checked: boolean) => setIncludeCustomers(checked)}
+                      />
+                      <label
+                        htmlFor="includeCustomers"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        고객 통계 (업종별 분포, Top 고객)
+                      </label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="includePrograms"
+                        checked={includePrograms}
+                        onCheckedChange={(checked: boolean) => setIncludePrograms(checked)}
+                      />
+                      <label
+                        htmlFor="includePrograms"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        프로그램 통계 (데이터소스별, Top 프로그램)
+                      </label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="includeMatchings"
+                        checked={includeMatchings}
+                        onCheckedChange={(checked: boolean) => setIncludeMatchings(checked)}
+                      />
+                      <label
+                        htmlFor="includeMatchings"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        매칭 통계 (점수 분포, 일별 추이)
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+
+            {/* 에러 메시지 */}
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* 버튼 영역 */}
+            <div className="flex gap-2">
+              {/* 미리보기 버튼 */}
+              <Button
+                variant="outline"
+                onClick={handlePreview}
+                disabled={isButtonDisabled}
+                className="flex-1"
+              >
+                {isGeneratingPreview ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    미리보기
+                  </>
+                )}
+              </Button>
+
+              {/* 다운로드 버튼 */}
+              <Button
+                onClick={handleGenerateReport}
+                disabled={isButtonDisabled}
+                className="flex-1 bg-[#0052CC] hover:bg-[#0052CC]/90"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    다운로드
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 미리보기 다이얼로그 */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-[#0052CC]" />
+                리포트 미리보기
+              </DialogTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadFromPreview}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                다운로드
+              </Button>
+            </div>
+            <DialogDescription className="text-sm text-gray-500">
+              {previewFileName}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* PDF 미리보기 영역 */}
+          <div className="flex-1 overflow-hidden bg-gray-100">
+            {previewUrl ? (
+              <iframe src={previewUrl} className="w-full h-full border-0" title="PDF 미리보기" />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
