@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ReactQueryProvider } from '@/lib/react-query';
 import { Toaster } from '@/components/ui/sonner';
+import { pretendard } from '@/lib/fonts';
 
 export const metadata: Metadata = {
   title: 'Ownership AI - 컨설턴트 관리 플랫폼',
@@ -21,16 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
-      <head>
-        <link
-          rel="stylesheet"
-          as="style"
-          crossOrigin="anonymous"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
-        />
-      </head>
-      <body className="antialiased">
+    <html lang="ko" className={pretendard.variable}>
+      <body className={`${pretendard.className} antialiased`}>
         <ReactQueryProvider>{children}</ReactQueryProvider>
         <Toaster />
       </body>

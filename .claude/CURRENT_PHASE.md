@@ -1,235 +1,183 @@
-# Current Phase: Phase 6 - 대시보드 및 분석 📊
+# Current Phase: Phase 8 - 성능 최적화 및 테스트 ⚡
 
-**목표**: 컨설턴트가 활동을 한눈에 파악할 수 있는 대시보드 및 리포트 기능 구현
+**목표**: 애플리케이션 성능 최적화 및 테스트 커버리지 확보
 
-**전체 진행 상황**: Phase 6 / 9 Phases 🚀
+**전체 진행 상황**: Phase 8 / 9 Phases 🚀
 
-**이전 Phase**: ✅ Phase 5 완료 (교육 콘텐츠 및 VOD 제공 페이지)
+**이전 Phase**: ✅ Phase 7 완료 (관리자 기능)
 
-**Phase 6 진행 현황**: 🔄 진행중
+**Phase 8 진행 현황**: 🔄 진행중
 
-- ✅ ISSUE-14: 대시보드 데이터 집계 API 구현 (완료)
-- ✅ ISSUE-15: 대시보드 UI 개발 (완료)
-- ⏳ ISSUE-16: 리포트 생성 기능 (대기)
-
----
-
-## 📋 Phase 6 ISSUE 목록
-
-### 📋 ISSUE-14: 대시보드 데이터 집계 API 구현
-
-**상태**: ✅ 완료 (2025-12-23)
-**목표**: 컨설턴트가 활동을 한눈에 파악할 수 있는 통계 데이터 제공
-**의존성**: ✅ Phase 5 완료
-**완료 기간**: 1일
-**난이도**: 중
-
-**핵심 기술**:
-
-- **Supabase Aggregate Queries**: COUNT, SUM, AVG 등 집계 함수
-- **시계열 데이터**: 일별/주별/월별 통계
-- **캐싱 전략**: React Query staleTime 설정
-
-**작업 내용**:
-
-1. **집계 API 작성**:
-   - `GET /api/analytics` (대시보드 전체 통계)
-   - `GET /api/analytics/trends` (시계열 트렌드)
-   - `GET /api/analytics/top-programs` (인기 프로그램)
-   - `GET /api/analytics/top-customers` (활성 고객)
-
-2. **반환 데이터 구조**:
-
-   ```typescript
-   interface DashboardStats {
-     // 총계
-     totalCustomers: number;
-     totalPrograms: number;
-     totalMatchings: number;
-     activePrograms: number; // 마감 전 프로그램
-
-     // 최근 활동
-     recentCustomers: number; // 최근 7일 등록
-     recentMatchings: number; // 최근 7일 매칭
-
-     // 인기 데이터
-     topPrograms: Array<{ id: string; title: string; matchCount: number }>;
-     topCustomers: Array<{ id: string; name: string; matchCount: number }>;
-
-     // 데이터소스별 프로그램 수
-     programsBySource: Array<{ dataSource: string; count: number }>;
-
-     // 최근 활동 내역
-     recentActivity: Array<{
-       type: 'customer' | 'matching' | 'program';
-       description: string;
-       createdAt: string;
-     }>;
-   }
-
-   interface TrendData {
-     period: 'daily' | 'weekly' | 'monthly';
-     data: Array<{
-       date: string;
-       customers: number;
-       matchings: number;
-       programs: number;
-     }>;
-   }
-   ```
-
-3. **성능 최적화**:
-   - React Query `staleTime: 5 * 60 * 1000` (5분)
-   - 복잡한 집계는 Database View 사용 고려
-   - 인덱스 최적화 (createdAt, userId)
-
-**완료 조건**:
-
-- [x] GET /api/analytics 엔드포인트 구현
-- [x] GET /api/analytics/trends 엔드포인트 구현
-- [x] 총계 통계 (고객, 프로그램, 매칭) 반환 확인
-- [x] 시계열 데이터 (일별/주별/월별) 반환 확인
-- [x] 인기 프로그램/고객 Top 5 반환 확인
-- [x] 데이터소스별 프로그램 통계 반환 확인
-- [x] API 응답 시간 1초 이내 (병렬 쿼리 사용)
-- [x] Zod 검증 스키마 작성
-- [x] React Query hooks 작성
-- [x] TypeScript 타입 체크 통과
-
-**구현된 파일**:
-
-- `/src/lib/validations/analytics.ts` - Zod 스키마 및 타입 정의
-- `/src/app/api/analytics/route.ts` - 대시보드 전체 통계 API
-- `/src/app/api/analytics/trends/route.ts` - 시계열 트렌드 API
-- `/src/lib/hooks/useAnalytics.ts` - React Query hooks
+- ✅ ISSUE-19: 성능 최적화 (완료)
+- ✅ ISSUE-20: 통합 테스트 작성 (완료)
+- ⏳ ISSUE-21: 에러 추적 및 모니터링 (대기)
 
 ---
 
-### 📋 ISSUE-15: 대시보드 UI 개발
+## 📋 Phase 8 ISSUE 목록
 
-**상태**: ✅ 완료 (2025-12-23)
-**목표**: 직관적인 대시보드 페이지 구현
-**의존성**: ✅ ISSUE-14 완료
-**완료 기간**: 1일
+### 📋 ISSUE-19: 성능 최적화
+
+**상태**: ✅ 완료
+**목표**: 애플리케이션 로딩 시간 및 응답 속도 개선
+**완료일**: 2025-12-26
 **난이도**: 중
 
 **작업 내용**:
 
-1. **대시보드 컴포넌트 작성**:
-   - `/components/dashboard/StatsCard.tsx` (통계 카드)
-   - `/components/dashboard/TrendChart.tsx` (트렌드 차트)
-   - `/components/dashboard/ProgramsBySourceChart.tsx` (데이터소스별 프로그램)
-   - `/components/dashboard/RecentActivity.tsx` (최근 활동)
-   - `/components/dashboard/TopProgramsList.tsx` (인기 프로그램)
-   - `/components/dashboard/TopCustomersList.tsx` (활성 고객)
-   - `/components/dashboard/QuickActions.tsx` (빠른 작업)
+1. **프론트엔드 최적화**:
+   - ✅ 코드 스플리팅 (Dynamic Import) - 차트 컴포넌트 분리
+   - ✅ 이미지 최적화 (Next.js Image) - next.config.ts 설정
+   - ✅ 폰트 최적화 (next/font) - Pretendard 로컬 폰트 적용
+   - ✅ 패키지 최적화 (optimizePackageImports) - lucide-react, recharts 등
 
-2. **차트 라이브러리 연동**:
-   - Recharts 설치 및 적용
-   - 라인 차트: 시계열 트렌드 (고객/매칭/프로그램)
-   - 바 차트: 데이터소스별 프로그램 분포
+2. **백엔드 최적화**:
+   - ✅ Database Indexing - 30개 이상 인덱스 추가
+   - ✅ React Query 캐싱 전략 최적화 - gcTime, 지수 백오프 재시도
+   - ✅ 쿼리 키 상수 정의 (queryKeys)
 
-3. **페이지 확장**:
-   - 기존 `/app/dashboard/page.tsx` 확장
-   - API 연동 및 통계 데이터 표시
-   - Skeleton UI 로딩 상태 적용
+3. **번들 사이즈 분석**:
+   - ✅ @next/bundle-analyzer 설치
+   - ✅ npm run build:analyze 스크립트 추가
+   - ✅ 프로덕션 console.log 제거 (compiler.removeConsole)
+
+4. **캐싱 최적화**:
+   - ✅ 정적 자산 캐싱 헤더 (1년 캐시)
+   - ✅ React Query staleTime/gcTime 최적화
 
 **완료 조건**:
 
-- [x] StatsCard 컴포넌트 완성
-- [x] TrendChart 컴포넌트 완성 (Recharts)
-- [x] RecentActivity 컴포넌트 완성
-- [x] 대시보드 페이지 완성
-- [x] 모바일 반응형 확인 (grid-cols-1 sm:grid-cols-2 lg:grid-cols-4)
-- [x] Skeleton UI 로딩 상태
-- [x] TypeScript 타입 체크 통과
-- [x] 빌드 성공
+- [x] 프론트엔드 최적화 (코드 스플리팅, 폰트, 이미지)
+- [x] 백엔드 최적화 (DB 인덱스, React Query 캐싱)
+- [x] 번들 분석 도구 설정
+- [x] 빌드 성공 확인
 
 **구현된 파일**:
 
-- `/src/components/dashboard/StatsCard.tsx` - 통계 카드
-- `/src/components/dashboard/TrendChart.tsx` - 시계열 트렌드 차트
-- `/src/components/dashboard/ProgramsBySourceChart.tsx` - 데이터소스별 프로그램 분포
-- `/src/components/dashboard/RecentActivity.tsx` - 최근 활동 내역
-- `/src/components/dashboard/TopProgramsList.tsx` - 인기 프로그램 목록
-- `/src/components/dashboard/TopCustomersList.tsx` - 활성 고객 목록
-- `/src/components/dashboard/QuickActions.tsx` - 빠른 작업 버튼
-- `/src/components/dashboard/index.ts` - 배럴 파일
-- `/src/app/dashboard/page.tsx` - 대시보드 페이지 (확장)
+- `next.config.ts` - Bundle Analyzer, 이미지/패키지 최적화, 캐싱 헤더
+- `src/lib/fonts.ts` - Pretendard 로컬 폰트 설정 (next/font)
+- `src/app/layout.tsx` - 폰트 적용
+- `src/app/dashboard/page.tsx` - 차트 컴포넌트 동적 로딩
+- `src/lib/react-query.tsx` - 캐싱 전략 최적화, queryKeys 상수
+- Supabase 마이그레이션 - 30개 이상 DB 인덱스 추가
 
 ---
 
-### 📋 ISSUE-16: 리포트 생성 기능
+### 📋 ISSUE-20: 통합 테스트 작성
+
+**상태**: ✅ 완료
+**목표**: E2E 테스트 및 API 테스트 커버리지 확보
+**완료일**: 2025-12-26
+**난이도**: 중
+
+**작업 내용**:
+
+1. **Playwright 설치 및 설정**:
+   - ✅ @playwright/test 설치
+   - ✅ Chromium 브라우저 설치
+   - ✅ playwright.config.ts 설정
+
+2. **E2E 테스트 작성**:
+   - ✅ `/tests/e2e/auth.spec.ts` - 인증 테스트 (로그인 페이지, 리다이렉트)
+   - ✅ `/tests/e2e/programs.spec.ts` - 프로그램 페이지 테스트
+   - ✅ `/tests/e2e/home.spec.ts` - 홈페이지 테스트
+
+3. **CI/CD 파이프라인 통합**:
+   - ✅ `.github/workflows/ci.yml` - GitHub Actions 워크플로우
+   - ✅ Lint, TypeCheck, Build, E2E 테스트 자동화
+   - ✅ Playwright Report 아티팩트 업로드
+
+4. **테스트 스크립트 추가**:
+   - ✅ `npm run test:e2e` - E2E 테스트 실행
+   - ✅ `npm run test:e2e:ui` - Playwright UI 모드
+   - ✅ `npm run test:e2e:report` - 테스트 리포트 보기
+
+**완료 조건**:
+
+- [x] Playwright 설정 완료
+- [x] 주요 E2E 테스트 작성
+- [x] CI/CD 파이프라인에 테스트 통합
+- [x] 빌드 성공 확인
+
+**구현된 파일**:
+
+- `playwright.config.ts` - Playwright 설정
+- `tests/e2e/auth.spec.ts` - 인증 E2E 테스트
+- `tests/e2e/programs.spec.ts` - 프로그램 E2E 테스트
+- `tests/e2e/home.spec.ts` - 홈페이지 E2E 테스트
+- `.github/workflows/ci.yml` - GitHub Actions CI 워크플로우
+- `package.json` - 테스트 스크립트 추가
+
+---
+
+### 📋 ISSUE-21: 에러 추적 및 모니터링 설정
 
 **상태**: ⏳ 대기
-**목표**: PDF 형태의 활동 리포트 생성 및 다운로드 기능
-**의존성**: ISSUE-14 완료 후 시작 가능
-**예상 기간**: 5일
-**난이도**: 중
+**목표**: 프로덕션 환경 에러 추적 및 성능 모니터링 구축
+**예상 기간**: 3일
+**난이도**: 하
 
 **작업 내용**:
 
-1. **PDF 생성 라이브러리 설치**:
+1. **Sentry 연동**:
 
    ```bash
-   npm install @react-pdf/renderer
+   npm install @sentry/nextjs
    ```
 
-2. **리포트 API 작성**:
-   - `POST /api/analytics/report` (리포트 생성)
-   - 기간 설정 (시작일~종료일)
-   - PDF 파일 생성
+   - `sentry.client.config.ts`
+   - `sentry.server.config.ts`
+   - Error Boundary 설정
 
-3. **리포트 템플릿 작성**:
-   - 고객 통계
-   - 매칭 성과
-   - 프로그램 현황
-   - 차트/그래프
+2. **Vercel Analytics 활성화**
 
-4. **다운로드 UI**:
-   - `/components/dashboard/ReportGenerator.tsx`
+3. **알림 설정**:
+   - 에러 발생 시 이메일/Slack 알림
+   - API 응답 시간 임계값 초과 시 알림
 
 **완료 조건**:
 
-- [ ] PDF 리포트 생성 API 완성
-- [ ] 리포트 템플릿 디자인
-- [ ] PDF 다운로드 기능 동작 확인
-- [ ] 리포트 내용 정확성 검증
+- [ ] Sentry 설정 완료
+- [ ] 의도적 에러 발생 시 Sentry 기록 확인
+- [ ] 알림 수신 확인
 
 ---
 
-## 🎯 Phase 6 시작 가이드
+## ✅ Phase 7 완료 요약 (이전 Phase)
 
-### ✅ 준비사항 체크리스트
+### 관리자 기능
 
-**Phase 5 완료 확인**:
+- ✅ ISSUE-17: 사용자 관리 기능
+  - Role 기반 권한 관리 (roles, user_roles 테이블)
+  - 권한 체크 미들웨어 (requireAuth, requireAdmin)
+  - 관리자 API (/api/admin/users, /api/admin/roles)
+  - 관리자 UI (/admin/users)
 
-- ✅ 교육 콘텐츠 시스템 완성
-- ✅ 노하우 커뮤니티 게시판 완성
-
-**Phase 6 준비사항**:
-
-- ✅ 고객 데이터 (customers 테이블)
-- ✅ 프로그램 데이터 (programs 테이블)
-- ✅ 매칭 결과 데이터 (matching_results 테이블)
+- ✅ ISSUE-18: 시스템 설정 관리
+  - 키워드 관리 시스템
+  - 키워드 카테고리 관리 API
+  - 관리자 설정 UI (/admin/settings/keywords)
 
 ---
 
-## 📊 Phase 6 예상 완료 시점
+## ✅ Phase 6 완료 요약
 
-**총 예상 기간**: 17일 (약 3주)
+### 대시보드 및 분석
 
-- ISSUE-14: 5일 (데이터 집계 API)
-- ISSUE-15: 7일 (대시보드 UI)
-- ISSUE-16: 5일 (리포트 생성)
+- ✅ ISSUE-14: 대시보드 데이터 집계 API
+- ✅ ISSUE-15: 대시보드 UI 개발
+- ✅ ISSUE-16: 리포트 생성 기능 (PDF 생성/미리보기/다운로드)
 
-**성공 기준**:
+---
 
-- ✅ 대시보드 통계 데이터 정확성
-- ✅ API 응답 시간 1초 이내
-- ✅ 차트 시각화 명확성
-- ✅ PDF 리포트 다운로드 기능
-- ✅ 모바일 반응형 지원
+## 🚀 Phase 9 미리보기
+
+### 프로덕션 배포 준비
+
+| ISSUE    | 제목      | 난이도 |
+| -------- | --------- | ------ |
+| ISSUE-22 | 보안 강화 | 중     |
+| ISSUE-23 | 배포 준비 | 하     |
 
 ---
 
@@ -243,27 +191,6 @@
 
 ---
 
-## ✅ 이전 Phase 완료 요약
-
-### Phase 5 완료 (교육 콘텐츠)
-
-- ✅ ISSUE-25: 교육 콘텐츠 데이터 모델 및 API
-- ✅ ISSUE-26: VOD 플레이어 및 교육 콘텐츠 UI
-- ⏳ ISSUE-27: 노하우 아카이브 (보류)
-- ✅ ISSUE-28: 노하우 커뮤니티 게시판
-
-### Phase 4 완료 (매칭 시스템)
-
-- ✅ ISSUE-08: 업종/키워드/지역 기반 매칭 로직
-- ✅ ISSUE-09: 매칭 결과 UI 개발
-
-### Phase 3 완료 (정부지원사업)
-
-- ✅ ISSUE-06: 다중 공공데이터 API 통합 연동
-- ✅ ISSUE-07: 정부지원사업 UI 컴포넌트
-
----
-
-**마지막 업데이트**: 2025-12-23
-**Phase 6 시작일**: 2025-12-23
-**다음 단계**: ISSUE-14 (대시보드 데이터 집계 API)
+**마지막 업데이트**: 2025-12-26
+**ISSUE-19 완료일**: 2025-12-26
+**다음 단계**: ISSUE-20 (통합 테스트 작성)

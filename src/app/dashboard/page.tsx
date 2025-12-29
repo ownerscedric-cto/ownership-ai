@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -9,14 +10,32 @@ import { useDashboardData } from '@/lib/hooks/useAnalytics';
 import {
   StatsCard,
   StatsCardSkeleton,
-  TrendChart,
-  ProgramsBySourceChart,
+  TrendChartSkeleton,
+  ProgramsBySourceChartSkeleton,
   RecentActivity,
   TopProgramsList,
   TopCustomersList,
   QuickActions,
   ReportGeneratorCard,
 } from '@/components/dashboard';
+
+// 무거운 차트 컴포넌트 동적 로딩 (recharts 번들 분리)
+const TrendChart = dynamic(
+  () => import('@/components/dashboard/TrendChart').then(mod => mod.TrendChart),
+  {
+    loading: () => <TrendChartSkeleton />,
+    ssr: false,
+  }
+);
+
+const ProgramsBySourceChart = dynamic(
+  () =>
+    import('@/components/dashboard/ProgramsBySourceChart').then(mod => mod.ProgramsBySourceChart),
+  {
+    loading: () => <ProgramsBySourceChartSkeleton />,
+    ssr: false,
+  }
+);
 
 export default function DashboardPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
