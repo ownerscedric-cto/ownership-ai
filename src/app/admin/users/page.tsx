@@ -105,14 +105,10 @@ export default async function AdminUsersPage() {
     }
   }
 
-  // 미지정 사용자 (역할이 할당되지 않은 경우)
-  const assignedCount = roleStats.reduce((sum, r) => sum + r.count, 0);
-  const unassignedCount = usersData.length - assignedCount;
-
+  // 모든 사용자에게 기본 역할(컨설턴트)이 할당되므로 미지정은 없음
   const stats = {
     total: usersData.length,
     roleStats,
-    unassignedCount,
   };
 
   return (
@@ -127,7 +123,7 @@ export default async function AdminUsersPage() {
       <div
         className="grid gap-6"
         style={{
-          gridTemplateColumns: `repeat(${Math.min(stats.roleStats.length + 1 + (stats.unassignedCount > 0 ? 1 : 0), 5)}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${Math.min(stats.roleStats.length + 1, 5)}, minmax(0, 1fr))`,
         }}
       >
         {/* 전체 사용자 */}
@@ -174,19 +170,6 @@ export default async function AdminUsersPage() {
             </div>
           );
         })}
-
-        {/* 미지정 사용자 */}
-        {stats.unassignedCount > 0 && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">미지정</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.unassignedCount}</p>
-              </div>
-              <Users className="w-10 h-10 text-gray-400" />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Tabs: 회원 목록 + 업그레이드 문의 */}
