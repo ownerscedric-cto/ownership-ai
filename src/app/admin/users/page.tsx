@@ -80,9 +80,12 @@ export default async function AdminUsersPage() {
   // Map users with their roles
   const usersData = users.map(u => {
     const userRole = userRoleMap.get(u.id) || defaultRole;
+    // user_metadata에서 이름 추출 (회원가입 시 저장된 이름)
+    const name = u.user_metadata?.name || u.user_metadata?.full_name || null;
     return {
       id: u.id,
       email: u.email || '',
+      name: name as string | null,
       role: userRole,
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at || null,

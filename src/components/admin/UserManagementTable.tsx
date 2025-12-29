@@ -32,6 +32,7 @@ interface RoleData {
 interface UserData {
   id: string;
   email: string;
+  name: string | null;
   role: RoleData;
   created_at: string;
   last_sign_in_at: string | null;
@@ -113,6 +114,7 @@ export function UserManagementTable({ users, roles }: UserManagementTableProps) 
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>이름</TableHead>
             <TableHead>이메일</TableHead>
             <TableHead>역할</TableHead>
             <TableHead>가입일</TableHead>
@@ -128,8 +130,13 @@ export function UserManagementTable({ users, roles }: UserManagementTableProps) 
 
             return (
               <TableRow key={user.id}>
+                {/* Name */}
+                <TableCell className="font-medium">
+                  {user.name || <span className="text-gray-400 text-sm">미등록</span>}
+                </TableCell>
+
                 {/* Email */}
-                <TableCell className="font-medium">{user.email}</TableCell>
+                <TableCell>{user.email}</TableCell>
 
                 {/* Role Badge */}
                 <TableCell>

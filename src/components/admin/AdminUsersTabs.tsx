@@ -21,6 +21,7 @@ interface Role {
 interface UserData {
   id: string;
   email: string;
+  name: string | null;
   role: {
     id: string;
     name: string;
