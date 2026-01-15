@@ -140,6 +140,30 @@ export const SignupForm: React.FC = () => {
     }
   };
 
+  // 이메일 도메인에 따른 웹메일 URL 반환
+  const getEmailServiceUrl = (email: string): { url: string; name: string } | null => {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return null;
+
+    const emailServices: Record<string, { url: string; name: string }> = {
+      'gmail.com': { url: 'https://mail.google.com', name: 'Gmail' },
+      'googlemail.com': { url: 'https://mail.google.com', name: 'Gmail' },
+      'naver.com': { url: 'https://mail.naver.com', name: '네이버 메일' },
+      'daum.net': { url: 'https://mail.daum.net', name: '다음 메일' },
+      'hanmail.net': { url: 'https://mail.daum.net', name: '다음 메일' },
+      'kakao.com': { url: 'https://mail.kakao.com', name: '카카오 메일' },
+      'outlook.com': { url: 'https://outlook.live.com', name: 'Outlook' },
+      'hotmail.com': { url: 'https://outlook.live.com', name: 'Outlook' },
+      'live.com': { url: 'https://outlook.live.com', name: 'Outlook' },
+      'yahoo.com': { url: 'https://mail.yahoo.com', name: 'Yahoo Mail' },
+      'yahoo.co.kr': { url: 'https://mail.yahoo.com', name: 'Yahoo Mail' },
+    };
+
+    return emailServices[domain] || null;
+  };
+
+  const emailService = getEmailServiceUrl(formData.email);
+
   if (isSuccess) {
     return (
       <Card className="w-full max-w-md text-center">
@@ -153,9 +177,26 @@ export const SignupForm: React.FC = () => {
         <p className="text-sm text-[var(--text-secondary)]">
           이메일의 링크를 클릭하여 계정을 활성화한 후 로그인할 수 있습니다.
         </p>
-        <Link href="/auth/login" className="mt-6 inline-block">
-          <Button variant="secondary">로그인 페이지로 이동</Button>
-        </Link>
+        <div className="mt-6 space-y-3">
+          {emailService && (
+            <a
+              href={emailService.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block w-full"
+            >
+              <Button className="w-full">
+                <Mail className="w-4 h-4 mr-2" />
+                {emailService.name} 열기
+              </Button>
+            </a>
+          )}
+          <Link href="/auth/login" className="inline-block w-full">
+            <Button variant="secondary" className="w-full">
+              로그인 페이지로 이동
+            </Button>
+          </Link>
+        </div>
       </Card>
     );
   }
