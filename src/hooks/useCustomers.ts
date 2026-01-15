@@ -120,8 +120,8 @@ export function useCreateCustomer() {
       // 새로 생성된 고객 캐시에 추가
       queryClient.setQueryData(['customer', newCustomer.id], newCustomer);
 
-      // 고객 상세 페이지로 이동
-      router.push(`/customers/${newCustomer.id}`);
+      // ERP 형식 고객 관리 페이지로 이동 (해당 고객 선택 상태)
+      router.push(`/customers?selected=${newCustomer.id}`);
     },
   });
 }

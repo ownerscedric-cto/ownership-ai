@@ -8,7 +8,7 @@ import { CustomerProgressPanel } from '@/components/customers/CustomerProgressPa
 import { CustomerMatchingPanel } from '@/components/customers/CustomerMatchingPanel';
 import { CustomerDialog } from '@/components/customers/CustomerDialog';
 import { Button } from '@/components/ui/button';
-import { useCustomers, useDeleteCustomer } from '@/hooks/useCustomers';
+import { useCustomers, useCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
 import { Plus, Upload, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -45,6 +45,9 @@ function CustomersPageContent() {
   // 고객 목록 조회
   const { data, isLoading, error } = useCustomers({});
   const deleteCustomerMutation = useDeleteCustomer();
+
+  // 선택된 고객 개별 조회 (목록에서 못 찾는 경우 대비)
+  const { data: selectedCustomerData } = useCustomer(selectedCustomerId || '');
 
   // URL 파라미터와 동기화 (고객 ID)
   useEffect(() => {
@@ -93,11 +96,11 @@ function CustomersPageContent() {
     }
   };
 
-  // 선택된 고객 정보 찾기
+  // 선택된 고객 정보 찾기 (목록에서 먼저 찾고, 없으면 개별 조회 데이터 사용)
   const selectedCustomer =
     selectedCustomerId && data?.customers
-      ? data.customers.find(c => c.id === selectedCustomerId) || null
-      : null;
+      ? data.customers.find(c => c.id === selectedCustomerId) || selectedCustomerData || null
+      : selectedCustomerData || null;
 
   // 수정할 고객 정보 찾기
   const editingCustomer =
