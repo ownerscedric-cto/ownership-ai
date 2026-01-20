@@ -43,6 +43,8 @@ function ProgramsPageContent() {
       dataSource: searchParams.get('dataSource') || undefined,
       keywords: keywords && keywords.length > 0 ? keywords : undefined,
       showActiveOnly: searchParams.get('showActiveOnly') !== 'false', // 기본값 true
+      registeredFrom: searchParams.get('registeredFrom') || undefined,
+      registeredTo: searchParams.get('registeredTo') || undefined,
     };
   });
 
@@ -68,6 +70,13 @@ function ProgramsPageContent() {
     // showActiveOnly는 기본값이 true이므로 false일 때만 URL에 추가
     if (newFilters.showActiveOnly === false) {
       params.set('showActiveOnly', 'false');
+    }
+    // 등록일 기간 필터
+    if (newFilters.registeredFrom) {
+      params.set('registeredFrom', newFilters.registeredFrom);
+    }
+    if (newFilters.registeredTo) {
+      params.set('registeredTo', newFilters.registeredTo);
     }
 
     const queryString = params.toString();
@@ -120,6 +129,8 @@ function ProgramsPageContent() {
       dataSource: searchParams.get('dataSource') || undefined,
       keywords: keywords && keywords.length > 0 ? keywords : undefined,
       showActiveOnly: searchParams.get('showActiveOnly') !== 'false', // 기본값 true
+      registeredFrom: searchParams.get('registeredFrom') || undefined,
+      registeredTo: searchParams.get('registeredTo') || undefined,
     };
   }, [searchParams]);
 
@@ -148,6 +159,8 @@ function ProgramsPageContent() {
         dataSource: params.get('dataSource') || undefined,
         keywords: keywords && keywords.length > 0 ? keywords : undefined,
         showActiveOnly: params.get('showActiveOnly') !== 'false', // 기본값 true
+        registeredFrom: params.get('registeredFrom') || undefined,
+        registeredTo: params.get('registeredTo') || undefined,
       };
       setFilters(newFilters);
     };

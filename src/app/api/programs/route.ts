@@ -23,6 +23,8 @@ import { createErrorResponse, logError } from '@/lib/utils/error-handler';
  * - keyword: 키워드 검색 (단일)
  * - keywords: 다중 키워드 검색 (콤마 구분)
  * - showActiveOnly: 진행중인 공고만 표시 (기본: true)
+ * - registeredFrom: 등록일 시작 (ISO 날짜 문자열)
+ * - registeredTo: 등록일 종료 (ISO 날짜 문자열)
  *
  * 핵심 기능:
  * - ⭐ 교차 정렬: registeredAt 기준 내림차순 정렬 (최신순)
@@ -57,6 +59,8 @@ export async function GET(request: NextRequest) {
       : [];
     // showActiveOnly: 'false'일 때만 false, 그 외에는 기본값 true
     const showActiveOnly = searchParams.get('showActiveOnly') !== 'false';
+    const registeredFrom = searchParams.get('registeredFrom');
+    const registeredTo = searchParams.get('registeredTo');
 
     const supabase = await createClient();
 
@@ -101,6 +105,17 @@ export async function GET(request: NextRequest) {
       const now = new Date().toISOString();
       // deadline이 null이거나 현재 시간 이후인 경우만 표시
       query = query.or(`deadline.is.null,deadline.gte.${now}`);
+    }
+
+    // 등록일 기간 필터
+    if (registeredFrom) {
+      query = query.gte('registeredAt', registeredFrom);
+    }
+    if (registeredTo) {
+      // 종료일은 해당 날짜의 끝까지 포함 (23:59:59)
+      const toDate = new Date(registeredTo);
+      toDate.setHours(23, 59, 59, 999);
+      query = query.lte('registeredAt', toDate.toISOString());
     }
 
     // ⭐ 교차 정렬: registeredAt 기준 내림차순 정렬 (최신순)

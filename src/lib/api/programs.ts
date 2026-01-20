@@ -38,6 +38,9 @@ export async function fetchPrograms(
   }
   // showActiveOnly는 기본값이 true이므로 false일 때만 전달
   if (filters.showActiveOnly === false) params.append('showActiveOnly', 'false');
+  // 등록일 기간 필터
+  if (filters.registeredFrom) params.append('registeredFrom', filters.registeredFrom);
+  if (filters.registeredTo) params.append('registeredTo', filters.registeredTo);
 
   const url = `/api/programs?${params.toString()}`;
   const response = await fetch(url);
@@ -77,6 +80,9 @@ export async function fetchProgramsWithMetadata(
   }
   // showActiveOnly는 기본값이 true이므로 false일 때만 전달
   if (filters.showActiveOnly === false) params.append('showActiveOnly', 'false');
+  // 등록일 기간 필터
+  if (filters.registeredFrom) params.append('registeredFrom', filters.registeredFrom);
+  if (filters.registeredTo) params.append('registeredTo', filters.registeredTo);
 
   const url = `/api/programs?${params.toString()}`;
   const response = await fetch(url);

@@ -44,6 +44,8 @@ export interface ProgramFilters {
   keyword?: string; // 단일 키워드 (하위 호환성)
   keywords?: string[]; // 다중 키워드 검색
   showActiveOnly?: boolean;
+  registeredFrom?: string; // 등록일 시작 (ISO 날짜 문자열)
+  registeredTo?: string; // 등록일 종료 (ISO 날짜 문자열)
 }
 
 /**

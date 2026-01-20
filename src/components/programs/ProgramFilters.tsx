@@ -8,7 +8,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ProgramFilters as FilterType } from '@/lib/types/program';
 import { cn } from '@/lib/utils';
 
@@ -140,6 +144,28 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
   };
 
   /**
+   * 등록일 시작 필터 변경
+   */
+  const handleRegisteredFromChange = (date: Date | undefined) => {
+    onFiltersChange({
+      ...filters,
+      registeredFrom: date ? date.toISOString().split('T')[0] : undefined,
+      page: 1,
+    });
+  };
+
+  /**
+   * 등록일 종료 필터 변경
+   */
+  const handleRegisteredToChange = (date: Date | undefined) => {
+    onFiltersChange({
+      ...filters,
+      registeredTo: date ? date.toISOString().split('T')[0] : undefined,
+      page: 1,
+    });
+  };
+
+  /**
    * 전체 필터 초기화
    */
   const handleResetFilters = () => {
@@ -156,7 +182,13 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
     filters.dataSource,
     keywords.length > 0 ? 'keywords' : null,
     filters.showActiveOnly === false ? 'inactive' : null,
+    filters.registeredFrom ? 'registeredFrom' : null,
+    filters.registeredTo ? 'registeredTo' : null,
   ].filter(Boolean).length;
+
+  // 등록일 필터 Date 객체 변환
+  const registeredFromDate = filters.registeredFrom ? new Date(filters.registeredFrom) : undefined;
+  const registeredToDate = filters.registeredTo ? new Date(filters.registeredTo) : undefined;
 
   return (
     <div className="space-y-4">
@@ -279,6 +311,89 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
         </div>
       </div>
 
+      {/* 등록일 기간 필터 */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <CalendarIcon className="w-4 h-4" />
+          등록일 기간
+        </h3>
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* 시작일 */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-[150px] justify-start text-left font-normal',
+                  !registeredFromDate && 'text-muted-foreground'
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {registeredFromDate
+                  ? format(registeredFromDate, 'yyyy-MM-dd', { locale: ko })
+                  : '시작일'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={registeredFromDate}
+                onSelect={handleRegisteredFromChange}
+                disabled={date => (registeredToDate ? date > registeredToDate : false)}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-gray-500">~</span>
+
+          {/* 종료일 */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-[150px] justify-start text-left font-normal',
+                  !registeredToDate && 'text-muted-foreground'
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {registeredToDate
+                  ? format(registeredToDate, 'yyyy-MM-dd', { locale: ko })
+                  : '종료일'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={registeredToDate}
+                onSelect={handleRegisteredToChange}
+                disabled={date => (registeredFromDate ? date < registeredFromDate : false)}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* 기간 초기화 버튼 */}
+          {(filters.registeredFrom || filters.registeredTo) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                onFiltersChange({
+                  ...filters,
+                  registeredFrom: undefined,
+                  registeredTo: undefined,
+                  page: 1,
+                });
+              }}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-4 h-4 mr-1" />
+              기간 초기화
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* 활성 필터 표시 및 초기화 */}
       {activeFiltersCount > 0 && (
         <div className="flex items-center justify-between pt-2 border-t">
@@ -292,6 +407,11 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
             {keywords.length > 0 && (
               <Badge variant="outline" className="text-sm">
                 키워드 {keywords.length}개
+              </Badge>
+            )}
+            {(filters.registeredFrom || filters.registeredTo) && (
+              <Badge variant="outline" className="text-sm">
+                등록일: {filters.registeredFrom || '~'} ~ {filters.registeredTo || '~'}
               </Badge>
             )}
           </div>
