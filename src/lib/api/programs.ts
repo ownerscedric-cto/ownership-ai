@@ -29,7 +29,13 @@ export async function fetchPrograms(
   if (filters.category) params.append('category', filters.category);
   if (filters.targetAudience) params.append('targetAudience', filters.targetAudience);
   if (filters.targetLocation) params.append('targetLocation', filters.targetLocation);
-  if (filters.keyword) params.append('keyword', filters.keyword);
+  // 다중 키워드 지원 (콤마로 구분)
+  if (filters.keywords && filters.keywords.length > 0) {
+    params.append('keywords', filters.keywords.join(','));
+  } else if (filters.keyword) {
+    // 하위 호환성: 단일 키워드
+    params.append('keyword', filters.keyword);
+  }
   // showActiveOnly는 기본값이 true이므로 false일 때만 전달
   if (filters.showActiveOnly === false) params.append('showActiveOnly', 'false');
 
@@ -62,7 +68,13 @@ export async function fetchProgramsWithMetadata(
   if (filters.category) params.append('category', filters.category);
   if (filters.targetAudience) params.append('targetAudience', filters.targetAudience);
   if (filters.targetLocation) params.append('targetLocation', filters.targetLocation);
-  if (filters.keyword) params.append('keyword', filters.keyword);
+  // 다중 키워드 지원 (콤마로 구분)
+  if (filters.keywords && filters.keywords.length > 0) {
+    params.append('keywords', filters.keywords.join(','));
+  } else if (filters.keyword) {
+    // 하위 호환성: 단일 키워드
+    params.append('keyword', filters.keyword);
+  }
   // showActiveOnly는 기본값이 true이므로 false일 때만 전달
   if (filters.showActiveOnly === false) params.append('showActiveOnly', 'false');
 

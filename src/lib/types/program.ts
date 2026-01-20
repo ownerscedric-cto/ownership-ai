@@ -41,7 +41,8 @@ export interface ProgramFilters {
   category?: string;
   targetAudience?: string;
   targetLocation?: string;
-  keyword?: string;
+  keyword?: string; // 단일 키워드 (하위 호환성)
+  keywords?: string[]; // 다중 키워드 검색
   showActiveOnly?: boolean;
 }
 

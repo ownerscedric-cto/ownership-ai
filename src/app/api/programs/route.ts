@@ -20,7 +20,8 @@ import { createErrorResponse, logError } from '@/lib/utils/error-handler';
  * - category: 카테고리 필터
  * - targetAudience: 대상 업종 필터
  * - targetLocation: 대상 지역 필터
- * - keyword: 키워드 검색
+ * - keyword: 키워드 검색 (단일)
+ * - keywords: 다중 키워드 검색 (콤마 구분)
  * - showActiveOnly: 진행중인 공고만 표시 (기본: true)
  *
  * 핵심 기능:
@@ -47,6 +48,13 @@ export async function GET(request: NextRequest) {
     const targetAudience = searchParams.get('targetAudience');
     const targetLocation = searchParams.get('targetLocation');
     const keyword = searchParams.get('keyword');
+    const keywordsParam = searchParams.get('keywords');
+    const keywords = keywordsParam
+      ? keywordsParam
+          .split(',')
+          .map(k => k.trim())
+          .filter(Boolean)
+      : [];
     // showActiveOnly: 'false'일 때만 false, 그 외에는 기본값 true
     const showActiveOnly = searchParams.get('showActiveOnly') !== 'false';
 
@@ -77,7 +85,14 @@ export async function GET(request: NextRequest) {
       query = query.contains('targetLocation', [targetLocation]);
     }
 
-    if (keyword) {
+    // 다중 키워드 검색 (AND 조건: 모든 키워드가 포함된 결과만)
+    if (keywords.length > 0) {
+      // 각 키워드에 대해 title 또는 keywords 배열에 포함되어야 함
+      for (const kw of keywords) {
+        query = query.or(`title.ilike.%${kw}%,keywords.cs.{${kw}}`);
+      }
+    } else if (keyword) {
+      // 단일 키워드 검색 (하위 호환성)
       query = query.or(`title.ilike.%${keyword}%,keywords.cs.{${keyword}}`);
     }
 

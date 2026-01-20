@@ -4,6 +4,7 @@
  * Phase 3: 정부지원사업 UI 컴포넌트
  */
 
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -47,20 +48,22 @@ const limitOptions = [30, 50, 100] as const;
  * - 필터 초기화
  */
 export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps) {
-  // filters.keyword를 로컬 상태의 초기값으로 사용 (key prop 변경 시 리셋)
-  const [keyword, setKeyword] = useState(filters.keyword || '');
+  // 현재 입력중인 키워드 (아직 추가되지 않은 상태)
+  const [inputKeyword, setInputKeyword] = useState('');
+
+  // 다중 키워드 배열
+  const keywords = filters.keywords || [];
 
   /**
-   * filters.keyword가 변경되면 로컬 상태 동기화
+   * filters.keywords가 변경되면 입력 필드 초기화
    * (브라우저 뒤로가기/앞으로가기 시)
    */
   useEffect(() => {
-    // 외부에서 filters.keyword가 변경된 경우에만 동기화
-    if (filters.keyword !== keyword) {
-      setKeyword(filters.keyword || '');
+    // 외부에서 필터가 초기화된 경우 입력 필드도 초기화
+    if (!filters.keywords || filters.keywords.length === 0) {
+      setInputKeyword('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.keyword]);
+  }, [filters.keywords]);
 
   /**
    * 데이터 소스 필터 변경
@@ -85,27 +88,44 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
   };
 
   /**
-   * 키워드 검색 실행
+   * 키워드 추가 (검색 버튼 클릭 또는 Enter)
    */
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleAddKeyword = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmed = inputKeyword.trim();
+    if (!trimmed) return;
+
+    // 이미 존재하는 키워드면 추가하지 않음
+    if (keywords.includes(trimmed)) {
+      setInputKeyword('');
+      return;
+    }
+
     onFiltersChange({
       ...filters,
-      keyword: keyword.trim() || undefined,
+      keywords: [...keywords, trimmed],
       page: 1, // 검색 시 첫 페이지로 이동
+    });
+    setInputKeyword(''); // 입력 필드 초기화
+  };
+
+  /**
+   * 특정 키워드 삭제
+   */
+  const handleRemoveKeyword = (keywordToRemove: string) => {
+    const newKeywords = keywords.filter(k => k !== keywordToRemove);
+    onFiltersChange({
+      ...filters,
+      keywords: newKeywords.length > 0 ? newKeywords : undefined,
+      page: 1,
     });
   };
 
   /**
-   * 키워드 초기화
+   * 입력 필드 초기화 (X 버튼)
    */
-  const handleClearKeyword = () => {
-    setKeyword('');
-    onFiltersChange({
-      ...filters,
-      keyword: undefined,
-      page: 1,
-    });
+  const handleClearInput = () => {
+    setInputKeyword('');
   };
 
   /**
@@ -123,7 +143,7 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
    * 전체 필터 초기화
    */
   const handleResetFilters = () => {
-    setKeyword('');
+    setInputKeyword('');
     onFiltersChange({
       page: 1,
       limit: filters.limit, // limit은 유지
@@ -134,7 +154,7 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
   // 활성 필터 개수 계산 (showActiveOnly는 기본값이 true이므로 false일 때만 활성 필터로 표시)
   const activeFiltersCount = [
     filters.dataSource,
-    filters.keyword,
+    keywords.length > 0 ? 'keywords' : null,
     filters.showActiveOnly === false ? 'inactive' : null,
   ].filter(Boolean).length;
 
@@ -173,7 +193,7 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
           <Search className="w-4 h-4" />
           검색 및 필터
         </h3>
-        <form onSubmit={handleSearchSubmit} className="flex flex-wrap gap-2 items-center">
+        <form onSubmit={handleAddKeyword} className="flex flex-wrap gap-2 items-center">
           {/* 페이지당 개수 Select */}
           <Select
             value={(filters.limit || 50).toString()}
@@ -196,15 +216,15 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               type="text"
-              placeholder="제목, 키워드 검색..."
-              value={keyword}
-              onChange={e => setKeyword(e.target.value)}
+              placeholder="키워드 입력 후 검색 (여러 개 추가 가능)..."
+              value={inputKeyword}
+              onChange={e => setInputKeyword(e.target.value)}
               className="pl-10 pr-10"
             />
-            {keyword && (
+            {inputKeyword && (
               <button
                 type="button"
-                onClick={handleClearKeyword}
+                onClick={handleClearInput}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -216,12 +236,32 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
           <Button
             type="submit"
             className="bg-[#0052CC] hover:bg-[#003d99] px-3 sm:px-4"
-            aria-label="검색"
+            aria-label="키워드 추가"
           >
             <Search className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">검색</span>
+            <span className="hidden sm:inline">추가</span>
           </Button>
         </form>
+
+        {/* 적용된 키워드 태그 목록 */}
+        {keywords.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mt-2">
+            <span className="text-sm text-gray-500">검색 키워드:</span>
+            {keywords.map(kw => (
+              <Badge key={kw} variant="secondary" className="text-sm flex items-center gap-1 pr-1">
+                {kw}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveKeyword(kw)}
+                  className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
+                  aria-label={`${kw} 삭제`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
 
         {/* 진행중인 공고만 보기 체크박스 - 검색창 아래 별도 영역 */}
         <div className="flex items-center gap-2 mt-2">
@@ -249,9 +289,9 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
                 {filters.dataSource}
               </Badge>
             )}
-            {filters.keyword && (
+            {keywords.length > 0 && (
               <Badge variant="outline" className="text-sm">
-                {filters.keyword}
+                키워드 {keywords.length}개
               </Badge>
             )}
           </div>

@@ -27,13 +27,24 @@ function ProgramsPageContent() {
   const searchParams = useSearchParams();
 
   // URL 쿼리 파라미터에서 초기 필터 상태 읽기
-  const [filters, setFilters] = useState<FilterType>(() => ({
-    page: Number(searchParams.get('page')) || 1,
-    limit: Number(searchParams.get('limit')) || 50,
-    dataSource: searchParams.get('dataSource') || undefined,
-    keyword: searchParams.get('keyword') || undefined,
-    showActiveOnly: searchParams.get('showActiveOnly') !== 'false', // 기본값 true
-  }));
+  const [filters, setFilters] = useState<FilterType>(() => {
+    // keywords 파라미터 파싱 (콤마로 구분된 문자열)
+    const keywordsParam = searchParams.get('keywords');
+    const keywords = keywordsParam
+      ? keywordsParam
+          .split(',')
+          .map(k => k.trim())
+          .filter(Boolean)
+      : undefined;
+
+    return {
+      page: Number(searchParams.get('page')) || 1,
+      limit: Number(searchParams.get('limit')) || 50,
+      dataSource: searchParams.get('dataSource') || undefined,
+      keywords: keywords && keywords.length > 0 ? keywords : undefined,
+      showActiveOnly: searchParams.get('showActiveOnly') !== 'false', // 기본값 true
+    };
+  });
 
   /**
    * URL 쿼리 파라미터 업데이트
@@ -50,8 +61,9 @@ function ProgramsPageContent() {
     if (newFilters.dataSource) {
       params.set('dataSource', newFilters.dataSource);
     }
-    if (newFilters.keyword) {
-      params.set('keyword', newFilters.keyword);
+    // 다중 키워드를 콤마로 구분하여 URL에 저장
+    if (newFilters.keywords && newFilters.keywords.length > 0) {
+      params.set('keywords', newFilters.keywords.join(','));
     }
     // showActiveOnly는 기본값이 true이므로 false일 때만 URL에 추가
     if (newFilters.showActiveOnly === false) {
@@ -93,11 +105,20 @@ function ProgramsPageContent() {
 
   // URL 쿼리 파라미터에서 필터 상태 파싱 (useMemo로 최적화)
   const parsedFilters = useMemo<FilterType>(() => {
+    // keywords 파라미터 파싱 (콤마로 구분된 문자열)
+    const keywordsParam = searchParams.get('keywords');
+    const keywords = keywordsParam
+      ? keywordsParam
+          .split(',')
+          .map(k => k.trim())
+          .filter(Boolean)
+      : undefined;
+
     return {
       page: Number(searchParams.get('page')) || 1,
       limit: Number(searchParams.get('limit')) || 50,
       dataSource: searchParams.get('dataSource') || undefined,
-      keyword: searchParams.get('keyword') || undefined,
+      keywords: keywords && keywords.length > 0 ? keywords : undefined,
       showActiveOnly: searchParams.get('showActiveOnly') !== 'false', // 기본값 true
     };
   }, [searchParams]);
@@ -111,11 +132,21 @@ function ProgramsPageContent() {
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
+
+      // keywords 파라미터 파싱 (콤마로 구분된 문자열)
+      const keywordsParam = params.get('keywords');
+      const keywords = keywordsParam
+        ? keywordsParam
+            .split(',')
+            .map(k => k.trim())
+            .filter(Boolean)
+        : undefined;
+
       const newFilters: FilterType = {
         page: Number(params.get('page')) || 1,
         limit: Number(params.get('limit')) || 50,
         dataSource: params.get('dataSource') || undefined,
-        keyword: params.get('keyword') || undefined,
+        keywords: keywords && keywords.length > 0 ? keywords : undefined,
         showActiveOnly: params.get('showActiveOnly') !== 'false', // 기본값 true
       };
       setFilters(newFilters);
