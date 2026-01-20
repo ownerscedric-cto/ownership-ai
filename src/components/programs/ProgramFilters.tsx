@@ -144,12 +144,23 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
   };
 
   /**
+   * 날짜를 로컬 타임존 기준 YYYY-MM-DD 문자열로 변환
+   * (toISOString()은 UTC 기준이라 하루 밀릴 수 있음)
+   */
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  /**
    * 등록일 시작 필터 변경
    */
   const handleRegisteredFromChange = (date: Date | undefined) => {
     onFiltersChange({
       ...filters,
-      registeredFrom: date ? date.toISOString().split('T')[0] : undefined,
+      registeredFrom: date ? formatLocalDate(date) : undefined,
       page: 1,
     });
   };
@@ -160,7 +171,7 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
   const handleRegisteredToChange = (date: Date | undefined) => {
     onFiltersChange({
       ...filters,
-      registeredTo: date ? date.toISOString().split('T')[0] : undefined,
+      registeredTo: date ? formatLocalDate(date) : undefined,
       page: 1,
     });
   };
@@ -186,9 +197,15 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
     filters.registeredTo ? 'registeredTo' : null,
   ].filter(Boolean).length;
 
-  // 등록일 필터 Date 객체 변환
-  const registeredFromDate = filters.registeredFrom ? new Date(filters.registeredFrom) : undefined;
-  const registeredToDate = filters.registeredTo ? new Date(filters.registeredTo) : undefined;
+  // 등록일 필터 Date 객체 변환 (로컬 타임존 기준으로 파싱)
+  const parseLocalDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+  const registeredFromDate = filters.registeredFrom
+    ? parseLocalDate(filters.registeredFrom)
+    : undefined;
+  const registeredToDate = filters.registeredTo ? parseLocalDate(filters.registeredTo) : undefined;
 
   return (
     <div className="space-y-4">
@@ -337,6 +354,7 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
+                locale={ko}
                 selected={registeredFromDate}
                 onSelect={handleRegisteredFromChange}
                 disabled={date => (registeredToDate ? date > registeredToDate : false)}
@@ -365,6 +383,7 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
+                locale={ko}
                 selected={registeredToDate}
                 onSelect={handleRegisteredToChange}
                 disabled={date => (registeredFromDate ? date < registeredFromDate : false)}
