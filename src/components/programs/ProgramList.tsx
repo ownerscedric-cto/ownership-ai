@@ -41,9 +41,13 @@ import { formatDateShort } from '@/lib/utils/date';
 import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
 import { toast } from 'sonner';
 
+type ViewType = 'card' | 'table';
+
 interface ProgramListProps {
   filters: ProgramFilters;
   onPageChange: (page: number) => void;
+  viewType: ViewType;
+  onViewTypeChange: (viewType: ViewType) => void;
 }
 
 /**
@@ -57,13 +61,15 @@ interface ProgramListProps {
  * - 페이지네이션
  * - 출처별 분포 통계
  */
-type ViewType = 'card' | 'table';
-
-export function ProgramList({ filters, onPageChange }: ProgramListProps) {
+export function ProgramList({
+  filters,
+  onPageChange,
+  viewType,
+  onViewTypeChange,
+}: ProgramListProps) {
   const { data, isLoading, error } = useProgramsWithMetadata(filters);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCopied, setIsCopied] = useState(false);
-  const [viewType, setViewType] = useState<ViewType>('card');
 
   // 현재 페이지의 모든 프로그램 ID 목록
   const currentPageProgramIds = data?.data?.map(p => p.id) ?? [];
@@ -350,7 +356,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
           <Button
             variant={viewType === 'card' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setViewType('card')}
+            onClick={() => onViewTypeChange('card')}
             className={`h-8 px-3 gap-1.5 ${viewType === 'card' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -359,7 +365,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
           <Button
             variant={viewType === 'table' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setViewType('table')}
+            onClick={() => onViewTypeChange('table')}
             className={`h-8 px-3 gap-1.5 ${viewType === 'table' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
           >
             <List className="w-4 h-4" />
@@ -401,12 +407,12 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
         <div className="overflow-x-auto border rounded-lg">
           <table className="w-full table-fixed">
             <colgroup>
-              <col className="w-[40px]" />
-              <col />
-              <col className="w-[90px] hidden md:table-column" />
-              <col className="w-[100px] hidden lg:table-column" />
-              <col className="w-[130px]" />
-              <col className="w-[50px]" />
+              <col style={{ width: '40px' }} />
+              <col style={{ width: '55%' }} />
+              <col style={{ width: '80px' }} className="hidden md:table-column" />
+              <col style={{ width: '90px' }} className="hidden lg:table-column" />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '50px' }} />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -457,11 +463,11 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                           isSelected ? 'bg-blue-50/50' : ''
                         }`}
                       >
-                        <td className="px-2 py-2">
+                        <td className="px-2 py-2 text-center">
                           <button
                             type="button"
                             onClick={() => handleToggleSelect(program.id)}
-                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all mx-auto ${
                               isSelected
                                 ? 'bg-[#0052CC] border-[#0052CC] text-white'
                                 : 'border-gray-300 hover:border-[#0052CC] bg-white'
@@ -470,7 +476,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                             {isSelected && <Check className="w-3 h-3" />}
                           </button>
                         </td>
-                        <td className="px-2 py-2 overflow-hidden">
+                        <td className="px-2 py-2 max-w-0">
                           <Link
                             href={`/programs/${program.id}`}
                             className="text-sm font-medium text-gray-900 hover:text-[#0052CC] truncate block"
@@ -479,7 +485,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                             {decodeHtmlEntities(program.title)}
                           </Link>
                         </td>
-                        <td className="px-2 py-2 hidden md:table-cell">
+                        <td className="px-2 py-2 hidden md:table-cell text-center">
                           <Badge
                             className={`text-xs whitespace-nowrap ${
                               program.dataSource === '기업마당'
@@ -498,13 +504,15 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                               : program.dataSource}
                           </Badge>
                         </td>
-                        <td className="px-2 py-2 hidden lg:table-cell">
+                        <td className="px-2 py-2 hidden lg:table-cell text-center">
                           <span className="text-xs text-gray-600 truncate block">
-                            {program.category || '-'}
+                            {program.category ? decodeHtmlEntities(program.category) : '-'}
                           </span>
                         </td>
                         <td className="px-2 py-2">
-                          <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
+                          <div className="flex justify-center">
+                            <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
+                          </div>
                         </td>
                         <td className="px-2 py-2 text-center">
                           {program.sourceUrl && (

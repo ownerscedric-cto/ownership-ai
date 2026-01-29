@@ -6,7 +6,7 @@
 
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProgramFilters } from '@/components/programs/ProgramFilters';
@@ -25,6 +25,13 @@ import type { ProgramFilters as FilterType } from '@/lib/types/program';
 function ProgramsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // 뷰 타입 (card | table)
+  type ViewType = 'card' | 'table';
+  const [viewType, setViewType] = useState<ViewType>(() => {
+    const view = searchParams.get('view');
+    return view === 'table' ? 'table' : 'card';
+  });
 
   // URL 쿼리 파라미터에서 초기 필터 상태 읽기
   const [filters, setFilters] = useState<FilterType>(() => {
@@ -51,7 +58,7 @@ function ProgramsPageContent() {
   /**
    * URL 쿼리 파라미터 업데이트
    */
-  const updateURLParams = (newFilters: FilterType) => {
+  const updateURLParams = (newFilters: FilterType, newViewType?: ViewType) => {
     const params = new URLSearchParams();
 
     if (newFilters.page && newFilters.page > 1) {
@@ -78,6 +85,11 @@ function ProgramsPageContent() {
     if (newFilters.registeredTo) {
       params.set('registeredTo', newFilters.registeredTo);
     }
+    // 뷰 타입 (기본값 card이므로 table일 때만 저장)
+    const currentView = newViewType ?? viewType;
+    if (currentView === 'table') {
+      params.set('view', 'table');
+    }
 
     const queryString = params.toString();
     const newUrl = queryString ? `/programs?${queryString}` : '/programs';
@@ -91,6 +103,14 @@ function ProgramsPageContent() {
       // Next.js 라우터에도 알림 (페이지 데이터 갱신)
       router.refresh();
     }
+  };
+
+  /**
+   * 뷰 타입 변경 핸들러
+   */
+  const handleViewTypeChange = (newViewType: ViewType) => {
+    setViewType(newViewType);
+    updateURLParams(filters, newViewType);
   };
 
   /**
@@ -111,33 +131,6 @@ function ProgramsPageContent() {
     // 페이지 변경 시 스크롤을 상단으로 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // URL 쿼리 파라미터에서 필터 상태 파싱 (useMemo로 최적화)
-  const parsedFilters = useMemo<FilterType>(() => {
-    // keywords 파라미터 파싱 (콤마로 구분된 문자열)
-    const keywordsParam = searchParams.get('keywords');
-    const keywords = keywordsParam
-      ? keywordsParam
-          .split(',')
-          .map(k => k.trim())
-          .filter(Boolean)
-      : undefined;
-
-    return {
-      page: Number(searchParams.get('page')) || 1,
-      limit: Number(searchParams.get('limit')) || 50,
-      dataSource: searchParams.get('dataSource') || undefined,
-      keywords: keywords && keywords.length > 0 ? keywords : undefined,
-      showActiveOnly: searchParams.get('showActiveOnly') !== 'false', // 기본값 true
-      registeredFrom: searchParams.get('registeredFrom') || undefined,
-      registeredTo: searchParams.get('registeredTo') || undefined,
-    };
-  }, [searchParams]);
-
-  // 파싱된 필터를 상태에 반영 (searchParams 변경 시)
-  useEffect(() => {
-    setFilters(parsedFilters);
-  }, [parsedFilters]);
 
   // popstate 이벤트 리스닝 (브라우저 뒤로가기/앞으로가기)
   useEffect(() => {
@@ -163,6 +156,10 @@ function ProgramsPageContent() {
         registeredTo: params.get('registeredTo') || undefined,
       };
       setFilters(newFilters);
+
+      // viewType도 파싱
+      const view = params.get('view');
+      setViewType(view === 'table' ? 'table' : 'card');
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -186,7 +183,12 @@ function ProgramsPageContent() {
         </div>
 
         {/* 목록 섹션 */}
-        <ProgramList filters={filters} onPageChange={handlePageChange} />
+        <ProgramList
+          filters={filters}
+          onPageChange={handlePageChange}
+          viewType={viewType}
+          onViewTypeChange={handleViewTypeChange}
+        />
       </div>
     </AppLayout>
   );
