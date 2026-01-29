@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ProgramCard } from './ProgramCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
@@ -434,9 +434,9 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
             </thead>
             <tbody>
               {groupedPrograms.map(([date, datePrograms]) => (
-                <>
+                <React.Fragment key={date}>
                   {/* 날짜 구분 행 */}
-                  <tr key={`date-${date}`} className="bg-gray-100 border-t-2 border-gray-300">
+                  <tr className="bg-gray-100 border-t-2 border-gray-300">
                     <td colSpan={6} className="px-3 py-2">
                       <span className="text-sm font-semibold text-gray-700">{date}</span>
                     </td>
@@ -515,7 +515,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                       </tr>
                     );
                   })}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
