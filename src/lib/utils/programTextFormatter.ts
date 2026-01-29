@@ -1,41 +1,81 @@
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import type { WatchlistProgram } from '@/lib/hooks/useWatchlist';
+import type { Program } from '@/lib/types/program';
 import { decodeHtmlEntities } from './html';
 
 interface FormatOptions {
   customerName?: string;
   includeHeader?: boolean;
   includeFooter?: boolean;
+  headerText?: string;
+}
+
+/**
+ * 프로그램 정보 타입 (WatchlistProgram 또는 일반 Program)
+ */
+type ProgramInfo = {
+  title: string;
+  dataSource: string;
+  deadline: Date | string | null;
+  category: string | null;
+  sourceUrl: string | null;
+};
+
+/**
+ * WatchlistProgram 또는 Program에서 공통 정보 추출
+ */
+function extractProgramInfo(item: WatchlistProgram | Program): ProgramInfo {
+  // WatchlistProgram인 경우 (program 속성이 있음)
+  if ('program' in item && item.program) {
+    return {
+      title: item.program.title,
+      dataSource: item.program.dataSource,
+      deadline: item.program.deadline,
+      category: item.program.category,
+      sourceUrl: item.program.sourceUrl,
+    };
+  }
+  // 일반 Program인 경우
+  const program = item as Program;
+  return {
+    title: program.title,
+    dataSource: program.dataSource,
+    deadline: program.deadline,
+    category: program.category,
+    sourceUrl: program.sourceUrl,
+  };
 }
 
 /**
  * 관심 목록 프로그램들을 공유 가능한 텍스트로 변환
  *
- * @param programs - 관심 목록 프로그램 배열
+ * @param programs - 관심 목록 프로그램 배열 또는 일반 프로그램 배열
  * @param options - 포맷 옵션
  * @returns 공유 가능한 텍스트
  */
 export function formatProgramsToText(
-  programs: WatchlistProgram[],
+  programs: (WatchlistProgram | Program)[],
   options: FormatOptions = {}
 ): string {
-  const { customerName, includeHeader = true, includeFooter = true } = options;
+  const { customerName, includeHeader = true, includeFooter = true, headerText } = options;
 
   const lines: string[] = [];
 
   // 헤더
   if (includeHeader) {
-    if (customerName) {
+    if (headerText) {
+      lines.push(`📢 ${headerText}\n`);
+    } else if (customerName) {
       lines.push(`📢 ${customerName}님께 추천하는 정부지원사업\n`);
     } else {
-      lines.push(`📢 추천 정부지원사업\n`);
+      lines.push(`📢 정부지원사업 목록\n`);
     }
   }
 
   // 프로그램 목록
   programs.forEach((item, index) => {
-    const { program } = item;
+    const program = extractProgramInfo(item);
 
     // 번호. 제목
     lines.push(`${index + 1}. ${decodeHtmlEntities(program.title)}`);

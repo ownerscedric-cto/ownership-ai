@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Tag, Building2, Star } from 'lucide-react';
+import { MapPin, Tag, Building2, Star, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,12 @@ import type { Program } from '@/lib/types/program';
 import type { Customer } from '@/lib/types/customer';
 import { decodeHtmlEntities, truncateText } from '@/lib/utils/html';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ProgramCardProps {
   program: Program;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 /**
@@ -55,10 +58,16 @@ const dataSourceColors: Record<string, string> = {
  * - 대상 업종 (최대 3개)
  * - 대상 지역 (최대 3개)
  */
-export function ProgramCard({ program }: ProgramCardProps) {
+export function ProgramCard({ program, isSelected = false, onToggleSelect }: ProgramCardProps) {
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const addToWatchlist = useAddToWatchlist();
+
+  // 체크박스 클릭 핸들러
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Card 클릭 이벤트 전파 방지
+    onToggleSelect?.();
+  };
 
   // 설명 최대 길이 제한 (모바일에서 너무 길지 않도록)
   const truncatedDescription = program.description ? truncateText(program.description, 150) : null;
@@ -99,19 +108,40 @@ export function ProgramCard({ program }: ProgramCardProps) {
     <>
       <Card
         onClick={handleCardClick}
-        className="h-full transition-all duration-200 hover:shadow-md hover:border-[#0052CC]/50 cursor-pointer relative"
+        className={cn(
+          'h-full transition-all duration-200 hover:shadow-md cursor-pointer relative',
+          isSelected
+            ? 'border-[#0052CC] border-2 bg-blue-50/30 shadow-md'
+            : 'hover:border-[#0052CC]/50'
+        )}
       >
         <CardHeader className="space-y-2">
-          {/* 데이터 소스 Badge + 마감일 Badge */}
+          {/* 체크박스 + 데이터 소스 Badge + 마감일 Badge */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <Badge
-              className={
-                dataSourceColors[normalizeDataSource(program.dataSource)] ||
-                'bg-gray-100 text-gray-800'
-              }
-            >
-              {normalizeDataSource(program.dataSource)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {/* 선택 체크박스 */}
+              <button
+                type="button"
+                onClick={handleCheckboxClick}
+                className={cn(
+                  'w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0',
+                  isSelected
+                    ? 'bg-[#0052CC] border-[#0052CC] text-white'
+                    : 'border-gray-300 hover:border-[#0052CC] bg-white'
+                )}
+                title={isSelected ? '선택 해제' : '선택'}
+              >
+                {isSelected && <Check className="w-3 h-3" />}
+              </button>
+              <Badge
+                className={
+                  dataSourceColors[normalizeDataSource(program.dataSource)] ||
+                  'bg-gray-100 text-gray-800'
+                }
+              >
+                {normalizeDataSource(program.dataSource)}
+              </Badge>
+            </div>
             <div className="flex items-center gap-2">
               <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
               {/* 별표 버튼 */}

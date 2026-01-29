@@ -6,9 +6,12 @@
 
 'use client';
 
+import { useState } from 'react';
 import { ProgramCard } from './ProgramCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Pagination,
   PaginationContent,
@@ -20,8 +23,10 @@ import {
 } from '@/components/ui/pagination';
 import { useProgramsWithMetadata } from '@/lib/hooks/usePrograms';
 import type { ProgramFilters, Program } from '@/lib/types/program';
-import { AlertCircle, FileText } from 'lucide-react';
+import { AlertCircle, FileText, Copy, CheckCheck } from 'lucide-react';
 import { formatDateShort } from '@/lib/utils/date';
+import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
+import { toast } from 'sonner';
 
 interface ProgramListProps {
   filters: ProgramFilters;
@@ -41,6 +46,97 @@ interface ProgramListProps {
  */
 export function ProgramList({ filters, onPageChange }: ProgramListProps) {
   const { data, isLoading, error } = useProgramsWithMetadata(filters);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isCopied, setIsCopied] = useState(false);
+
+  // 현재 페이지의 모든 프로그램 ID 목록
+  const currentPageProgramIds = data?.data?.map(p => p.id) ?? [];
+
+  // 현재 페이지에서 선택된 프로그램 수
+  const selectedCountInPage = currentPageProgramIds.filter(id => selectedIds.has(id)).length;
+
+  // 전체 선택 여부
+  const isAllSelected =
+    currentPageProgramIds.length > 0 && selectedCountInPage === currentPageProgramIds.length;
+
+  /**
+   * 프로그램 선택/해제 토글
+   */
+  const handleToggleSelect = (programId: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(programId)) {
+        newSet.delete(programId);
+      } else {
+        newSet.add(programId);
+      }
+      return newSet;
+    });
+  };
+
+  /**
+   * 현재 페이지 전체 선택/해제
+   */
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      // 전체 해제
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        currentPageProgramIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    } else {
+      // 전체 선택
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        currentPageProgramIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+    }
+  };
+
+  /**
+   * 선택 초기화
+   */
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  /**
+   * 선택된 프로그램 텍스트 복사
+   */
+  const handleCopySelected = async () => {
+    if (!data?.data || selectedIds.size === 0) {
+      toast.error('복사할 프로그램이 없습니다', {
+        description: '프로그램을 선택해주세요.',
+      });
+      return;
+    }
+
+    // 선택된 프로그램만 필터링
+    const selectedPrograms = data.data.filter(p => selectedIds.has(p.id));
+
+    try {
+      const text = formatProgramsToText(selectedPrograms, {
+        includeHeader: true,
+        includeFooter: true,
+      });
+
+      await navigator.clipboard.writeText(text);
+
+      setIsCopied(true);
+      toast.success('클립보드에 복사했습니다!', {
+        description: `${selectedPrograms.length}개의 프로그램을 복사했습니다.`,
+      });
+
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+      toast.error('복사에 실패했습니다', {
+        description: '다시 시도해주세요.',
+      });
+    }
+  };
 
   /**
    * 등록일 기준으로 프로그램 그룹핑
@@ -179,6 +275,59 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
         )}
       </div>
 
+      {/* 선택 컨트롤 바 */}
+      <div className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="select-all"
+            checked={isAllSelected}
+            onCheckedChange={handleToggleSelectAll}
+            className="data-[state=checked]:bg-[#0052CC]"
+          />
+          <label
+            htmlFor="select-all"
+            className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+          >
+            {isAllSelected ? '전체 해제' : '전체 선택'}
+          </label>
+        </div>
+
+        {selectedIds.size > 0 && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span className="text-sm text-gray-600">
+              <span className="font-semibold text-[#0052CC]">{selectedIds.size}</span>개 선택됨
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearSelection}
+              className="text-gray-500 hover:text-gray-700 h-8 px-2"
+            >
+              선택 해제
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleCopySelected}
+              className="bg-[#0052CC] hover:bg-[#003d99] h-8 gap-1.5"
+            >
+              {isCopied ? (
+                <>
+                  <CheckCheck className="w-4 h-4" />
+                  복사됨!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  텍스트 복사
+                </>
+              )}
+            </Button>
+          </>
+        )}
+      </div>
+
       {/* 프로그램 카드 - 날짜별 그룹핑 */}
       <div className="space-y-8">
         {groupedPrograms.map(([date, datePrograms]) => (
@@ -193,7 +342,12 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
             {/* 해당 날짜의 프로그램 그리드 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {datePrograms.map(program => (
-                <ProgramCard key={program.id} program={program} />
+                <ProgramCard
+                  key={program.id}
+                  program={program}
+                  isSelected={selectedIds.has(program.id)}
+                  onToggleSelect={() => handleToggleSelect(program.id)}
+                />
               ))}
             </div>
           </div>
