@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   Pagination,
   PaginationContent,
@@ -23,7 +24,19 @@ import {
 } from '@/components/ui/pagination';
 import { useProgramsWithMetadata } from '@/lib/hooks/usePrograms';
 import type { ProgramFilters, Program } from '@/lib/types/program';
-import { AlertCircle, FileText, Copy, CheckCheck } from 'lucide-react';
+import {
+  AlertCircle,
+  FileText,
+  Copy,
+  CheckCheck,
+  LayoutGrid,
+  List,
+  Check,
+  ExternalLink,
+} from 'lucide-react';
+import { DeadlineBadge } from './DeadlineBadge';
+import { decodeHtmlEntities } from '@/lib/utils/html';
+import Link from 'next/link';
 import { formatDateShort } from '@/lib/utils/date';
 import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
 import { toast } from 'sonner';
@@ -44,10 +57,13 @@ interface ProgramListProps {
  * - 페이지네이션
  * - 출처별 분포 통계
  */
+type ViewType = 'card' | 'table';
+
 export function ProgramList({ filters, onPageChange }: ProgramListProps) {
   const { data, isLoading, error } = useProgramsWithMetadata(filters);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCopied, setIsCopied] = useState(false);
+  const [viewType, setViewType] = useState<ViewType>('card');
 
   // 현재 페이지의 모든 프로그램 ID 목록
   const currentPageProgramIds = data?.data?.map(p => p.id) ?? [];
@@ -276,83 +292,228 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
       </div>
 
       {/* 선택 컨트롤 바 */}
-      <div className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-lg border">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="select-all"
-            checked={isAllSelected}
-            onCheckedChange={handleToggleSelectAll}
-            className="data-[state=checked]:bg-[#0052CC]"
-          />
-          <label
-            htmlFor="select-all"
-            className="text-sm font-medium text-gray-700 cursor-pointer select-none"
-          >
-            {isAllSelected ? '전체 해제' : '전체 선택'}
-          </label>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="select-all"
+              checked={isAllSelected}
+              onCheckedChange={handleToggleSelectAll}
+              className="data-[state=checked]:bg-[#0052CC]"
+            />
+            <label
+              htmlFor="select-all"
+              className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+            >
+              {isAllSelected ? '전체 해제' : '전체 선택'}
+            </label>
+          </div>
+
+          {selectedIds.size > 0 && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span className="text-sm text-gray-600">
+                <span className="font-semibold text-[#0052CC]">{selectedIds.size}</span>개 선택됨
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSelection}
+                className="text-gray-500 hover:text-gray-700 h-8 px-2"
+              >
+                선택 해제
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleCopySelected}
+                className="bg-[#0052CC] hover:bg-[#003d99] h-8 gap-1.5"
+              >
+                {isCopied ? (
+                  <>
+                    <CheckCheck className="w-4 h-4" />
+                    복사됨!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    텍스트 복사
+                  </>
+                )}
+              </Button>
+            </>
+          )}
         </div>
 
-        {selectedIds.size > 0 && (
-          <>
-            <span className="text-gray-300">|</span>
-            <span className="text-sm text-gray-600">
-              <span className="font-semibold text-[#0052CC]">{selectedIds.size}</span>개 선택됨
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearSelection}
-              className="text-gray-500 hover:text-gray-700 h-8 px-2"
-            >
-              선택 해제
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleCopySelected}
-              className="bg-[#0052CC] hover:bg-[#003d99] h-8 gap-1.5"
-            >
-              {isCopied ? (
-                <>
-                  <CheckCheck className="w-4 h-4" />
-                  복사됨!
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  텍스트 복사
-                </>
-              )}
-            </Button>
-          </>
-        )}
+        {/* 뷰 전환 버튼 */}
+        <div className="flex items-center gap-1 bg-white rounded-md border p-1">
+          <Button
+            variant={viewType === 'card' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewType('card')}
+            className={`h-8 px-3 gap-1.5 ${viewType === 'card' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span className="hidden sm:inline">카드</span>
+          </Button>
+          <Button
+            variant={viewType === 'table' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewType('table')}
+            className={`h-8 px-3 gap-1.5 ${viewType === 'table' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
+          >
+            <List className="w-4 h-4" />
+            <span className="hidden sm:inline">테이블</span>
+          </Button>
+        </div>
       </div>
 
-      {/* 프로그램 카드 - 날짜별 그룹핑 */}
-      <div className="space-y-8">
-        {groupedPrograms.map(([date, datePrograms]) => (
-          <div key={date}>
-            {/* 날짜 구분선 */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex-1 border-t-2 border-gray-300"></div>
-              <span className="text-lg font-semibold text-gray-700">{date}</span>
-              <div className="flex-1 border-t-2 border-gray-300"></div>
-            </div>
+      {/* 카드 뷰 - 날짜별 그룹핑 */}
+      {viewType === 'card' && (
+        <div className="space-y-8">
+          {groupedPrograms.map(([date, datePrograms]) => (
+            <div key={date}>
+              {/* 날짜 구분선 */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 border-t-2 border-gray-300"></div>
+                <span className="text-lg font-semibold text-gray-700">{date}</span>
+                <div className="flex-1 border-t-2 border-gray-300"></div>
+              </div>
 
-            {/* 해당 날짜의 프로그램 그리드 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {datePrograms.map(program => (
-                <ProgramCard
-                  key={program.id}
-                  program={program}
-                  isSelected={selectedIds.has(program.id)}
-                  onToggleSelect={() => handleToggleSelect(program.id)}
-                />
-              ))}
+              {/* 해당 날짜의 프로그램 그리드 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {datePrograms.map(program => (
+                  <ProgramCard
+                    key={program.id}
+                    program={program}
+                    isSelected={selectedIds.has(program.id)}
+                    onToggleSelect={() => handleToggleSelect(program.id)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {/* 테이블 뷰 */}
+      {viewType === 'table' && (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="w-12 px-4 py-3 text-left">
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAll}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                      isAllSelected
+                        ? 'bg-[#0052CC] border-[#0052CC] text-white'
+                        : 'border-gray-300 hover:border-[#0052CC] bg-white'
+                    }`}
+                  >
+                    {isAllSelected && <Check className="w-3 h-3" />}
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                  프로그램명
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">
+                  출처
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                  카테고리
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">마감일</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 hidden sm:table-cell">
+                  등록일
+                </th>
+                <th className="w-12 px-4 py-3 text-center text-sm font-semibold text-gray-700">
+                  링크
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {programs.map(program => {
+                const isSelected = selectedIds.has(program.id);
+                return (
+                  <tr
+                    key={program.id}
+                    className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                      isSelected ? 'bg-blue-50/50' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSelect(program.id)}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-[#0052CC] border-[#0052CC] text-white'
+                            : 'border-gray-300 hover:border-[#0052CC] bg-white'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3" />}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/programs/${program.id}`}
+                        className="text-sm font-medium text-gray-900 hover:text-[#0052CC] line-clamp-2"
+                      >
+                        {decodeHtmlEntities(program.title)}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <Badge
+                        className={
+                          program.dataSource === '기업마당'
+                            ? 'bg-blue-100 text-blue-800'
+                            : program.dataSource === 'K-Startup'
+                              ? 'bg-green-100 text-green-800'
+                              : program.dataSource === 'KOCCA-PIMS' ||
+                                  program.dataSource === 'KOCCA-Finance'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-gray-100 text-gray-800'
+                        }
+                      >
+                        {program.dataSource === 'KOCCA-PIMS' ||
+                        program.dataSource === 'KOCCA-Finance'
+                          ? '한국콘텐츠진흥원'
+                          : program.dataSource}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <span className="text-sm text-gray-600">{program.category || '-'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <span className="text-sm text-gray-500">
+                        {formatDateShort(program.registeredAt)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {program.sourceUrl && (
+                        <a
+                          href={program.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 text-gray-500 hover:text-[#0052CC] transition-colors"
+                          title="원문 보기"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (
