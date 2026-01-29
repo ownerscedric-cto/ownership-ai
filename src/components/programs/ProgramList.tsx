@@ -399,10 +399,10 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
       {/* 테이블 뷰 - 날짜별 그룹핑 */}
       {viewType === 'table' && (
         <div className="overflow-x-auto border rounded-lg">
-          <table className="w-full border-collapse table-fixed">
+          <table className="w-full border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="w-12 px-3 py-3 text-left">
+                <th className="w-[48px] min-w-[48px] max-w-[48px] px-3 py-3 text-left">
                   <button
                     type="button"
                     onClick={handleToggleSelectAll}
@@ -418,16 +418,16 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">
                   프로그램명
                 </th>
-                <th className="w-28 px-3 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">
+                <th className="w-[100px] min-w-[100px] max-w-[100px] px-3 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">
                   출처
                 </th>
-                <th className="w-24 px-3 py-3 text-left text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                <th className="w-[100px] min-w-[100px] max-w-[100px] px-3 py-3 text-left text-sm font-semibold text-gray-700 hidden lg:table-cell">
                   카테고리
                 </th>
-                <th className="w-20 px-3 py-3 text-left text-sm font-semibold text-gray-700">
+                <th className="w-[80px] min-w-[80px] max-w-[80px] px-3 py-3 text-left text-sm font-semibold text-gray-700">
                   마감일
                 </th>
-                <th className="w-12 px-3 py-3 text-center text-sm font-semibold text-gray-700">
+                <th className="w-[48px] min-w-[48px] max-w-[48px] px-3 py-3 text-center text-sm font-semibold text-gray-700">
                   링크
                 </th>
               </tr>
@@ -447,11 +447,11 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                     return (
                       <tr
                         key={program.id}
-                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors h-14 ${
+                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                           isSelected ? 'bg-blue-50/50' : ''
                         }`}
                       >
-                        <td className="w-12 px-3 py-2">
+                        <td className="w-[48px] min-w-[48px] max-w-[48px] px-3 py-2">
                           <button
                             type="button"
                             onClick={() => handleToggleSelect(program.id)}
@@ -464,7 +464,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                             {isSelected && <Check className="w-3 h-3" />}
                           </button>
                         </td>
-                        <td className="px-3 py-2 overflow-hidden">
+                        <td className="px-3 py-2">
                           <Link
                             href={`/programs/${program.id}`}
                             className="text-sm font-medium text-gray-900 hover:text-[#0052CC] line-clamp-2"
@@ -472,7 +472,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                             {decodeHtmlEntities(program.title)}
                           </Link>
                         </td>
-                        <td className="w-28 px-3 py-2 hidden md:table-cell">
+                        <td className="w-[100px] min-w-[100px] max-w-[100px] px-3 py-2 hidden md:table-cell">
                           <Badge
                             className={`text-xs whitespace-nowrap ${
                               program.dataSource === '기업마당'
@@ -491,15 +491,15 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                               : program.dataSource}
                           </Badge>
                         </td>
-                        <td className="w-24 px-3 py-2 hidden lg:table-cell">
+                        <td className="w-[100px] min-w-[100px] max-w-[100px] px-3 py-2 hidden lg:table-cell">
                           <span className="text-xs text-gray-600 truncate block">
                             {program.category || '-'}
                           </span>
                         </td>
-                        <td className="w-20 px-3 py-2">
+                        <td className="w-[80px] min-w-[80px] max-w-[80px] px-3 py-2">
                           <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
                         </td>
-                        <td className="w-12 px-3 py-2 text-center">
+                        <td className="w-[48px] min-w-[48px] max-w-[48px] px-3 py-2 text-center">
                           {program.sourceUrl && (
                             <a
                               href={program.sourceUrl}
