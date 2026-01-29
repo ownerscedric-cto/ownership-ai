@@ -398,11 +398,11 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
 
       {/* 테이블 뷰 - 날짜별 그룹핑 */}
       {viewType === 'table' && (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto border rounded-lg">
+          <table className="w-full border-collapse table-fixed">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="w-12 px-4 py-3 text-left">
+                <th className="w-12 px-3 py-3 text-left">
                   <button
                     type="button"
                     onClick={handleToggleSelectAll}
@@ -415,17 +415,19 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                     {isAllSelected && <Check className="w-3 h-3" />}
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">
                   프로그램명
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">
+                <th className="w-28 px-3 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">
                   출처
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                <th className="w-24 px-3 py-3 text-left text-sm font-semibold text-gray-700 hidden lg:table-cell">
                   카테고리
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">마감일</th>
-                <th className="w-12 px-4 py-3 text-center text-sm font-semibold text-gray-700">
+                <th className="w-20 px-3 py-3 text-left text-sm font-semibold text-gray-700">
+                  마감일
+                </th>
+                <th className="w-12 px-3 py-3 text-center text-sm font-semibold text-gray-700">
                   링크
                 </th>
               </tr>
@@ -435,7 +437,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                 <>
                   {/* 날짜 구분 행 */}
                   <tr key={`date-${date}`} className="bg-gray-100 border-t-2 border-gray-300">
-                    <td colSpan={6} className="px-4 py-2">
+                    <td colSpan={6} className="px-3 py-2">
                       <span className="text-sm font-semibold text-gray-700">{date}</span>
                     </td>
                   </tr>
@@ -445,11 +447,11 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                     return (
                       <tr
                         key={program.id}
-                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors h-14 ${
                           isSelected ? 'bg-blue-50/50' : ''
                         }`}
                       >
-                        <td className="px-4 py-3">
+                        <td className="w-12 px-3 py-2">
                           <button
                             type="button"
                             onClick={() => handleToggleSelect(program.id)}
@@ -462,7 +464,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                             {isSelected && <Check className="w-3 h-3" />}
                           </button>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2 overflow-hidden">
                           <Link
                             href={`/programs/${program.id}`}
                             className="text-sm font-medium text-gray-900 hover:text-[#0052CC] line-clamp-2"
@@ -470,9 +472,9 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                             {decodeHtmlEntities(program.title)}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
+                        <td className="w-28 px-3 py-2 hidden md:table-cell">
                           <Badge
-                            className={
+                            className={`text-xs whitespace-nowrap ${
                               program.dataSource === '기업마당'
                                 ? 'bg-blue-100 text-blue-800'
                                 : program.dataSource === 'K-Startup'
@@ -481,27 +483,29 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                                       program.dataSource === 'KOCCA-Finance'
                                     ? 'bg-purple-100 text-purple-800'
                                     : 'bg-gray-100 text-gray-800'
-                            }
+                            }`}
                           >
                             {program.dataSource === 'KOCCA-PIMS' ||
                             program.dataSource === 'KOCCA-Finance'
-                              ? '한국콘텐츠진흥원'
+                              ? '콘진원'
                               : program.dataSource}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
-                          <span className="text-sm text-gray-600">{program.category || '-'}</span>
+                        <td className="w-24 px-3 py-2 hidden lg:table-cell">
+                          <span className="text-xs text-gray-600 truncate block">
+                            {program.category || '-'}
+                          </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="w-20 px-3 py-2">
                           <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="w-12 px-3 py-2 text-center">
                           {program.sourceUrl && (
                             <a
                               href={program.sourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 text-gray-500 hover:text-[#0052CC] transition-colors"
+                              className="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-gray-100 text-gray-500 hover:text-[#0052CC] transition-colors"
                               title="원문 보기"
                             >
                               <ExternalLink className="w-4 h-4" />
