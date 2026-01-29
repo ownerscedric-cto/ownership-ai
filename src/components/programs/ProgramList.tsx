@@ -415,7 +415,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                     {isAllSelected && <Check className="w-3 h-3" />}
                   </button>
                 </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">
+                <th className="min-w-[200px] max-w-[400px] px-3 py-3 text-left text-sm font-semibold text-gray-700">
                   프로그램명
                 </th>
                 <th className="w-[100px] min-w-[100px] max-w-[100px] px-3 py-3 text-left text-sm font-semibold text-gray-700 hidden md:table-cell">
@@ -464,7 +464,7 @@ export function ProgramList({ filters, onPageChange }: ProgramListProps) {
                             {isSelected && <Check className="w-3 h-3" />}
                           </button>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="min-w-[200px] max-w-[400px] px-3 py-2">
                           <Link
                             href={`/programs/${program.id}`}
                             className="text-sm font-medium text-gray-900 hover:text-[#0052CC] line-clamp-2"
