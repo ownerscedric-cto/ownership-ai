@@ -46,6 +46,7 @@ type ViewType = 'card' | 'table';
 interface ProgramListProps {
   filters: ProgramFilters;
   onPageChange: (page: number) => void;
+  onLimitChange: (limit: number) => void;
   viewType: ViewType;
   onViewTypeChange: (viewType: ViewType) => void;
 }
@@ -61,9 +62,12 @@ interface ProgramListProps {
  * - 페이지네이션
  * - 출처별 분포 통계
  */
+const LIMIT_OPTIONS = [30, 50, 100] as const;
+
 export function ProgramList({
   filters,
   onPageChange,
+  onLimitChange,
   viewType,
   onViewTypeChange,
 }: ProgramListProps) {
@@ -371,6 +375,21 @@ export function ProgramList({
               </Button>
             </>
           )}
+        </div>
+
+        {/* 페이지당 표시 개수 */}
+        <div className="flex items-center gap-1 bg-white rounded-md border p-1">
+          {LIMIT_OPTIONS.map(limit => (
+            <Button
+              key={limit}
+              variant={filters.limit === limit ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => onLimitChange(limit)}
+              className={`h-8 px-2 min-w-[40px] ${filters.limit === limit ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
+            >
+              {limit}
+            </Button>
+          ))}
         </div>
 
         {/* 뷰 전환 버튼 */}

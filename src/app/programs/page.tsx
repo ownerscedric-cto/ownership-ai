@@ -132,6 +132,16 @@ function ProgramsPageContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  /**
+   * 페이지당 표시 개수 변경 핸들러
+   */
+  const handleLimitChange = (limit: number) => {
+    // limit 변경 시 page를 1로 리셋
+    const newFilters = { ...filters, limit, page: 1 };
+    setFilters(newFilters);
+    updateURLParams(newFilters);
+  };
+
   // popstate 이벤트 리스닝 (브라우저 뒤로가기/앞으로가기)
   useEffect(() => {
     const handlePopState = () => {
@@ -186,6 +196,7 @@ function ProgramsPageContent() {
         <ProgramList
           filters={filters}
           onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
           viewType={viewType}
           onViewTypeChange={handleViewTypeChange}
         />
