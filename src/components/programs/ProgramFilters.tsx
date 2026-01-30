@@ -16,13 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ProgramFilters as FilterType } from '@/lib/types/program';
@@ -37,11 +30,6 @@ interface ProgramFiltersProps {
  * 데이터 소스 목록 (확장 가능)
  */
 const dataSources = ['전체', '기업마당', 'K-Startup', '한국콘텐츠진흥원'] as const;
-
-/**
- * 페이지당 개수 옵션
- */
-const limitOptions = [30, 50, 100] as const;
 
 /**
  * 프로그램 필터 컴포넌트
@@ -77,17 +65,6 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
       ...filters,
       dataSource: value === '전체' ? undefined : value,
       page: 1, // 필터 변경 시 첫 페이지로 이동
-    });
-  };
-
-  /**
-   * 페이지당 개수 변경
-   */
-  const handleLimitChange = (value: number) => {
-    onFiltersChange({
-      ...filters,
-      limit: value,
-      page: 1, // 페이지당 개수 변경 시 첫 페이지로 이동
     });
   };
 
@@ -236,30 +213,13 @@ export function ProgramFilters({ filters, onFiltersChange }: ProgramFiltersProps
         </div>
       </div>
 
-      {/* 페이지당 개수 선택 + 키워드 검색 + 진행중인 공고만 보기 */}
+      {/* 키워드 검색 + 진행중인 공고만 보기 */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
           <Search className="w-4 h-4" />
-          검색 및 필터
+          키워드 검색
         </h3>
         <form onSubmit={handleAddKeyword} className="flex flex-wrap gap-2 items-center">
-          {/* 페이지당 개수 Select */}
-          <Select
-            value={(filters.limit || 50).toString()}
-            onValueChange={value => handleLimitChange(Number(value))}
-          >
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {limitOptions.map(limit => (
-                <SelectItem key={limit} value={limit.toString()}>
-                  {limit}개
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           {/* 키워드 검색 */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

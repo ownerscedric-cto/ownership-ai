@@ -117,54 +117,54 @@ export function AppHeader({ user }: AppHeaderProps) {
           </div>
         </div>
 
-        {/* 모바일 네비게이션 */}
-        <nav className="md:hidden flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
+        {/* 모바일 네비게이션 (아이콘만 표시) */}
+        <nav className="md:hidden flex items-center justify-evenly mt-4 pt-4 border-t border-gray-200">
           <Link
             href="/dashboard"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+            className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors ${
               isActive('/dashboard')
-                ? 'bg-blue-50 text-[var(--primary-blue)] font-medium'
+                ? 'bg-blue-50 text-[var(--primary-blue)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50'
             }`}
+            title="대시보드"
           >
-            <Home className="w-4 h-4" />
-            <span>대시보드</span>
+            <Home className="w-6 h-6" />
           </Link>
 
           <Link
             href="/customers"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+            className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors ${
               isActive('/customers')
-                ? 'bg-blue-50 text-[var(--primary-blue)] font-medium'
+                ? 'bg-blue-50 text-[var(--primary-blue)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50'
             }`}
+            title="고객 관리"
           >
-            <Users className="w-4 h-4" />
-            <span>고객 관리</span>
+            <Users className="w-6 h-6" />
           </Link>
 
           <Link
             href="/programs"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+            className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors ${
               isActive('/programs')
-                ? 'bg-blue-50 text-[var(--primary-blue)] font-medium'
+                ? 'bg-blue-50 text-[var(--primary-blue)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50'
             }`}
+            title="정부지원사업"
           >
-            <FileText className="w-4 h-4" />
-            <span>정부지원사업</span>
+            <FileText className="w-6 h-6" />
           </Link>
 
           <Link
             href="/education"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+            className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors ${
               isActive('/education')
-                ? 'bg-blue-50 text-[var(--primary-blue)] font-medium'
+                ? 'bg-blue-50 text-[var(--primary-blue)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-50'
             }`}
+            title="교육 센터"
           >
-            <GraduationCap className="w-4 h-4" />
-            <span>교육 센터</span>
+            <GraduationCap className="w-6 h-6" />
           </Link>
         </nav>
       </div>

@@ -385,8 +385,8 @@ export function ProgramList({
           )}
         </div>
 
-        {/* 오른쪽: 뷰 전환 + 개수 선택 */}
-        <div className="flex items-center gap-4 sm:justify-end">
+        {/* 뷰 전환 + 개수 선택 (모바일: 양끝 배치, 데스크톱: 오른쪽 정렬) */}
+        <div className="flex items-center justify-between sm:justify-end sm:gap-4">
           {/* 뷰 전환 버튼 */}
           <div className="flex items-center gap-1 bg-white rounded-md border p-1">
             <Button
@@ -416,7 +416,7 @@ export function ProgramList({
               value={String(filters.limit || 50)}
               onValueChange={value => onLimitChange(Number(value))}
             >
-              <SelectTrigger className="w-[80px] h-8 text-sm">
+              <SelectTrigger className="w-[90px] h-8 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
