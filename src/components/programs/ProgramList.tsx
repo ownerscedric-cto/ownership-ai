@@ -118,6 +118,28 @@ export function ProgramList({
   };
 
   /**
+   * 특정 날짜의 프로그램 전체 선택/해제
+   */
+  const handleToggleSelectByDate = (programIds: string[]) => {
+    const allSelected = programIds.every(id => selectedIds.has(id));
+    if (allSelected) {
+      // 해당 날짜 전체 해제
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        programIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    } else {
+      // 해당 날짜 전체 선택
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        programIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+    }
+  };
+
+  /**
    * 선택 초기화
    */
   const handleClearSelection = () => {
@@ -445,93 +467,128 @@ export function ProgramList({
               </tr>
             </thead>
             <tbody>
-              {groupedPrograms.map(([date, datePrograms]) => (
-                <React.Fragment key={date}>
-                  {/* 날짜 구분 행 */}
-                  <tr className="bg-gray-100 border-t-2 border-gray-300">
-                    <td colSpan={6} className="px-3 py-2">
-                      <span className="text-sm font-semibold text-gray-700">{date}</span>
-                    </td>
-                  </tr>
-                  {/* 해당 날짜의 프로그램들 */}
-                  {datePrograms.map(program => {
-                    const isSelected = selectedIds.has(program.id);
-                    return (
-                      <tr
-                        key={program.id}
-                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                          isSelected ? 'bg-blue-50/50' : ''
-                        }`}
-                      >
-                        <td className="px-2 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSelect(program.id)}
-                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all mx-auto ${
-                              isSelected
-                                ? 'bg-[#0052CC] border-[#0052CC] text-white'
-                                : 'border-gray-300 hover:border-[#0052CC] bg-white'
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3 h-3" />}
-                          </button>
-                        </td>
-                        <td className="px-2 py-2 max-w-0">
-                          <Link
-                            href={`/programs/${program.id}`}
-                            className="text-sm font-medium text-gray-900 hover:text-[#0052CC] truncate block"
-                            title={decodeHtmlEntities(program.title)}
-                          >
-                            {decodeHtmlEntities(program.title)}
-                          </Link>
-                        </td>
-                        <td className="px-2 py-2 hidden md:table-cell text-center">
-                          <Badge
-                            className={`text-xs whitespace-nowrap ${
-                              program.dataSource === '기업마당'
-                                ? 'bg-blue-100 text-blue-800'
-                                : program.dataSource === 'K-Startup'
-                                  ? 'bg-green-100 text-green-800'
-                                  : program.dataSource === 'KOCCA-PIMS' ||
-                                      program.dataSource === 'KOCCA-Finance'
-                                    ? 'bg-purple-100 text-purple-800'
-                                    : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {program.dataSource === 'KOCCA-PIMS' ||
-                            program.dataSource === 'KOCCA-Finance'
-                              ? '콘진원'
-                              : program.dataSource}
-                          </Badge>
-                        </td>
-                        <td className="px-2 py-2 hidden lg:table-cell text-center">
-                          <span className="text-xs text-gray-600 truncate block">
-                            {program.category ? decodeHtmlEntities(program.category) : '-'}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex justify-center">
-                            <DeadlineBadge deadline={program.deadline} rawData={program.rawData} />
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 text-center">
-                          {program.sourceUrl && (
-                            <a
-                              href={program.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-gray-100 text-gray-500 hover:text-[#0052CC] transition-colors"
-                              title="원문 보기"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+              {groupedPrograms.map(([date, datePrograms]) => {
+                const dateProgramIds = datePrograms.map(p => p.id);
+                const isDateAllSelected =
+                  dateProgramIds.length > 0 && dateProgramIds.every(id => selectedIds.has(id));
+                const isDatePartialSelected =
+                  dateProgramIds.some(id => selectedIds.has(id)) && !isDateAllSelected;
+
+                return (
+                  <React.Fragment key={date}>
+                    {/* 날짜 구분 행 */}
+                    <tr className="bg-gray-100 border-t-2 border-gray-300">
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSelectByDate(dateProgramIds)}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all mx-auto ${
+                            isDateAllSelected
+                              ? 'bg-[#0052CC] border-[#0052CC] text-white'
+                              : isDatePartialSelected
+                                ? 'bg-blue-200 border-[#0052CC]'
+                                : 'border-gray-400 hover:border-[#0052CC] bg-white'
+                          }`}
+                          title={isDateAllSelected ? '전체 해제' : '전체 선택'}
+                        >
+                          {isDateAllSelected && <Check className="w-3 h-3" />}
+                          {isDatePartialSelected && !isDateAllSelected && (
+                            <div className="w-2 h-0.5 bg-[#0052CC]" />
                           )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+                        </button>
+                      </td>
+                      <td colSpan={5} className="px-3 py-2">
+                        <span className="text-sm font-semibold text-gray-700">
+                          {date}{' '}
+                          <span className="text-gray-500 font-normal">
+                            ({datePrograms.length}건)
+                          </span>
+                        </span>
+                      </td>
+                    </tr>
+                    {/* 해당 날짜의 프로그램들 */}
+                    {datePrograms.map(program => {
+                      const isSelected = selectedIds.has(program.id);
+                      return (
+                        <tr
+                          key={program.id}
+                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                            isSelected ? 'bg-blue-50/50' : ''
+                          }`}
+                        >
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSelect(program.id)}
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all mx-auto ${
+                                isSelected
+                                  ? 'bg-[#0052CC] border-[#0052CC] text-white'
+                                  : 'border-gray-300 hover:border-[#0052CC] bg-white'
+                              }`}
+                            >
+                              {isSelected && <Check className="w-3 h-3" />}
+                            </button>
+                          </td>
+                          <td className="px-2 py-2 max-w-0">
+                            <Link
+                              href={`/programs/${program.id}`}
+                              className="text-sm font-medium text-gray-900 hover:text-[#0052CC] truncate block"
+                              title={decodeHtmlEntities(program.title)}
+                            >
+                              {decodeHtmlEntities(program.title)}
+                            </Link>
+                          </td>
+                          <td className="px-2 py-2 hidden md:table-cell text-center">
+                            <Badge
+                              className={`text-xs whitespace-nowrap ${
+                                program.dataSource === '기업마당'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : program.dataSource === 'K-Startup'
+                                    ? 'bg-green-100 text-green-800'
+                                    : program.dataSource === 'KOCCA-PIMS' ||
+                                        program.dataSource === 'KOCCA-Finance'
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {program.dataSource === 'KOCCA-PIMS' ||
+                              program.dataSource === 'KOCCA-Finance'
+                                ? '콘진원'
+                                : program.dataSource}
+                            </Badge>
+                          </td>
+                          <td className="px-2 py-2 hidden lg:table-cell text-center">
+                            <span className="text-xs text-gray-600 truncate block">
+                              {program.category ? decodeHtmlEntities(program.category) : '-'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="flex justify-center">
+                              <DeadlineBadge
+                                deadline={program.deadline}
+                                rawData={program.rawData}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            {program.sourceUrl && (
+                              <a
+                                href={program.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-gray-100 text-gray-500 hover:text-[#0052CC] transition-colors"
+                                title="원문 보기"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
