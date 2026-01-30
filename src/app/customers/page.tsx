@@ -189,7 +189,7 @@ function CustomersPageContent() {
           {/* 모바일 백드롭 (사이드바 열렸을 때만 표시) */}
           {isSidebarOpen && (
             <div
-              className="fixed top-16 bottom-0 left-0 right-0 bg-black/50 z-40 lg:hidden"
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
               onClick={() => setIsSidebarOpen(false)}
               aria-label="사이드바 닫기"
             />
@@ -198,18 +198,19 @@ function CustomersPageContent() {
           {/* 왼쪽: 고객 목록 사이드바 */}
           <div
             className={`
-              fixed top-16 bottom-0 left-0 z-50 w-full transform transition-transform duration-300 ease-in-out
-              lg:relative lg:top-0 lg:translate-x-0 lg:w-80
-              ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+              fixed inset-0 z-50 w-full transform transition-transform duration-300 ease-in-out
+              lg:relative lg:translate-x-0 lg:w-80
+              ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}
           >
-            {/* 모바일 닫기 버튼 (사이드바 내부 상단) */}
-            <div className="lg:hidden absolute top-4 right-4 z-10">
+            {/* 모바일 헤더 (닫기 버튼 포함) */}
+            <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b">
+              <h2 className="text-lg font-semibold text-gray-900">고객 목록</h2>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsSidebarOpen(false)}
-                className="p-2"
+                className="p-2 hover:bg-gray-100"
                 aria-label="사이드바 닫기"
               >
                 <X className="h-5 w-5" />
