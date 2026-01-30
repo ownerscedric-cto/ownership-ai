@@ -14,6 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -324,7 +331,8 @@ export function ProgramList({
       </div>
 
       {/* 선택 컨트롤 바 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg border">
+        {/* 왼쪽: 선택 관련 컨트롤 */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Checkbox
@@ -377,41 +385,49 @@ export function ProgramList({
           )}
         </div>
 
-        {/* 페이지당 표시 개수 */}
-        <div className="flex items-center gap-1 bg-white rounded-md border p-1">
-          {LIMIT_OPTIONS.map(limit => (
+        {/* 오른쪽: 뷰 전환 + 개수 선택 */}
+        <div className="flex items-center gap-4 sm:justify-end">
+          {/* 뷰 전환 버튼 */}
+          <div className="flex items-center gap-1 bg-white rounded-md border p-1">
             <Button
-              key={limit}
-              variant={filters.limit === limit ? 'default' : 'ghost'}
+              variant={viewType === 'card' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => onLimitChange(limit)}
-              className={`h-8 px-2 min-w-[40px] ${filters.limit === limit ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
+              onClick={() => onViewTypeChange('card')}
+              className={`h-8 px-3 gap-1.5 ${viewType === 'card' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
             >
-              {limit}
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">카드</span>
             </Button>
-          ))}
-        </div>
+            <Button
+              variant={viewType === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => onViewTypeChange('table')}
+              className={`h-8 px-3 gap-1.5 ${viewType === 'table' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">테이블</span>
+            </Button>
+          </div>
 
-        {/* 뷰 전환 버튼 */}
-        <div className="flex items-center gap-1 bg-white rounded-md border p-1">
-          <Button
-            variant={viewType === 'card' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => onViewTypeChange('card')}
-            className={`h-8 px-3 gap-1.5 ${viewType === 'card' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-            <span className="hidden sm:inline">카드</span>
-          </Button>
-          <Button
-            variant={viewType === 'table' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => onViewTypeChange('table')}
-            className={`h-8 px-3 gap-1.5 ${viewType === 'table' ? 'bg-[#0052CC] hover:bg-[#003d99]' : ''}`}
-          >
-            <List className="w-4 h-4" />
-            <span className="hidden sm:inline">테이블</span>
-          </Button>
+          {/* 페이지당 표시 개수 드롭다운 */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm text-gray-600 hidden sm:inline">페이지당 표시 개수</span>
+            <Select
+              value={String(filters.limit || 50)}
+              onValueChange={value => onLimitChange(Number(value))}
+            >
+              <SelectTrigger className="w-[80px] h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIMIT_OPTIONS.map(limit => (
+                  <SelectItem key={limit} value={String(limit)}>
+                    {limit}개
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
