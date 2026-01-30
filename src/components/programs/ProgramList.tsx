@@ -40,13 +40,17 @@ import {
   List,
   Check,
   ExternalLink,
+  Star,
 } from 'lucide-react';
 import { DeadlineBadge } from './DeadlineBadge';
+import { CustomerSelectDialog } from './CustomerSelectDialog';
+import { useAddToWatchlist } from '@/lib/hooks/useWatchlist';
 import { decodeHtmlEntities } from '@/lib/utils/html';
 import Link from 'next/link';
 import { formatDateShort } from '@/lib/utils/date';
 import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
 import { toast } from 'sonner';
+import type { Customer } from '@/lib/types/customer';
 
 type ViewType = 'card' | 'table';
 
@@ -81,6 +85,31 @@ export function ProgramList({
   const { data, isLoading, error } = useProgramsWithMetadata(filters);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCopied, setIsCopied] = useState(false);
+
+  // 테이블 뷰 관심목록 등록용 상태 (다이얼로그 공유)
+  const [watchlistProgramId, setWatchlistProgramId] = useState<string | null>(null);
+  const addToWatchlist = useAddToWatchlist();
+
+  /**
+   * 관심목록 등록 핸들러 (테이블 뷰용)
+   */
+  const handleAddToWatchlist = async (customer: Customer) => {
+    if (!watchlistProgramId) return;
+
+    try {
+      await addToWatchlist.mutateAsync({
+        customerId: customer.id,
+        programId: watchlistProgramId,
+      });
+      toast.success('관심 목록에 추가했습니다', {
+        description: `${customer.name}님의 관심 목록에 추가되었습니다.`,
+      });
+      setWatchlistProgramId(null);
+    } catch (error) {
+      toast.error('관심 목록 추가에 실패했습니다');
+      console.error('Failed to add to watchlist:', error);
+    }
+  };
 
   // 현재 페이지의 모든 프로그램 ID 목록
   const currentPageProgramIds = data?.data?.map(p => p.id) ?? [];
@@ -465,10 +494,11 @@ export function ProgramList({
           <table className="w-full table-fixed">
             <colgroup>
               <col style={{ width: '40px' }} />
-              <col style={{ width: '55%' }} />
+              <col style={{ width: '50%' }} />
               <col style={{ width: '80px' }} className="hidden md:table-column" />
               <col style={{ width: '90px' }} className="hidden lg:table-column" />
               <col style={{ width: '100px' }} />
+              <col style={{ width: '40px' }} />
               <col style={{ width: '50px' }} />
             </colgroup>
             <thead className="sticky top-0 z-10">
@@ -498,6 +528,7 @@ export function ProgramList({
                 <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700">
                   마감일
                 </th>
+                <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700">관심</th>
                 <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700">링크</th>
               </tr>
             </thead>
@@ -532,7 +563,7 @@ export function ProgramList({
                           )}
                         </button>
                       </td>
-                      <td colSpan={5} className="px-3 py-2">
+                      <td colSpan={6} className="px-3 py-2">
                         <span className="text-sm font-semibold text-gray-700">
                           {date}{' '}
                           <span className="text-gray-500 font-normal">
@@ -606,6 +637,16 @@ export function ProgramList({
                             </div>
                           </td>
                           <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setWatchlistProgramId(program.id)}
+                              className="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-yellow-100 text-gray-400 hover:text-yellow-500 transition-colors"
+                              title="관심목록에 추가"
+                            >
+                              <Star className="w-4 h-4" />
+                            </button>
+                          </td>
+                          <td className="px-2 py-2 text-center">
                             {program.sourceUrl && (
                               <a
                                 href={program.sourceUrl}
@@ -626,6 +667,16 @@ export function ProgramList({
               })}
             </tbody>
           </table>
+
+          {/* 관심목록 등록 다이얼로그 */}
+          {watchlistProgramId && (
+            <CustomerSelectDialog
+              open={!!watchlistProgramId}
+              onOpenChange={open => !open && setWatchlistProgramId(null)}
+              onSelect={handleAddToWatchlist}
+              programId={watchlistProgramId}
+            />
+          )}
         </div>
       )}
 
