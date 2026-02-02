@@ -67,8 +67,8 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
     // 여러 날짜가 있을 때만 날짜 헤더 표시
     if (hasMultipleDates) {
       tableRowsHtml += `
-        <tr style="background-color: #f3f4f6;">
-          <td colspan="4" style="padding: 12px 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #d1d5db;">
+        <tr style="background-color: #f3f4f6; height: 44px;">
+          <td colspan="4" style="padding: 0 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #d1d5db; height: 44px; line-height: 44px; vertical-align: middle;">
             ${dateKey} 등록
           </td>
         </tr>
@@ -84,33 +84,30 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
         ? format(new Date(program.deadline), 'MM.dd', { locale: ko })
         : '-';
 
+      // 지원기관별 배지 색상
+      let badgeStyle = 'background-color: #f3f4f6; color: #374151;'; // 기본값
+      if (dataSource === 'K-Startup') {
+        badgeStyle = 'background-color: #dcfce7; color: #166534;';
+      } else if (dataSource === '기업마당') {
+        badgeStyle = 'background-color: #dbeafe; color: #1e40af;';
+      } else if (dataSource === '한국콘텐츠진흥원') {
+        badgeStyle = 'background-color: #f3e8ff; color: #6b21a8;';
+      }
+
       tableRowsHtml += `
-        <tr style="border-bottom: 1px solid #e5e7eb;">
-          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 40px;">
+        <tr style="border-bottom: 1px solid #e5e7eb; height: 48px;">
+          <td style="padding: 0 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 40px; height: 48px; line-height: 48px;">
             ${globalIndex}
           </td>
-          <td style="padding: 12px 8px; vertical-align: middle; color: #111827; font-size: 14px;">
+          <td style="padding: 0 8px; vertical-align: middle; color: #111827; font-size: 14px; height: 48px; line-height: 48px;">
             ${truncatedTitle}
           </td>
-          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; width: 130px; height: 48px;">
-            <span style="
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              padding: 4px 10px;
-              border-radius: 4px;
-              font-size: 12px;
-              font-weight: 500;
-              white-space: nowrap;
-              line-height: 1.4;
-              ${dataSource === 'K-Startup' ? 'background-color: #dcfce7; color: #166534;' : ''}
-              ${dataSource === '기업마당' ? 'background-color: #dbeafe; color: #1e40af;' : ''}
-              ${dataSource === '한국콘텐츠진흥원' ? 'background-color: #f3e8ff; color: #6b21a8;' : ''}
-            ">
+          <td style="padding: 0 8px; text-align: center; vertical-align: middle; width: 130px; height: 48px; line-height: 48px;">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; ${badgeStyle}">
               ${dataSource}
             </span>
           </td>
-          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 60px;">
+          <td style="padding: 0 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 60px; height: 48px; line-height: 48px;">
             ${deadline}
           </td>
         </tr>
@@ -128,13 +125,13 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
       </div>
     </div>
 
-    <table style="width: 100%; border-collapse: collapse;">
+    <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
       <thead>
-        <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
-          <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 40px;">No</th>
-          <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; font-size: 13px;">프로그램명</th>
-          <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 130px;">지원기관</th>
-          <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 60px;">마감</th>
+        <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb; height: 44px;">
+          <th style="padding: 0 8px; text-align: center; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; width: 40px; height: 44px; line-height: 44px;">No</th>
+          <th style="padding: 0 8px; text-align: left; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; height: 44px; line-height: 44px;">프로그램명</th>
+          <th style="padding: 0 8px; text-align: center; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; width: 130px; height: 44px; line-height: 44px;">지원기관</th>
+          <th style="padding: 0 8px; text-align: center; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; width: 60px; height: 44px; line-height: 44px;">마감</th>
         </tr>
       </thead>
       <tbody>
