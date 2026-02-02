@@ -41,6 +41,7 @@ import {
   Check,
   ExternalLink,
   Star,
+  ImageDown,
 } from 'lucide-react';
 import { DeadlineBadge } from './DeadlineBadge';
 import { CustomerSelectDialog } from './CustomerSelectDialog';
@@ -49,6 +50,7 @@ import { decodeHtmlEntities } from '@/lib/utils/html';
 import Link from 'next/link';
 import { formatDateShort } from '@/lib/utils/date';
 import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
+import { generateProgramImage } from '@/lib/utils/programImageGenerator';
 import { toast } from 'sonner';
 import type { Customer } from '@/lib/types/customer';
 
@@ -217,6 +219,36 @@ export function ProgramList({
     } catch (error) {
       console.error('클립보드 복사 실패:', error);
       toast.error('복사에 실패했습니다', {
+        description: '다시 시도해주세요.',
+      });
+    }
+  };
+
+  /**
+   * 선택된 프로그램 이미지로 다운로드
+   */
+  const handleDownloadImage = async () => {
+    if (!data?.data || selectedIds.size === 0) {
+      toast.error('저장할 프로그램이 없습니다', {
+        description: '프로그램을 선택해주세요.',
+      });
+      return;
+    }
+
+    // 선택된 프로그램만 필터링
+    const selectedPrograms = data.data.filter(p => selectedIds.has(p.id));
+
+    try {
+      toast.loading('이미지 생성 중...', { id: 'image-download' });
+      await generateProgramImage(selectedPrograms);
+      toast.success('이미지가 다운로드되었습니다!', {
+        id: 'image-download',
+        description: `${selectedPrograms.length}개의 프로그램을 이미지로 저장했습니다.`,
+      });
+    } catch (error) {
+      console.error('이미지 생성 실패:', error);
+      toast.error('이미지 생성에 실패했습니다', {
+        id: 'image-download',
         description: '다시 시도해주세요.',
       });
     }
@@ -409,6 +441,15 @@ export function ProgramList({
                     텍스트 복사
                   </>
                 )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadImage}
+                className="h-8 gap-1.5 border-[#0052CC] text-[#0052CC] hover:bg-blue-50"
+              >
+                <ImageDown className="w-4 h-4" />
+                이미지 저장
               </Button>
             </>
           )}
