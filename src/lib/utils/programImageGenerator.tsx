@@ -20,6 +20,22 @@ function normalizeDataSource(dataSource: string): string {
 }
 
 /**
+ * 데이터 소스에 따른 뱃지 색상 반환
+ */
+function getTextColors(dataSource: string): { bg: string; text: string } {
+  switch (dataSource) {
+    case 'K-Startup':
+      return { bg: '#dcfce7', text: '#166534' };
+    case '기업마당':
+      return { bg: '#dbeafe', text: '#1e40af' };
+    case '한국콘텐츠진흥원':
+      return { bg: '#f3e8ff', text: '#6b21a8' };
+    default:
+      return { bg: '#f3f4f6', text: '#374151' };
+  }
+}
+
+/**
  * 등록일 기준으로 프로그램 그룹핑
  */
 function groupByRegisteredDate(programs: Program[]): Map<string, Program[]> {
@@ -59,19 +75,17 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
   const hasMultipleDates = groupedPrograms.size > 1;
   const today = format(new Date(), 'yyyy년 MM월 dd일', { locale: ko });
 
-  // HTML 생성
+  // HTML 생성 (Flexbox 기반 - html2canvas 호환성 향상)
   let globalIndex = 0;
-  let tableRowsHtml = '';
+  let rowsHtml = '';
 
   groupedPrograms.forEach((groupItems, dateKey) => {
     // 여러 날짜가 있을 때만 날짜 헤더 표시
     if (hasMultipleDates) {
-      tableRowsHtml += `
-        <tr style="background-color: #f3f4f6; height: 44px;">
-          <td colspan="4" style="padding: 0 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #d1d5db; height: 44px; line-height: 44px; vertical-align: middle;">
-            ${dateKey} 등록
-          </td>
-        </tr>
+      rowsHtml += `
+        <div style="height: 36px; background-color: #f3f4f6; border-bottom: 2px solid #d1d5db; box-sizing: border-box; padding-left: 16px;">
+          <span style="font-weight: 600; color: #374151; font-size: 14px;">${dateKey} 등록</span>
+        </div>
       `;
     }
 
@@ -80,37 +94,26 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
       const title = decodeHtmlEntities(program.title);
       const truncatedTitle = title.length > 45 ? title.substring(0, 45) + '...' : title;
       const dataSource = normalizeDataSource(program.dataSource);
+      const textColor = getTextColors(dataSource).text;
       const deadline = program.deadline
         ? format(new Date(program.deadline), 'MM.dd', { locale: ko })
         : '-';
 
-      // 지원기관별 배지 색상
-      let badgeStyle = 'background-color: #f3f4f6; color: #374151;'; // 기본값
-      if (dataSource === 'K-Startup') {
-        badgeStyle = 'background-color: #dcfce7; color: #166534;';
-      } else if (dataSource === '기업마당') {
-        badgeStyle = 'background-color: #dbeafe; color: #1e40af;';
-      } else if (dataSource === '한국콘텐츠진흥원') {
-        badgeStyle = 'background-color: #f3e8ff; color: #6b21a8;';
-      }
-
-      tableRowsHtml += `
-        <tr style="border-bottom: 1px solid #e5e7eb; height: 48px;">
-          <td style="padding: 0 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 40px; height: 48px; line-height: 48px;">
+      rowsHtml += `
+        <div style="display: flex; height: 40px; border-bottom: 1px solid #e5e7eb; box-sizing: border-box;">
+          <div style="width: 40px; text-align: center; color: #6b7280; font-size: 14px; flex-shrink: 0; box-sizing: border-box;">
             ${globalIndex}
-          </td>
-          <td style="padding: 0 8px; vertical-align: middle; color: #111827; font-size: 14px; height: 48px; line-height: 48px;">
+          </div>
+          <div style="flex: 1; color: #111827; font-size: 14px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box;">
             ${truncatedTitle}
-          </td>
-          <td style="padding: 0 8px; text-align: center; vertical-align: middle; width: 130px; height: 48px; line-height: 48px;">
-            <span style="display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; ${badgeStyle}">
-              ${dataSource}
-            </span>
-          </td>
-          <td style="padding: 0 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 60px; height: 48px; line-height: 48px;">
+          </div>
+          <div style="width: 130px; height: 40px; text-align: center; flex-shrink: 0; font-size: 13px; font-weight: 600; color: ${textColor}; white-space: nowrap; box-sizing: border-box;">
+            ${dataSource}
+          </div>
+          <div style="width: 60px; text-align: center; color: #6b7280; font-size: 14px; flex-shrink: 0; box-sizing: border-box;">
             ${deadline}
-          </td>
-        </tr>
+          </div>
+        </div>
       `;
     });
   });
@@ -125,19 +128,16 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
       </div>
     </div>
 
-    <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-      <thead>
-        <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb; height: 44px;">
-          <th style="padding: 0 8px; text-align: center; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; width: 40px; height: 44px; line-height: 44px;">No</th>
-          <th style="padding: 0 8px; text-align: left; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; height: 44px; line-height: 44px;">프로그램명</th>
-          <th style="padding: 0 8px; text-align: center; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; width: 130px; height: 44px; line-height: 44px;">지원기관</th>
-          <th style="padding: 0 8px; text-align: center; vertical-align: middle; font-weight: 600; color: #374151; font-size: 13px; width: 60px; height: 44px; line-height: 44px;">마감</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${tableRowsHtml}
-      </tbody>
-    </table>
+    <!-- 헤더 -->
+    <div style="display: flex; height: 36px; background-color: #f9fafb; border-bottom: 2px solid #e5e7eb; box-sizing: border-box;">
+      <div style="width: 40px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; flex-shrink: 0; box-sizing: border-box;">No</div>
+      <div style="flex: 1; text-align: center; font-weight: 600; color: #374151; font-size: 13px; box-sizing: border-box;">프로그램명</div>
+      <div style="width: 130px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; flex-shrink: 0; box-sizing: border-box;">지원기관</div>
+      <div style="width: 60px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; flex-shrink: 0; box-sizing: border-box;">마감</div>
+    </div>
+
+    <!-- 데이터 행 -->
+    ${rowsHtml}
 
     <div style="padding: 16px 24px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
       <span style="color: #0052CC; font-weight: 600; font-size: 14px;">Ownership AI</span>
