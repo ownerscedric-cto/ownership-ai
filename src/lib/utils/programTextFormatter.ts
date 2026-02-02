@@ -20,6 +20,7 @@ type ProgramInfo = {
   deadline: Date | string | null;
   category: string | null;
   sourceUrl: string | null;
+  registeredAt: Date | string | null;
 };
 
 /**
@@ -34,6 +35,7 @@ function extractProgramInfo(item: WatchlistProgram | Program): ProgramInfo {
       deadline: item.program.deadline,
       category: item.program.category,
       sourceUrl: item.program.sourceUrl,
+      registeredAt: item.program.registeredAt,
     };
   }
   // 일반 Program인 경우
@@ -44,7 +46,34 @@ function extractProgramInfo(item: WatchlistProgram | Program): ProgramInfo {
     deadline: program.deadline,
     category: program.category,
     sourceUrl: program.sourceUrl,
+    registeredAt: program.registeredAt,
   };
+}
+
+/**
+ * 등록일 기준으로 프로그램 그룹핑
+ */
+function groupByRegisteredDate(
+  programs: (WatchlistProgram | Program)[]
+): Map<string, (WatchlistProgram | Program)[]> {
+  const groups = new Map<string, (WatchlistProgram | Program)[]>();
+
+  programs.forEach(item => {
+    const info = extractProgramInfo(item);
+    const dateKey = info.registeredAt
+      ? format(new Date(info.registeredAt), 'yyyy년 MM월 dd일', { locale: ko })
+      : '등록일 미정';
+
+    if (!groups.has(dateKey)) {
+      groups.set(dateKey, []);
+    }
+    groups.get(dateKey)!.push(item);
+  });
+
+  // 날짜 내림차순 정렬 (최신순)
+  const sortedGroups = new Map([...groups.entries()].sort((a, b) => b[0].localeCompare(a[0])));
+
+  return sortedGroups;
 }
 
 /**
@@ -73,39 +102,57 @@ export function formatProgramsToText(
     }
   }
 
-  // 프로그램 목록
-  programs.forEach((item, index) => {
-    const program = extractProgramInfo(item);
+  // 등록일별로 그룹화
+  const groupedPrograms = groupByRegisteredDate(programs);
+  const hasMultipleDates = groupedPrograms.size > 1;
 
-    // 번호. 제목
-    lines.push(`${index + 1}. ${decodeHtmlEntities(program.title)}`);
+  let globalIndex = 0;
 
-    // 지원기관 (dataSource)
-    const dataSource = normalizeDataSource(program.dataSource);
-    lines.push(`   - 지원기관: ${dataSource}`);
-
-    // 신청기한
-    if (program.deadline) {
-      const deadlineText = format(new Date(program.deadline), 'yyyy년 MM월 dd일', {
-        locale: ko,
-      });
-      lines.push(`   - 신청기한: ${deadlineText}`);
-    }
-
-    // 카테고리
-    if (program.category) {
-      lines.push(`   - 분야: ${program.category}`);
-    }
-
-    // 상세보기 링크 (원본 공공데이터 URL)
-    if (program.sourceUrl) {
-      lines.push(`   - 상세보기: ${program.sourceUrl}`);
-    }
-
-    // 프로그램 간 구분선
-    if (index < programs.length - 1) {
+  // 그룹별로 프로그램 출력
+  groupedPrograms.forEach((groupItems, dateKey) => {
+    // 여러 날짜가 있을 때만 날짜 헤더 표시
+    if (hasMultipleDates) {
+      if (globalIndex > 0) {
+        lines.push(''); // 그룹 간 빈 줄
+      }
+      lines.push(`━━━ ${dateKey} 등록 ━━━`);
       lines.push('');
     }
+
+    groupItems.forEach((item, indexInGroup) => {
+      globalIndex++;
+      const program = extractProgramInfo(item);
+
+      // 번호. 제목
+      lines.push(`${globalIndex}. ${decodeHtmlEntities(program.title)}`);
+
+      // 지원기관 (dataSource)
+      const dataSource = normalizeDataSource(program.dataSource);
+      lines.push(`   - 지원기관: ${dataSource}`);
+
+      // 신청기한
+      if (program.deadline) {
+        const deadlineText = format(new Date(program.deadline), 'yyyy년 MM월 dd일', {
+          locale: ko,
+        });
+        lines.push(`   - 신청기한: ${deadlineText}`);
+      }
+
+      // 카테고리 (HTML 엔티티 디코딩 적용)
+      if (program.category) {
+        lines.push(`   - 분야: ${decodeHtmlEntities(program.category)}`);
+      }
+
+      // 상세보기 링크 (원본 공공데이터 URL)
+      if (program.sourceUrl) {
+        lines.push(`   - 상세보기: ${program.sourceUrl}`);
+      }
+
+      // 프로그램 간 구분선 (같은 그룹 내)
+      if (indexInGroup < groupItems.length - 1) {
+        lines.push('');
+      }
+    });
   });
 
   // 푸터
