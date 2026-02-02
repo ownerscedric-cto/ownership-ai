@@ -14,7 +14,7 @@ import { decodeHtmlEntities } from './html';
  */
 function normalizeDataSource(dataSource: string): string {
   if (dataSource === 'KOCCA-PIMS' || dataSource === 'KOCCA-Finance') {
-    return '콘진원';
+    return '한국콘텐츠진흥원';
   }
   return dataSource;
 }
@@ -86,13 +86,13 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
 
       tableRowsHtml += `
         <tr style="border-bottom: 1px solid #e5e7eb;">
-          <td style="padding: 12px 8px; text-align: center; color: #6b7280; font-size: 14px; width: 40px;">
+          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 40px;">
             ${globalIndex}
           </td>
-          <td style="padding: 12px 8px; color: #111827; font-size: 14px;">
+          <td style="padding: 12px 8px; vertical-align: middle; color: #111827; font-size: 14px;">
             ${truncatedTitle}
           </td>
-          <td style="padding: 12px 8px; text-align: center; width: 110px;">
+          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; width: 130px;">
             <span style="
               display: inline-block;
               padding: 4px 10px;
@@ -102,12 +102,12 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
               white-space: nowrap;
               ${dataSource === 'K-Startup' ? 'background-color: #dcfce7; color: #166534;' : ''}
               ${dataSource === '기업마당' ? 'background-color: #dbeafe; color: #1e40af;' : ''}
-              ${dataSource === '콘진원' ? 'background-color: #f3e8ff; color: #6b21a8;' : ''}
+              ${dataSource === '한국콘텐츠진흥원' ? 'background-color: #f3e8ff; color: #6b21a8;' : ''}
             ">
               ${dataSource}
             </span>
           </td>
-          <td style="padding: 12px 8px; text-align: center; color: #6b7280; font-size: 14px; width: 60px;">
+          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; color: #6b7280; font-size: 14px; width: 60px;">
             ${deadline}
           </td>
         </tr>
@@ -130,7 +130,7 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
         <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
           <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 40px;">No</th>
           <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; font-size: 13px;">프로그램명</th>
-          <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 110px;">지원기관</th>
+          <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 130px;">지원기관</th>
           <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 60px;">마감</th>
         </tr>
       </thead>
