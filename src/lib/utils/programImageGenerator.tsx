@@ -92,14 +92,17 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
           <td style="padding: 12px 8px; vertical-align: middle; color: #111827; font-size: 14px;">
             ${truncatedTitle}
           </td>
-          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; width: 130px;">
+          <td style="padding: 12px 8px; text-align: center; vertical-align: middle; width: 130px; height: 48px;">
             <span style="
-              display: inline-block;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
               padding: 4px 10px;
               border-radius: 4px;
               font-size: 12px;
               font-weight: 500;
               white-space: nowrap;
+              line-height: 1.4;
               ${dataSource === 'K-Startup' ? 'background-color: #dcfce7; color: #166534;' : ''}
               ${dataSource === '기업마당' ? 'background-color: #dbeafe; color: #1e40af;' : ''}
               ${dataSource === '한국콘텐츠진흥원' ? 'background-color: #f3e8ff; color: #6b21a8;' : ''}
