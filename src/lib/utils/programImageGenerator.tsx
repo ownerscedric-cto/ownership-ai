@@ -49,7 +49,7 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.top = '0';
-  container.style.width = '800px';
+  container.style.width = '900px';
   container.style.backgroundColor = '#ffffff';
   container.style.fontFamily =
     'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
@@ -92,13 +92,14 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
           <td style="padding: 12px 8px; color: #111827; font-size: 14px;">
             ${truncatedTitle}
           </td>
-          <td style="padding: 12px 8px; text-align: center; width: 80px;">
+          <td style="padding: 12px 8px; text-align: center; width: 110px;">
             <span style="
               display: inline-block;
-              padding: 4px 8px;
+              padding: 4px 10px;
               border-radius: 4px;
               font-size: 12px;
               font-weight: 500;
+              white-space: nowrap;
               ${dataSource === 'K-Startup' ? 'background-color: #dcfce7; color: #166534;' : ''}
               ${dataSource === '기업마당' ? 'background-color: #dbeafe; color: #1e40af;' : ''}
               ${dataSource === '콘진원' ? 'background-color: #f3e8ff; color: #6b21a8;' : ''}
@@ -129,7 +130,7 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
         <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
           <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 40px;">No</th>
           <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; font-size: 13px;">프로그램명</th>
-          <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 80px;">지원기관</th>
+          <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 110px;">지원기관</th>
           <th style="padding: 12px 8px; text-align: center; font-weight: 600; color: #374151; font-size: 13px; width: 60px;">마감</th>
         </tr>
       </thead>
