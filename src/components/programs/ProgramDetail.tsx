@@ -51,6 +51,8 @@ const dataSourceColors: Record<string, string> = {
   기업마당: 'bg-blue-100 text-blue-800',
   'K-Startup': 'bg-green-100 text-green-800',
   한국콘텐츠진흥원: 'bg-purple-100 text-purple-800',
+  서울테크노파크: 'bg-amber-100 text-amber-800',
+  경기테크노파크: 'bg-pink-100 text-pink-800',
 };
 
 /**
@@ -129,35 +131,76 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
     return dataSource;
   };
 
-  // 첨부파일 URL 배열 추출 함수
-  const parseAttachmentUrls = (): string[] => {
-    // rawData에서 flpthNm 추출 (기업마당만 해당)
-    if (program.dataSource !== '기업마당') {
-      return program.attachmentUrl ? [program.attachmentUrl] : [];
+  // 첨부파일 정보 추출 함수 (파일명 + URL)
+  const parseAttachments = (): { fileName: string; downloadUrl: string }[] => {
+    // 기업마당: rawData.flpthNm에서 URL 추출
+    if (program.dataSource === '기업마당') {
+      const rawData = program.rawData as Record<string, unknown>;
+      const flpthNm = rawData.flpthNm;
+
+      if (!flpthNm || typeof flpthNm !== 'string') {
+        return [];
+      }
+
+      return flpthNm
+        .split('@')
+        .map(url => url.trim())
+        .filter(url => url.length > 0)
+        .map((url, index) => {
+          const fullUrl =
+            url.startsWith('http://') || url.startsWith('https://')
+              ? url
+              : `https://www.bizinfo.go.kr${url}`;
+          return { fileName: `첨부파일 ${index + 1}`, downloadUrl: fullUrl };
+        });
     }
 
-    const rawData = program.rawData as Record<string, unknown>;
-    const flpthNm = rawData.flpthNm;
-
-    if (!flpthNm || typeof flpthNm !== 'string') {
-      return [];
+    // 서울테크노파크/경기테크노파크: rawData.attachments에서 추출
+    if (program.rawData) {
+      const rawData = program.rawData as Record<string, unknown>;
+      const attachments = rawData.attachments;
+      if (Array.isArray(attachments) && attachments.length > 0) {
+        return attachments
+          .filter(
+            (a): a is { fileName: string; downloadUrl: string } =>
+              typeof a === 'object' &&
+              a !== null &&
+              'fileName' in a &&
+              typeof (a as Record<string, unknown>).fileName === 'string'
+          )
+          .filter(a => a.downloadUrl); // downloadUrl이 있는 것만
+      }
     }
 
-    // @ 구분자로 여러 파일 분리
-    return flpthNm
-      .split('@')
-      .map(url => url.trim())
-      .filter(url => url.length > 0)
-      .map(url => {
-        // 프로토콜이 없으면 base URL 추가
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-          return url;
-        }
-        return `https://www.bizinfo.go.kr${url}`;
-      });
+    // 기타 데이터 소스: attachmentUrl 필드
+    if (program.attachmentUrl) {
+      return [{ fileName: '첨부파일', downloadUrl: program.attachmentUrl }];
+    }
+
+    return [];
   };
 
-  const attachmentUrls = parseAttachmentUrls();
+  const attachments = parseAttachments();
+  const attachmentUrls = attachments.map(a => a.downloadUrl);
+
+  // 서울테크노파크 본문 이미지 추출 (프록시 URL로 변환)
+  const contentImages: string[] = (() => {
+    if (!program.rawData) return [];
+    const rawData = program.rawData as Record<string, unknown>;
+    const images = rawData.contentImages;
+    if (Array.isArray(images)) {
+      return images
+        .filter((url): url is string => typeof url === 'string' && url.length > 0)
+        .map(url => {
+          // seoultp.or.kr 이미지는 Referer 체크 때문에 프록시 필요
+          if (url.includes('seoultp.or.kr')) {
+            return `/api/proxy/image?url=${encodeURIComponent(url)}`;
+          }
+          return url;
+        });
+    }
+    return [];
+  })();
 
   // 전체 첨부파일 다운로드 핸들러
   const handleDownloadAll = () => {
@@ -264,22 +307,22 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
                     <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuContent align="start" className="w-80 max-w-[90vw]">
                   <DropdownMenuItem onClick={handleDownloadAll} className="cursor-pointer">
                     <Download className="w-4 h-4 mr-2" />
                     <span className="font-semibold">전체 다운로드 ({attachmentUrls.length}개)</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  {attachmentUrls.map((url, index) => (
+                  {attachments.map((file, index) => (
                     <DropdownMenuItem key={index} asChild>
                       <a
-                        href={url}
+                        href={file.downloadUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="cursor-pointer flex items-center"
                       >
-                        <Download className="w-4 h-4 mr-2" />
-                        <span className="text-sm">첨부파일 {index + 1}</span>
+                        <Download className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span className="text-sm truncate">{file.fileName}</span>
                       </a>
                     </DropdownMenuItem>
                   ))}
@@ -300,6 +343,29 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
                 }`}
                 dangerouslySetInnerHTML={{ __html: formatDescription(program.description) }}
               />
+            </div>
+          )}
+
+          {/* 본문 이미지 (서울테크노파크 등 상세 페이지 이미지) */}
+          {contentImages.length > 0 && (
+            <div className="space-y-4">
+              {contentImages.map((imageUrl, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl}
+                    alt={`공고 상세 이미지 ${index + 1}`}
+                    className="w-full h-auto"
+                    loading="lazy"
+                    onError={e => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           )}
 

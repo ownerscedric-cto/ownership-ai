@@ -29,7 +29,14 @@ interface ProgramFiltersProps {
 /**
  * 데이터 소스 목록 (확장 가능)
  */
-const dataSources = ['전체', '기업마당', 'K-Startup', '한국콘텐츠진흥원'] as const;
+const dataSources = [
+  '전체',
+  '기업마당',
+  'K-Startup',
+  '한국콘텐츠진흥원',
+  '서울테크노파크',
+  '경기테크노파크',
+] as const;
 
 /**
  * 프로그램 필터 컴포넌트

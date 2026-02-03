@@ -18,6 +18,6 @@ export const config = {
      * - api/cron/* (Vercel Cron Job endpoints - protected by CRON_SECRET)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/programs|api/matching|api/education|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/programs|api/matching|api/education|api/cron/|api/proxy/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

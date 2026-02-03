@@ -14,7 +14,13 @@ import { createErrorResponse, logError } from '@/lib/utils/error-handler';
  * 정부지원사업 데이터를 수동으로 동기화
  *
  * 기능:
- * - 4개 API (기업마당, K-Startup, KOCCA-PIMS, KOCCA-Finance)에서 데이터 수집
+ * - 6개 데이터 소스에서 데이터 수집:
+ *   - 기업마당 (공공데이터포털 API)
+ *   - K-Startup (공공데이터포털 API)
+ *   - KOCCA-PIMS (한국콘텐츠진흥원 공모전)
+ *   - KOCCA-Finance (한국콘텐츠진흥원 투자/융자)
+ *   - 서울테크노파크 (웹 크롤링)
+ *   - 경기테크노파크 (웹 크롤링)
  * - 병렬 동기화 (Promise.allSettled)
  * - 부분 실패 허용
  * - 동기화 결과 및 통계 반환

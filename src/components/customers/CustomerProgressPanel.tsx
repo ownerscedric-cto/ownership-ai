@@ -107,6 +107,8 @@ const dataSourceColors: Record<string, string> = {
   기업마당: 'bg-blue-100 text-blue-800',
   'K-Startup': 'bg-green-100 text-green-800',
   한국콘텐츠진흥원: 'bg-purple-100 text-purple-800',
+  서울테크노파크: 'bg-amber-100 text-amber-800',
+  경기테크노파크: 'bg-pink-100 text-pink-800',
 };
 
 function getDataSourceColor(dataSource: string): string {

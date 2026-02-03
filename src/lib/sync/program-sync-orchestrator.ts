@@ -10,6 +10,8 @@ import { BizinfoAPIClient } from '../apis/bizinfo-api-client';
 import { KStartupAPIClient } from '../apis/kstartup-api-client';
 import { KoccaPIMSAPIClient } from '../apis/kocca-pims-api-client';
 import { KoccaFinanceAPIClient } from '../apis/kocca-finance-api-client';
+import { SeoulTPAPIClient } from '../apis/seoul-tp-api-client';
+import { GyeonggiTPAPIClient } from '../apis/gyeonggi-tp-api-client';
 
 /**
  * 동기화 결과 타입
@@ -53,6 +55,8 @@ export class ProgramSyncOrchestrator {
       new KStartupAPIClient(),
       new KoccaPIMSAPIClient(),
       new KoccaFinanceAPIClient(),
+      new SeoulTPAPIClient(),
+      new GyeonggiTPAPIClient(),
     ];
   }
 
@@ -434,6 +438,24 @@ export class ProgramSyncOrchestrator {
       if (rawContent) {
         description = this.decodeHtmlEntities(rawContent);
       }
+    } else if (dataSource === '서울테크노파크' || dataSource === '경기테크노파크') {
+      // 테크노파크의 경우 사업유형, 주관기관 정보를 description에 포함
+      const sections: string[] = [];
+
+      if (raw.businessType && typeof raw.businessType === 'string') {
+        sections.push(`사업유형: ${raw.businessType}`);
+      }
+      if (raw.hostOrganization && typeof raw.hostOrganization === 'string') {
+        sections.push(`주관기관: ${raw.hostOrganization}`);
+      }
+      if (raw.applicationPeriod && typeof raw.applicationPeriod === 'string') {
+        sections.push(`신청기간: ${raw.applicationPeriod}`);
+      }
+      if (raw.author && typeof raw.author === 'string') {
+        sections.push(`작성자: ${raw.author}`);
+      }
+
+      description = sections.length > 0 ? sections.join('\n') : null;
     } else {
       // 기업마당, KOCCA-PIMS 등 다른 API
       description =
@@ -447,6 +469,7 @@ export class ProgramSyncOrchestrator {
       (raw.pldirSportRealmLclasCodeNm as string) || // 기업마당
       (raw.supt_biz_clsfc as string) || // K-Startup
       (raw.cate as string) || // KOCCA-PIMS
+      (raw.businessType as string) || // 테크노파크 (사업유형)
       (raw.category as string) ||
       null;
     const targetAudience = client.parseTargetAudience(raw);

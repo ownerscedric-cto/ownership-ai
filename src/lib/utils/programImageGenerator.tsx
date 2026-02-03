@@ -30,6 +30,10 @@ function getTextColors(dataSource: string): { bg: string; text: string } {
       return { bg: '#dbeafe', text: '#1e40af' };
     case '한국콘텐츠진흥원':
       return { bg: '#f3e8ff', text: '#6b21a8' };
+    case '서울테크노파크':
+      return { bg: '#fef3c7', text: '#b45309' }; // amber
+    case '경기테크노파크':
+      return { bg: '#fce7f3', text: '#be185d' }; // pink
     default:
       return { bg: '#f3f4f6', text: '#374151' };
   }

@@ -76,6 +76,22 @@ export function formatDescription(description: string): string {
   // 0. \n 문자열을 실제 줄바꿈으로 변환 (DB에 문자열로 저장된 경우)
   formatted = formatted.replace(/\\n/g, '\n');
 
+  // 0.5. 한국어 번호/기호 패턴 앞에 줄바꿈 삽입 (서울테크노파크 등 구조화되지 않은 텍스트 대응)
+  // 숫자 번호: "1. ", "2. " ... (앞에 줄바꿈/숫자/마침표가 없고, 뒤에 공백이 오는 리스트 마커만)
+  formatted = formatted.replace(/(?<!\n)(?<![.\d])(\d{1,2}\.\s)/g, '\n$1');
+  // 원문자: ①②③④⑤... (앞에 줄바꿈이 없는 경우만)
+  formatted = formatted.replace(/(?<!\n)([①②③④⑤⑥⑦⑧⑨⑩])/g, '\n$1');
+  // 한글 기호: ㅇ (공백 뒤에 오는 항목 마커, 단어 중간의 ㅇ은 제외)
+  formatted = formatted.replace(/(?<!\n)(?<=\s)(ㅇ\s)/g, '\n$1');
+  // 삼각/화살표 기호: ▶, ▷, ■, □, ●, ○, ◆, ◇, ★, ☆
+  formatted = formatted.replace(/(?<!\n)([▶▷■□●○◆◇★☆]\s)/g, '\n$1');
+  // 하이픈 리스트: " - " (2개 이상 공백 뒤 하이픈 — 들여쓰기 리스트)
+  formatted = formatted.replace(/(?<!\n)\s{2,}(-\s)/g, '\n  $1');
+  // 중복 줄바꿈 제거 (위 치환으로 생긴 불필요한 빈 줄)
+  formatted = formatted.replace(/\n{3,}/g, '\n\n');
+  // 첫 줄 앞에 붙은 불필요한 줄바꿈 제거
+  formatted = formatted.replace(/^\n+/, '');
+
   // 1. 섹션 제목 강조 및 뒤에 줄바꿈 추가
   formatted = formatted.replace(
     /(^|\n)([가-힣\s]{2,30}):/gm,
