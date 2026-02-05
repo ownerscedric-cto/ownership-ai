@@ -116,7 +116,7 @@ export default function KnowHowPage() {
 
         {/* 로딩 상태 */}
         {isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="animate-pulse bg-gray-200 rounded-lg p-6 space-y-4">
                 <div className="h-4 bg-gray-300 rounded w-1/3" />
@@ -147,7 +147,7 @@ export default function KnowHowPage() {
 
         {/* 노하우 목록 */}
         {!isLoading && !error && data?.data && data.data.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {data.data.map(knowhow => (
               <KnowHowCard key={knowhow.id} knowhow={knowhow} />
             ))}

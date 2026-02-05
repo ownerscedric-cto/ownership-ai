@@ -35,7 +35,7 @@ export const FinalCTASection: React.FC = () => {
             viewport={{ once: true }}
             className="mb-12"
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+            <h2 className="text-3xl lg:text-5xl font-bold mb-6">
               <span className="text-[var(--text-highlight)]">지금 시작하세요</span>
               <br />
               <span className="text-[var(--text-highlight)]">미래를 먼저 경험하는 기회</span>
@@ -51,7 +51,7 @@ export const FinalCTASection: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-12"
           >
             {benefits.map((benefit, index) => (
               <div

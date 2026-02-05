@@ -55,7 +55,7 @@ export const FAQSection: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-4"
+            className="text-3xl lg:text-4xl font-bold text-[var(--text-primary)] mb-4"
           >
             자주 묻는 질문
           </motion.h2>

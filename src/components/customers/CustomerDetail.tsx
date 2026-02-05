@@ -45,7 +45,7 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
 
         <Separator className="my-6" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {customer.industry && (
             <div className="flex items-start gap-3">
               <Building2 className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -154,7 +154,7 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
       {/* 등록 정보 */}
       <Card className="p-6 bg-gray-50">
         <h3 className="text-sm font-semibold text-gray-500 mb-3">등록 정보</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
           <div className="flex items-start gap-2">
             <Calendar className="h-4 w-4 text-gray-400 mt-0.5" />
             <div>

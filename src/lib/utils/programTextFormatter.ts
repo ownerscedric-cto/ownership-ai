@@ -12,6 +12,19 @@ interface FormatOptions {
 }
 
 /**
+ * 템플릿 기반 포맷팅을 위한 인터페이스
+ */
+export interface CopyTemplateData {
+  headerTemplate: string | null;
+  itemTemplate: string;
+  footerTemplate: string | null;
+}
+
+export interface TemplateFormatOptions {
+  customerName?: string;
+}
+
+/**
  * 프로그램 정보 타입 (WatchlistProgram 또는 일반 Program)
  */
 type ProgramInfo = {
@@ -173,4 +186,96 @@ function normalizeDataSource(dataSource: string): string {
     return '한국콘텐츠진흥원';
   }
   return dataSource;
+}
+
+/**
+ * 템플릿 변수를 치환하는 함수 (헤더/푸터용)
+ */
+function applyHeaderFooterVariables(
+  template: string,
+  options: TemplateFormatOptions & { totalCount: number }
+): string {
+  let result = template;
+  result = result.replace(/\{\{customerName\}\}/g, options.customerName || '고객');
+  result = result.replace(/\{\{totalCount\}\}/g, String(options.totalCount));
+  return result;
+}
+
+/**
+ * 템플릿 변수를 치환하는 함수 (아이템용)
+ */
+function applyItemVariables(template: string, program: ProgramInfo, index: number): string {
+  let result = template;
+
+  // 기본 변수
+  result = result.replace(/\{\{index\}\}/g, String(index));
+  result = result.replace(/\{\{title\}\}/g, decodeHtmlEntities(program.title));
+  result = result.replace(/\{\{dataSource\}\}/g, normalizeDataSource(program.dataSource));
+
+  // 마감일
+  if (program.deadline) {
+    const deadlineText = format(new Date(program.deadline), 'yyyy년 MM월 dd일', { locale: ko });
+    result = result.replace(/\{\{deadline\}\}/g, deadlineText);
+  } else {
+    result = result.replace(/\{\{deadline\}\}/g, '미정');
+  }
+
+  // 카테고리
+  result = result.replace(
+    /\{\{category\}\}/g,
+    program.category ? decodeHtmlEntities(program.category) : '-'
+  );
+
+  // 상세보기 URL
+  result = result.replace(/\{\{sourceUrl\}\}/g, program.sourceUrl || '');
+
+  // 등록일
+  if (program.registeredAt) {
+    const registeredAtText = format(new Date(program.registeredAt), 'yyyy년 MM월 dd일', {
+      locale: ko,
+    });
+    result = result.replace(/\{\{registeredAt\}\}/g, registeredAtText);
+  } else {
+    result = result.replace(/\{\{registeredAt\}\}/g, '-');
+  }
+
+  return result;
+}
+
+/**
+ * 템플릿 기반으로 프로그램 목록을 텍스트로 변환
+ *
+ * @param programs - 프로그램 배열
+ * @param template - 템플릿 데이터 (headerTemplate, itemTemplate, footerTemplate)
+ * @param options - 포맷 옵션
+ * @returns 포맷된 텍스트
+ */
+export function formatProgramsWithTemplate(
+  programs: (WatchlistProgram | Program)[],
+  template: CopyTemplateData,
+  options: TemplateFormatOptions = {}
+): string {
+  const parts: string[] = [];
+  const totalCount = programs.length;
+
+  // 헤더
+  if (template.headerTemplate) {
+    parts.push(applyHeaderFooterVariables(template.headerTemplate, { ...options, totalCount }));
+    parts.push('');
+  }
+
+  // 아이템
+  programs.forEach((item, idx) => {
+    const program = extractProgramInfo(item);
+    const formattedItem = applyItemVariables(template.itemTemplate, program, idx + 1);
+    parts.push(formattedItem);
+    parts.push('');
+  });
+
+  // 푸터
+  if (template.footerTemplate) {
+    parts.push(applyHeaderFooterVariables(template.footerTemplate, { ...options, totalCount }));
+  }
+
+  return parts.join('\n').trim();
 }

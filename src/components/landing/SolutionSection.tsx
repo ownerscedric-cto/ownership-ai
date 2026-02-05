@@ -34,7 +34,7 @@ export const SolutionSection: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-4"
+            className="text-3xl lg:text-4xl font-bold text-[var(--text-primary)] mb-4"
           >
             이렇게 간단하게 해결됩니다
           </motion.h2>
@@ -50,9 +50,9 @@ export const SolutionSection: React.FC = () => {
         </div>
 
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
             {/* 연결선 (데스크톱에서만 표시) */}
-            <div className="hidden md:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--primary-blue)] via-[var(--primary-blue)] to-[var(--gradient-end)] opacity-20" />
+            <div className="hidden lg:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--primary-blue)] via-[var(--primary-blue)] to-[var(--gradient-end)] opacity-20" />
 
             {steps.map((step, index) => (
               <motion.div

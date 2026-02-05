@@ -42,7 +42,7 @@ export const FeaturesSection: React.FC = () => {
     <section className="py-20 bg-[var(--bg-gray-50)]">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[var(--text-primary)] mb-4">
             핵심 기능
           </h2>
           <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
@@ -50,7 +50,7 @@ export const FeaturesSection: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <FeatureCard key={feature.title} {...feature} index={index} />
           ))}

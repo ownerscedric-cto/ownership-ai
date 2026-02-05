@@ -283,7 +283,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
         </div>
 
         {/* 기본 정보 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="businessType"
@@ -419,7 +419,7 @@ export function CustomerForm({ customer, onSubmit, onCancel, isLoading }: Custom
         </div>
 
         {/* 연락처 정보 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="contactEmail"

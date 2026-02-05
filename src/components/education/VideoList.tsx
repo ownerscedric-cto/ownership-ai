@@ -18,7 +18,7 @@ export function VideoList({ videos, isLoading, error }: VideoListProps) {
   // 로딩 상태
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="animate-pulse bg-gray-200 rounded-lg overflow-hidden">
             <div className="aspect-video bg-gray-300" />
@@ -54,7 +54,7 @@ export function VideoList({ videos, isLoading, error }: VideoListProps) {
 
   // 비디오 목록 표시
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {videos.map(video => (
         <VideoCard key={video.id} video={video} />
       ))}

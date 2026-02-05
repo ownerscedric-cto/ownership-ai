@@ -35,7 +35,6 @@ import {
   AlertCircle,
   FileText,
   Copy,
-  CheckCheck,
   LayoutGrid,
   List,
   Check,
@@ -45,11 +44,11 @@ import {
 } from 'lucide-react';
 import { DeadlineBadge } from './DeadlineBadge';
 import { CustomerSelectDialog } from './CustomerSelectDialog';
+import { TemplateSelectDialog } from '@/components/common/TemplateSelectDialog';
 import { useAddToWatchlist } from '@/lib/hooks/useWatchlist';
 import { decodeHtmlEntities } from '@/lib/utils/html';
 import Link from 'next/link';
 import { formatDateShort } from '@/lib/utils/date';
-import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
 import { generateProgramImage } from '@/lib/utils/programImageGenerator';
 import { toast } from 'sonner';
 import type { Customer } from '@/lib/types/customer';
@@ -86,7 +85,7 @@ export function ProgramList({
 }: ProgramListProps) {
   const { data, isLoading, error } = useProgramsWithMetadata(filters);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isCopied, setIsCopied] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
 
   // 테이블 뷰 관심목록 등록용 상태 (다이얼로그 공유)
   const [watchlistProgramId, setWatchlistProgramId] = useState<string | null>(null);
@@ -189,39 +188,16 @@ export function ProgramList({
   };
 
   /**
-   * 선택된 프로그램 텍스트 복사
+   * 선택된 프로그램 텍스트 복사 (템플릿 선택 다이얼로그 열기)
    */
-  const handleCopySelected = async () => {
+  const handleOpenTemplateDialog = () => {
     if (!data?.data || selectedIds.size === 0) {
       toast.error('복사할 프로그램이 없습니다', {
         description: '프로그램을 선택해주세요.',
       });
       return;
     }
-
-    // 선택된 프로그램만 필터링
-    const selectedPrograms = data.data.filter(p => selectedIds.has(p.id));
-
-    try {
-      const text = formatProgramsToText(selectedPrograms, {
-        includeHeader: true,
-        includeFooter: true,
-      });
-
-      await navigator.clipboard.writeText(text);
-
-      setIsCopied(true);
-      toast.success('클립보드에 복사했습니다!', {
-        description: `${selectedPrograms.length}개의 프로그램을 복사했습니다.`,
-      });
-
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error('클립보드 복사 실패:', error);
-      toast.error('복사에 실패했습니다', {
-        description: '다시 시도해주세요.',
-      });
-    }
+    setIsTemplateDialogOpen(true);
   };
 
   /**
@@ -279,7 +255,7 @@ export function ProgramList({
     return (
       <div className="space-y-6">
         {/* Skeleton 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="space-y-4">
               <Skeleton className="h-48 w-full rounded-lg" />
@@ -427,20 +403,11 @@ export function ProgramList({
               <Button
                 variant="default"
                 size="sm"
-                onClick={handleCopySelected}
+                onClick={handleOpenTemplateDialog}
                 className="bg-[#0052CC] hover:bg-[#003d99] h-8 gap-1.5"
               >
-                {isCopied ? (
-                  <>
-                    <CheckCheck className="w-4 h-4" />
-                    복사됨!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    텍스트 복사
-                  </>
-                )}
+                <Copy className="w-4 h-4" />
+                텍스트 복사
               </Button>
               <Button
                 variant="outline"
@@ -514,7 +481,7 @@ export function ProgramList({
               </div>
 
               {/* 해당 날짜의 프로그램 그리드 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {datePrograms.map(program => (
                   <ProgramCard
                     key={program.id}
@@ -532,15 +499,15 @@ export function ProgramList({
       {/* 테이블 뷰 - 날짜별 그룹핑 */}
       {viewType === 'table' && (
         <div className="overflow-x-auto border rounded-lg">
-          <table className="w-full table-fixed">
+          <table className="w-full">
             <colgroup>
-              <col style={{ width: '40px' }} />
-              <col style={{ width: '50%' }} />
-              <col style={{ width: '80px' }} className="hidden md:table-column" />
-              <col style={{ width: '90px' }} className="hidden lg:table-column" />
-              <col style={{ width: '100px' }} />
-              <col style={{ width: '40px' }} />
-              <col style={{ width: '50px' }} />
+              <col className="w-10" />
+              <col className="w-auto" />
+              <col className="w-20 hidden lg:table-column" />
+              <col className="w-24 hidden lg:table-column" />
+              <col className="w-24" />
+              <col className="w-10 hidden md:table-column" />
+              <col className="w-12 hidden md:table-column" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -560,7 +527,7 @@ export function ProgramList({
                 <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700">
                   프로그램명
                 </th>
-                <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700 hidden md:table-cell">
+                <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700 hidden lg:table-cell">
                   출처
                 </th>
                 <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700 hidden lg:table-cell">
@@ -569,8 +536,12 @@ export function ProgramList({
                 <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700">
                   마감일
                 </th>
-                <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700">관심</th>
-                <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700">링크</th>
+                <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700 hidden md:table-cell">
+                  관심
+                </th>
+                <th className="px-2 py-3 text-center text-sm font-semibold text-gray-700 hidden md:table-cell">
+                  링크
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -645,7 +616,7 @@ export function ProgramList({
                               {decodeHtmlEntities(program.title)}
                             </Link>
                           </td>
-                          <td className="px-2 py-2 hidden md:table-cell text-center">
+                          <td className="px-2 py-2 hidden lg:table-cell text-center">
                             <Badge
                               className={`text-xs whitespace-nowrap ${
                                 program.dataSource === '기업마당'
@@ -677,7 +648,7 @@ export function ProgramList({
                               />
                             </div>
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-2 py-2 text-center hidden md:table-cell">
                             <button
                               type="button"
                               onClick={() => setWatchlistProgramId(program.id)}
@@ -687,7 +658,7 @@ export function ProgramList({
                               <Star className="w-4 h-4" />
                             </button>
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-2 py-2 text-center hidden md:table-cell">
                             {program.sourceUrl && (
                               <a
                                 href={program.sourceUrl}
@@ -764,6 +735,16 @@ export function ProgramList({
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* 템플릿 선택 다이얼로그 - 모든 템플릿 표시 (권한에 따라 필터링) */}
+      <TemplateSelectDialog
+        open={isTemplateDialogOpen}
+        onOpenChange={setIsTemplateDialogOpen}
+        programs={data?.data?.filter(p => selectedIds.has(p.id)) ?? []}
+        onCopySuccess={() => {
+          // 복사 성공 후 선택 초기화 (선택적)
+        }}
+      />
     </div>
   );
 }

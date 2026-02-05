@@ -135,5 +135,16 @@ export const queryKeys = {
     users: () => ['admin', 'users'] as const,
     roles: () => ['admin', 'roles'] as const,
     keywords: () => ['admin', 'keywords'] as const,
+    copyTemplates: {
+      all: ['admin', 'copyTemplates'] as const,
+      list: () => ['admin', 'copyTemplates', 'list'] as const,
+      detail: (id: string) => ['admin', 'copyTemplates', 'detail', id] as const,
+    },
+  },
+
+  // 복사 템플릿 (사용자용)
+  copyTemplates: {
+    all: ['copyTemplates'] as const,
+    list: () => ['copyTemplates', 'list'] as const,
   },
 } as const;

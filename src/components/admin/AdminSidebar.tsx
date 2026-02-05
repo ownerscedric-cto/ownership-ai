@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Home,
   Tags,
+  Copy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +76,11 @@ const menuItems: MenuItem[] = [
         label: '키워드 관리',
         href: '/admin/settings/keywords',
         icon: Tags,
+      },
+      {
+        label: '복사 템플릿',
+        href: '/admin/settings/copy-templates',
+        icon: Copy,
       },
     ],
   },

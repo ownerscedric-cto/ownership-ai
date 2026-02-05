@@ -183,7 +183,7 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
   const attachments = parseAttachments();
   const attachmentUrls = attachments.map(a => a.downloadUrl);
 
-  // 서울테크노파크 본문 이미지 추출 (프록시 URL로 변환)
+  // 테크노파크 본문 이미지 추출 (프록시 URL로 변환)
   const contentImages: string[] = (() => {
     if (!program.rawData) return [];
     const rawData = program.rawData as Record<string, unknown>;
@@ -192,8 +192,8 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
       return images
         .filter((url): url is string => typeof url === 'string' && url.length > 0)
         .map(url => {
-          // seoultp.or.kr 이미지는 Referer 체크 때문에 프록시 필요
-          if (url.includes('seoultp.or.kr')) {
+          // 테크노파크 이미지는 Referer 체크 때문에 프록시 필요
+          if (url.includes('seoultp.or.kr') || url.includes('pms.gtp.or.kr')) {
             return `/api/proxy/image?url=${encodeURIComponent(url)}`;
           }
           return url;
@@ -372,7 +372,7 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
           <Separator />
 
           {/* 주요 정보 그리드 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 마감일 */}
             {formattedDeadline && (
               <div className="space-y-2">

@@ -79,7 +79,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Users Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -157,7 +157,7 @@ export default async function AdminDashboardPage() {
           <CardDescription>자주 사용하는 관리 기능</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <a
               href="/admin/users"
               className="p-4 border border-gray-200 rounded-lg hover:border-[#0052CC] hover:bg-blue-50 transition-colors"

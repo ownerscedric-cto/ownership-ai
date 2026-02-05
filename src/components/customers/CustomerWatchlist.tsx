@@ -10,7 +10,6 @@ import {
   Trash2,
   ExternalLink,
   Copy,
-  CheckCheck,
   Play,
   Loader2,
   CheckCircle2,
@@ -20,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DeadlineBadge } from '@/components/programs/DeadlineBadge';
+import { TemplateSelectDialog } from '@/components/common/TemplateSelectDialog';
 import { toast } from 'sonner';
 import {
   useWatchlist,
@@ -29,7 +29,6 @@ import {
 import Link from 'next/link';
 import { formatDateDot } from '@/lib/utils/date';
 import { decodeHtmlEntities } from '@/lib/utils/html';
-import { formatProgramsToText } from '@/lib/utils/programTextFormatter';
 import { useState, useEffect, useMemo } from 'react';
 
 /**
@@ -72,7 +71,7 @@ interface CustomerWatchlistProps {
 export function CustomerWatchlist({ customerId, customerName }: CustomerWatchlistProps) {
   const { data: watchlist, isLoading, error } = useWatchlist(customerId);
   const removeFromWatchlist = useRemoveFromWatchlist();
-  const [isCopied, setIsCopied] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [addingProgramId, setAddingProgramId] = useState<string | null>(null);
   const [projectProgramIds, setProjectProgramIds] = useState<Set<string>>(new Set());
 
@@ -177,39 +176,14 @@ export function CustomerWatchlist({ customerId, customerName }: CustomerWatchlis
     }
   };
 
-  const handleCopyToClipboard = async () => {
+  const handleOpenTemplateDialog = () => {
     if (!watchlist || watchlist.items.length === 0) {
       toast.error('복사할 프로그램이 없습니다', {
         description: '관심 목록에 프로그램을 추가해주세요.',
       });
       return;
     }
-
-    try {
-      // 프로그램 목록을 텍스트로 변환
-      const text = formatProgramsToText(watchlist.items, {
-        customerName,
-        includeHeader: true,
-        includeFooter: true,
-      });
-
-      // 클립보드에 복사
-      await navigator.clipboard.writeText(text);
-
-      // 복사 성공 상태
-      setIsCopied(true);
-      toast.success('클립보드에 복사했습니다! 📋', {
-        description: `${watchlist.items.length}개의 프로그램을 복사했습니다.`,
-      });
-
-      // 2초 후 복사 아이콘 리셋
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error('클립보드 복사 실패:', error);
-      toast.error('복사에 실패했습니다', {
-        description: '다시 시도해주세요.',
-      });
-    }
+    setIsTemplateDialogOpen(true);
   };
 
   // 로딩 상태
@@ -264,23 +238,14 @@ export function CustomerWatchlist({ customerId, customerName }: CustomerWatchlis
           <Badge variant="secondary">{watchlist.total}개</Badge>
         </div>
         <Button
-          onClick={handleCopyToClipboard}
+          onClick={handleOpenTemplateDialog}
           variant="outline"
           size="sm"
           className="gap-2"
           disabled={watchlist.items.length === 0}
         >
-          {isCopied ? (
-            <>
-              <CheckCheck className="w-4 h-4 text-green-600" />
-              복사됨!
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" />
-              텍스트 복사
-            </>
-          )}
+          <Copy className="w-4 h-4" />
+          텍스트 복사
         </Button>
       </div>
 
@@ -330,6 +295,15 @@ export function CustomerWatchlist({ customerId, customerName }: CustomerWatchlis
           </div>
         </div>
       )}
+
+      {/* 템플릿 선택 다이얼로그 - 고객용 템플릿만 표시 */}
+      <TemplateSelectDialog
+        open={isTemplateDialogOpen}
+        onOpenChange={setIsTemplateDialogOpen}
+        programs={watchlist.items}
+        customerName={customerName}
+        usageType="customer"
+      />
     </div>
   );
 }

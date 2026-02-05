@@ -41,7 +41,7 @@ export const SocialProofSection: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-4"
+            className="text-3xl lg:text-4xl font-bold text-[var(--text-primary)] mb-4"
           >
             베타 테스터들의 이야기
           </motion.h2>
@@ -56,7 +56,7 @@ export const SocialProofSection: React.FC = () => {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {testimonials.map((testimonial, index) => (
             <motion.div
               key={testimonial.name}
@@ -110,12 +110,12 @@ export const SocialProofSection: React.FC = () => {
               <span className="text-2xl font-bold text-[var(--primary-blue)]">100+</span>
               <span className="text-sm">베타 테스터</span>
             </div>
-            <div className="hidden md:block w-px h-8 bg-[var(--border-gray)]" />
+            <div className="hidden lg:block w-px h-8 bg-[var(--border-gray)]" />
             <div className="flex items-center gap-2">
               <span className="text-2xl font-bold text-[var(--primary-blue)]">95%</span>
               <span className="text-sm">만족도</span>
             </div>
-            <div className="hidden md:block w-px h-8 bg-[var(--border-gray)]" />
+            <div className="hidden lg:block w-px h-8 bg-[var(--border-gray)]" />
             <div className="flex items-center gap-2">
               <span className="text-2xl font-bold text-[var(--primary-blue)]">5,000+</span>
               <span className="text-sm">매칭 성공</span>

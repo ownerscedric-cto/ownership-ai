@@ -57,6 +57,26 @@ const GYEONGGI_REGION_CODES: Record<string, string> = {
 };
 
 /**
+ * 상세 페이지 첨부파일 정보
+ */
+interface GyeonggiTPAttachment {
+  fileName: string;
+  downloadUrl: string;
+}
+
+/**
+ * 상세 페이지 크롤링 결과
+ */
+export interface GyeonggiTPDetailData {
+  fullTitle: string; // 전체 제목 (목록에서는 overflow 처리로 잘림)
+  contentImages: string[]; // 본문 이미지 URL 목록
+  attachments: GyeonggiTPAttachment[]; // 첨부파일 목록
+  textContent: string; // 본문 텍스트
+  applyUrl: string | null; // 신청하기 링크
+  metaInfo: Record<string, string>; // 메타 정보 (과제명, 담당부서 등)
+}
+
+/**
  * 경기테크노파크 프로그램 데이터 구조
  */
 interface GyeonggiTPProgramData {
@@ -202,8 +222,8 @@ export class GyeonggiTPAPIClient implements IProgramAPIClient {
         ? idMatch[1]
         : `gyeonggi-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-      // 상세 페이지 URL 생성
-      const sourceUrl = id ? `${this.baseUrl}/web/business/webBusinessView.do?idx=${id}` : '';
+      // 상세 페이지 URL (POST 방식이라 GET 직접 접근 불가, 목록 페이지로 안내)
+      const sourceUrl = this.listUrl;
 
       // 신청기간 파싱 (형식: "2026-02-02 09:00 ~ 2026-02-27 18:00")
       const { startDate, endDate } = this.parseApplicationPeriod(applicationPeriod);
@@ -312,6 +332,135 @@ export class GyeonggiTPAPIClient implements IProgramAPIClient {
     }
 
     return null;
+  }
+
+  /**
+   * 경기테크노파크 상세 페이지 크롤링
+   *
+   * POST 방식으로 상세 페이지를 요청하여 전체 제목, 본문 이미지, 텍스트 콘텐츠 추출
+   * (목록 페이지에서는 제목이 overflow 처리로 잘려서 상세 페이지에서 가져와야 함)
+   *
+   * @param bIdx - 사업공고 고유 ID (b_idx)
+   * @returns 상세 페이지 데이터
+   */
+  async fetchProgramDetail(bIdx: string): Promise<GyeonggiTPDetailData> {
+    const detailUrl = `${this.baseUrl}/web/business/webBusinessView.do`;
+
+    return withRetry(
+      async () => {
+        const formData = new URLSearchParams();
+        formData.append('b_idx', bIdx);
+
+        const response = await fetch(detailUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            Referer: this.listUrl,
+          },
+          body: formData.toString(),
+        });
+
+        if (!response.ok) {
+          throw new APIError(
+            ErrorCode.EXTERNAL_API_ERROR,
+            `[GyeonggiTP] Detail page HTTP error: ${response.status}`,
+            { statusCode: response.status, bIdx },
+            response.status
+          );
+        }
+
+        const html = await response.text();
+        return this.parseDetailHTML(html);
+      },
+      {
+        maxRetries: 2,
+        baseDelay: 500,
+        onRetry: (attempt, _delay, error) => {
+          console.warn(`[GyeonggiTP] Detail page retry ${attempt} for bIdx=${bIdx}`, {
+            error: error.message,
+          });
+        },
+      }
+    );
+  }
+
+  /**
+   * 상세 페이지 HTML 파싱
+   *
+   * 경기테크노파크 상세 페이지 구조:
+   * - 제목: .txtView h3
+   * - 메타 정보: .txtinfor dl dt/dd (과제명, 담당부서, 사업담당자, 사업유형, 접수기간, 지역)
+   * - 본문 콘텐츠: .txtcontent (이미지 + 텍스트)
+   * - 이미지: /cheditor/attach/ 경로의 이미지
+   * - 신청 링크: .btnBlue 또는 유사한 버튼 링크
+   */
+  private parseDetailHTML(html: string): GyeonggiTPDetailData {
+    const $ = cheerio.load(html);
+    const contentImages: string[] = [];
+    const attachments: GyeonggiTPAttachment[] = [];
+    const metaInfo: Record<string, string> = {};
+
+    // 1. 전체 제목 추출 (.txtView h3)
+    const fullTitle = $('.txtView h3').text().trim() || '';
+
+    // 2. 메타 정보 추출 (.txtinfor dl)
+    $('.txtinfor dl').each((_, dl) => {
+      const dt = $(dl).find('dt').text().trim();
+      const dd = $(dl).find('dd').text().trim();
+      if (dt && dd) {
+        metaInfo[dt] = dd;
+      }
+    });
+
+    // 3. 본문 이미지 추출
+    const contentArea = $('.txtcontent');
+    contentArea.find('img').each((_, img) => {
+      const src = $(img).attr('src') || '';
+      // /cheditor/attach/ 경로의 이미지만 수집 (사이트 공통 이미지 제외)
+      if (src.includes('/cheditor/attach/')) {
+        const fullUrl = src.startsWith('http') ? src : `${this.baseUrl}${src}`;
+        contentImages.push(fullUrl);
+      }
+    });
+
+    // 4. 본문 텍스트 추출 (이미지 태그 제거 후)
+    const textContent = contentArea
+      .clone()
+      .find('img')
+      .remove()
+      .end()
+      .text()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // 5. 첨부파일 추출 (있는 경우)
+    $('.fileDown a, .attachDown a, a[href*="download"]').each((_, link) => {
+      const fileName = $(link).text().trim();
+      const href = $(link).attr('href') || '';
+      if (fileName && href) {
+        const downloadUrl = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
+        attachments.push({ fileName, downloadUrl });
+      }
+    });
+
+    // 6. 신청하기 링크 추출
+    let applyUrl: string | null = null;
+    const applyLink = $('a.btnBlue, a.btn_apply, a[href*="ripc.org"]');
+    if (applyLink.length > 0) {
+      applyUrl = applyLink.attr('href') || null;
+    }
+
+    return {
+      fullTitle,
+      contentImages,
+      attachments,
+      textContent,
+      applyUrl,
+      metaInfo,
+    };
   }
 
   /**

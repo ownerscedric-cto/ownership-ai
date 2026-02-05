@@ -45,7 +45,7 @@ export function AppHeader({ user }: AppHeaderProps) {
               </h1>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden lg:flex items-center gap-6">
               <Link
                 href="/dashboard"
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
@@ -117,8 +117,8 @@ export function AppHeader({ user }: AppHeaderProps) {
           </div>
         </div>
 
-        {/* 모바일 네비게이션 (아이콘만 표시) */}
-        <nav className="md:hidden flex items-center justify-evenly mt-4 pt-4 border-t border-gray-200">
+        {/* 모바일/태블릿 네비게이션 (아이콘만 표시) */}
+        <nav className="lg:hidden flex items-center justify-evenly mt-4 pt-4 border-t border-gray-200">
           <Link
             href="/dashboard"
             className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors ${

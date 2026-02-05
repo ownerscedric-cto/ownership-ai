@@ -6,7 +6,7 @@ export const Footer: React.FC = () => {
   return (
     <footer className="bg-[var(--primary-dark)] text-white py-12">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div>
             <h3 className="text-xl font-bold mb-4 text-[var(--text-highlight)]">Ownership AI</h3>
             <p className="text-gray-300">컨설턴트를 위한 스마트한 고객 관리 플랫폼</p>

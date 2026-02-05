@@ -47,7 +47,7 @@ export default async function EducationPage() {
         </div>
 
         {/* 섹션 카드 Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* VOD 섹션 */}
           <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader>

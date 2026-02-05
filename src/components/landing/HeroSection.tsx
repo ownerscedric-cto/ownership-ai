@@ -26,13 +26,13 @@ export const HeroSection: React.FC = () => {
           transition={{ duration: 0.8 }}
           className="text-center"
         >
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+          <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold mb-6">
             <span className="text-[var(--text-highlight)]">컨설턴트를 위한</span>
             <br />
             <span className="text-white">스마트한 고객 관리</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl lg:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
             정부지원사업을 자동으로 매칭하고, 고객에게 딱 맞는 기회를 추천하세요
           </p>
 

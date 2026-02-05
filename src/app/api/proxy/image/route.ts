@@ -9,11 +9,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /** 허용된 이미지 호스트 목록 (보안: 임의 URL 프록시 방지) */
-const ALLOWED_HOSTS = ['www.seoultp.or.kr'];
+const ALLOWED_HOSTS = ['www.seoultp.or.kr', 'pms.gtp.or.kr'];
 
 /** 호스트별 Referer 매핑 */
 const REFERER_MAP: Record<string, string> = {
   'www.seoultp.or.kr': 'https://www.seoultp.or.kr/user/nd19746.do',
+  'pms.gtp.or.kr': 'https://pms.gtp.or.kr/web/business/webBusinessList.do',
 };
 
 export async function GET(request: NextRequest) {

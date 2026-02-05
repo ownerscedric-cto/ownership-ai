@@ -107,7 +107,7 @@ export default function MatchingPage({ params }: MatchingPageProps) {
             <CardDescription>매칭에 사용된 고객 정보입니다</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 text-sm">
               {customer.industry && (
                 <div>
                   <span className="text-gray-500">업종:</span>
