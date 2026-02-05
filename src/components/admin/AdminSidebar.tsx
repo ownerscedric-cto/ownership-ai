@@ -78,7 +78,7 @@ const menuItems: MenuItem[] = [
         icon: Tags,
       },
       {
-        label: '복사 템플릿',
+        label: '탬플릿 관리',
         href: '/admin/settings/copy-templates',
         icon: Copy,
       },
