@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // 비밀번호 재설정 URL 생성
-    // 프로덕션에서는 실제 도메인 사용
+    // Supabase는 /auth/callback으로 리다이렉트하여 토큰을 처리한 후 /auth/reset-password로 이동
     const origin =
       request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const redirectTo = `${origin}/auth/reset-password`;
+    const redirectTo = `${origin}/auth/callback`;
 
     // Supabase resetPasswordForEmail 호출
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
