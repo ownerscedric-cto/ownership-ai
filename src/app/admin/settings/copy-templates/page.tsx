@@ -444,7 +444,7 @@ export default function CopyTemplatesManagementPage() {
       </Card>
 
       {/* 템플릿 목록 */}
-      <div className="grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {templates?.map(template => (
           <Card key={template.id} className={!template.isActive ? 'opacity-60' : ''}>
             <CardHeader className="pb-2">

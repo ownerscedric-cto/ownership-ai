@@ -316,7 +316,7 @@ export default function TemplateVariablesManagementPage() {
             </div>
           </Card>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {customVariables.map(variable => (
               <Card key={variable.id} className={!variable.isActive ? 'opacity-60' : ''}>
                 <CardHeader className="py-3">
