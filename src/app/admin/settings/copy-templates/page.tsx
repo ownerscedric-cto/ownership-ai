@@ -447,50 +447,14 @@ export default function CopyTemplatesManagementPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {templates?.map(template => (
           <Card key={template.id} className={!template.isActive ? 'opacity-60' : ''}>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-3">
+              {/* 1. 제목 + 수정/삭제 버튼 */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{template.name}</CardTitle>
-                      {template.isDefault && (
-                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                          <Star className="w-3 h-3 mr-1" />
-                          기본
-                        </Badge>
-                      )}
-                      {!template.isActive && (
-                        <Badge variant="outline" className="text-gray-500">
-                          <EyeOff className="w-3 h-3 mr-1" />
-                          비활성
-                        </Badge>
-                      )}
-                      {template.usageType && (
-                        <Badge className={USAGE_TYPE_LABELS[template.usageType].color}>
-                          {USAGE_TYPE_LABELS[template.usageType].label}
-                        </Badge>
-                      )}
-                    </div>
-                    {template.description && (
-                      <CardDescription>{template.description}</CardDescription>
-                    )}
-                  </div>
-                </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => toggleExpand(template.id)}>
-                    {expandedTemplateId === template.id ? (
-                      <>
-                        <ChevronUp className="w-4 h-4 mr-1" />
-                        접기
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="w-4 h-4 mr-1" />
-                        미리보기
-                      </>
-                    )}
-                  </Button>
+                  <FileText className="w-5 h-5 text-gray-400" />
+                  <CardTitle className="text-lg">{template.name}</CardTitle>
+                </div>
+                <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" onClick={() => openEditDialog(template)}>
                     <Pencil className="w-4 h-4" />
                   </Button>
@@ -506,30 +470,57 @@ export default function CopyTemplatesManagementPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* 2. 뱃지들 */}
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {template.isDefault && (
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                    <Star className="w-3 h-3 mr-1" />
+                    기본
+                  </Badge>
+                )}
+                {!template.isActive && (
+                  <Badge variant="outline" className="text-gray-500">
+                    <EyeOff className="w-3 h-3 mr-1" />
+                    비활성
+                  </Badge>
+                )}
+                {template.usageType && (
+                  <Badge className={USAGE_TYPE_LABELS[template.usageType].color}>
+                    {USAGE_TYPE_LABELS[template.usageType].label}
+                  </Badge>
+                )}
+              </div>
+
+              {/* 3. 설명 */}
+              {template.description && (
+                <CardDescription className="mt-2">{template.description}</CardDescription>
+              )}
             </CardHeader>
-            {expandedTemplateId === template.id && (
-              <CardContent>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-500">미리보기</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(generatePreview(template, customVariables));
-                        toast.success('미리보기가 클립보드에 복사되었습니다');
-                      }}
-                    >
-                      <Copy className="w-4 h-4 mr-1" />
-                      복사
-                    </Button>
-                  </div>
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
-                    {generatePreview(template, customVariables)}
-                  </pre>
+
+            {/* 4. 미리보기 (항상 표시) */}
+            <CardContent className="pt-0">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-500">미리보기</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatePreview(template, customVariables));
+                      toast.success('미리보기가 클립보드에 복사되었습니다');
+                    }}
+                  >
+                    <Copy className="w-3 h-3 mr-1" />
+                    복사
+                  </Button>
                 </div>
-              </CardContent>
-            )}
+                <pre className="whitespace-pre-wrap text-xs text-gray-600 font-mono max-h-40 overflow-y-auto">
+                  {generatePreview(template, customVariables)}
+                </pre>
+              </div>
+            </CardContent>
           </Card>
         ))}
 
