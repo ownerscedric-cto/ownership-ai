@@ -444,7 +444,7 @@ export default function CopyTemplatesManagementPage() {
       </Card>
 
       {/* 템플릿 목록 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
         {templates?.map(template => (
           <Card key={template.id} className={!template.isActive ? 'opacity-60' : ''}>
             <CardHeader className="pb-3">
@@ -498,28 +498,44 @@ export default function CopyTemplatesManagementPage() {
               )}
             </CardHeader>
 
-            {/* 4. 미리보기 (항상 표시) */}
+            {/* 4. 미리보기 (토글) */}
             <CardContent className="pt-0">
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-gray-500">미리보기</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatePreview(template, customVariables));
-                      toast.success('미리보기가 클립보드에 복사되었습니다');
-                    }}
-                  >
-                    <Copy className="w-3 h-3 mr-1" />
-                    복사
-                  </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-between h-8 text-xs text-gray-500 hover:text-gray-700"
+                onClick={() =>
+                  setExpandedTemplateId(expandedTemplateId === template.id ? null : template.id)
+                }
+              >
+                <span>미리보기</span>
+                {expandedTemplateId === template.id ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </Button>
+              {expandedTemplateId === template.id && (
+                <div className="bg-gray-50 rounded-lg p-3 mt-2">
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatePreview(template, customVariables));
+                        toast.success('미리보기가 클립보드에 복사되었습니다');
+                      }}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      복사
+                    </Button>
+                  </div>
+                  <pre className="whitespace-pre-wrap text-xs text-gray-600 font-mono max-h-40 overflow-y-auto">
+                    {generatePreview(template, customVariables)}
+                  </pre>
                 </div>
-                <pre className="whitespace-pre-wrap text-xs text-gray-600 font-mono max-h-40 overflow-y-auto">
-                  {generatePreview(template, customVariables)}
-                </pre>
-              </div>
+              )}
             </CardContent>
           </Card>
         ))}
