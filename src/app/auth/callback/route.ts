@@ -40,7 +40,13 @@ export async function GET(request: Request) {
     if (error) {
       console.error('[Auth Callback] OTP verify error:', error.message);
     } else {
-      console.log('[Auth Callback] OTP verify successful');
+      console.log('[Auth Callback] OTP verify successful, type:', type);
+
+      // recovery 타입인 경우 비밀번호 재설정 페이지로 리다이렉트
+      if (type === 'recovery') {
+        return redirectToNext(request, origin, '/auth/reset-password');
+      }
+
       return redirectToNext(request, origin, next);
     }
   }

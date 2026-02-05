@@ -142,6 +142,15 @@ export const LoginForm: React.FC = () => {
           />
         </div>
 
+        <div className="text-right">
+          <Link
+            href="/auth/forgot-password"
+            className="text-sm text-[var(--primary-blue)] hover:underline"
+          >
+            비밀번호를 잊으셨나요?
+          </Link>
+        </div>
+
         <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
           {isSubmitting ? '로그인 중...' : '로그인'}
         </Button>
