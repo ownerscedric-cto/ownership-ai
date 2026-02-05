@@ -12,6 +12,8 @@ import {
   EyeOff,
   ChevronDown,
   ChevronUp,
+  MessageSquarePlus,
+  Variable,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +59,10 @@ import {
   type UpdateTemplateInput,
   type TemplateUsageType,
 } from '@/lib/hooks/useCopyTemplates';
+import { SnippetPicker } from '@/components/admin/SnippetPicker';
+import { VariableAutocompleteTextarea } from '@/components/admin/VariableAutocompleteTextarea';
+import { useTemplateVariables } from '@/hooks/useTemplateVariables';
+import Link from 'next/link';
 
 // 용도 라벨
 const USAGE_TYPE_LABELS: Record<
@@ -115,20 +121,45 @@ const sampleData = {
   totalCount: 3,
 };
 
-// 템플릿 변수 치환 함수
-function applyTemplateVariables(template: string, data: typeof sampleData): string {
+// 커스텀 변수 타입
+interface CustomVariable {
+  name: string;
+  value: string;
+}
+
+// 커스텀 변수 치환 함수
+function applyCustomVariables(template: string, customVariables: CustomVariable[]): string {
   let result = template;
+  customVariables.forEach(variable => {
+    const regex = new RegExp(`\\{\\{${variable.name}\\}\\}`, 'g');
+    result = result.replace(regex, variable.value);
+  });
+  return result;
+}
+
+// 템플릿 변수 치환 함수
+function applyTemplateVariables(
+  template: string,
+  data: typeof sampleData,
+  customVariables: CustomVariable[] = []
+): string {
+  let result = template;
+  // 시스템 변수 치환
   result = result.replace(/\{\{customerName\}\}/g, data.customerName);
   result = result.replace(/\{\{totalCount\}\}/g, String(data.totalCount));
+  // 커스텀 변수 치환
+  result = applyCustomVariables(result, customVariables);
   return result;
 }
 
 // 아이템 템플릿 변수 치환 함수
 function applyItemTemplateVariables(
   template: string,
-  item: (typeof sampleData.programs)[0]
+  item: (typeof sampleData.programs)[0],
+  customVariables: CustomVariable[] = []
 ): string {
   let result = template;
+  // 시스템 변수 치환
   result = result.replace(/\{\{index\}\}/g, String(item.index));
   result = result.replace(/\{\{title\}\}/g, item.title);
   result = result.replace(/\{\{dataSource\}\}/g, item.dataSource);
@@ -136,27 +167,30 @@ function applyItemTemplateVariables(
   result = result.replace(/\{\{category\}\}/g, item.category);
   result = result.replace(/\{\{sourceUrl\}\}/g, item.sourceUrl);
   result = result.replace(/\{\{registeredAt\}\}/g, item.registeredAt);
+  // 커스텀 변수 치환
+  result = applyCustomVariables(result, customVariables);
   return result;
 }
 
 // 미리보기 생성 함수
 function generatePreview(
-  template: CopyTemplate | Omit<CopyTemplate, 'id' | 'createdAt' | 'updatedAt'>
+  template: CopyTemplate | Omit<CopyTemplate, 'id' | 'createdAt' | 'updatedAt'>,
+  customVariables: CustomVariable[] = []
 ): string {
   const parts: string[] = [];
 
   if (template.headerTemplate) {
-    parts.push(applyTemplateVariables(template.headerTemplate, sampleData));
+    parts.push(applyTemplateVariables(template.headerTemplate, sampleData, customVariables));
     parts.push('');
   }
 
   sampleData.programs.forEach(program => {
-    parts.push(applyItemTemplateVariables(template.itemTemplate, program));
+    parts.push(applyItemTemplateVariables(template.itemTemplate, program, customVariables));
     parts.push('');
   });
 
   if (template.footerTemplate) {
-    parts.push(applyTemplateVariables(template.footerTemplate, sampleData));
+    parts.push(applyTemplateVariables(template.footerTemplate, sampleData, customVariables));
   }
 
   return parts.join('\n').trim();
@@ -203,9 +237,18 @@ export default function CopyTemplatesManagementPage() {
 
   // React Query 훅
   const { data: templates, isLoading, error } = useAdminCopyTemplates();
+  const { data: variablesData } = useTemplateVariables();
   const createMutation = useCreateCopyTemplate();
   const updateMutation = useUpdateCopyTemplate();
   const deleteMutation = useDeleteCopyTemplate();
+
+  // 변수 목록
+  const variables = variablesData?.data || [];
+
+  // 커스텀 변수 (미리보기용)
+  const customVariables: CustomVariable[] = variables
+    .filter(v => !v.isSystem)
+    .map(v => ({ name: v.name, value: v.value }));
 
   // 폼 리셋
   const resetForm = () => {
@@ -350,45 +393,52 @@ export default function CopyTemplatesManagementPage() {
             고객에게 정부지원사업을 안내할 때 사용하는 텍스트 템플릿을 관리합니다.
           </p>
         </div>
-        <Button onClick={openAddDialog}>
-          <Plus className="w-4 h-4 mr-2" />
-          템플릿 추가
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/settings/template-variables">
+            <Button variant="outline">
+              <Variable className="w-4 h-4 mr-2" />
+              변수 관리
+            </Button>
+          </Link>
+          <Link href="/admin/settings/copy-snippets">
+            <Button variant="outline">
+              <MessageSquarePlus className="w-4 h-4 mr-2" />
+              스니펫 관리
+            </Button>
+          </Link>
+          <Button onClick={openAddDialog}>
+            <Plus className="w-4 h-4 mr-2" />
+            템플릿 추가
+          </Button>
+        </div>
       </div>
 
       {/* 템플릿 변수 설명 */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-blue-800">
-            사용 가능한 템플릿 변수
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-blue-800">
+              사용 가능한 템플릿 변수
+            </CardTitle>
+            <Link href="/admin/settings/template-variables">
+              <Button variant="ghost" size="sm" className="text-blue-700 hover:text-blue-900">
+                <Variable className="w-3 h-3 mr-1" />
+                변수 관리
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{customerName}}'}</code> 고객명
-            </div>
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{index}}'}</code> 프로그램 번호
-            </div>
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{title}}'}</code> 프로그램명
-            </div>
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{dataSource}}'}</code> 지원기관
-            </div>
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{deadline}}'}</code> 마감일
-            </div>
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{category}}'}</code> 분야
-            </div>
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{sourceUrl}}'}</code> 상세보기 URL
-            </div>
-            <div className="text-blue-700">
-              <code className="bg-blue-100 px-1 rounded">{'{{totalCount}}'}</code> 총 프로그램 수
-            </div>
+            {variables.map(variable => (
+              <div key={variable.id} className="text-blue-700">
+                <code className="bg-blue-100 px-1 rounded">{`{{${variable.name}}}`}</code>{' '}
+                {variable.displayName}
+                {!variable.isSystem && (
+                  <span className="text-blue-500 text-xs ml-1">({variable.value})</span>
+                )}
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -466,7 +516,7 @@ export default function CopyTemplatesManagementPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        navigator.clipboard.writeText(generatePreview(template));
+                        navigator.clipboard.writeText(generatePreview(template, customVariables));
                         toast.success('미리보기가 클립보드에 복사되었습니다');
                       }}
                     >
@@ -475,7 +525,7 @@ export default function CopyTemplatesManagementPage() {
                     </Button>
                   </div>
                   <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
-                    {generatePreview(template)}
+                    {generatePreview(template, customVariables)}
                   </pre>
                 </div>
               </CardContent>
@@ -578,32 +628,65 @@ export default function CopyTemplatesManagementPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="headerTemplate">헤더 템플릿</Label>
-                <Textarea
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="headerTemplate">헤더 템플릿</Label>
+                  <SnippetPicker
+                    onInsert={content =>
+                      setFormData(prev => ({
+                        ...prev,
+                        headerTemplate: prev.headerTemplate + content,
+                      }))
+                    }
+                  />
+                </div>
+                <VariableAutocompleteTextarea
                   id="headerTemplate"
                   value={formData.headerTemplate}
-                  onChange={e => setFormData(prev => ({ ...prev, headerTemplate: e.target.value }))}
-                  placeholder="메시지 상단에 표시될 내용"
+                  onChange={value => setFormData(prev => ({ ...prev, headerTemplate: value }))}
+                  variables={variables}
+                  placeholder="메시지 상단에 표시될 내용 ({{ 입력 시 변수 자동완성)"
                   rows={2}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="itemTemplate">아이템 템플릿 * (각 프로그램마다 반복)</Label>
-                <Textarea
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="itemTemplate">아이템 템플릿 * (각 프로그램마다 반복)</Label>
+                  <SnippetPicker
+                    onInsert={content =>
+                      setFormData(prev => ({
+                        ...prev,
+                        itemTemplate: prev.itemTemplate + content,
+                      }))
+                    }
+                  />
+                </div>
+                <VariableAutocompleteTextarea
                   id="itemTemplate"
                   value={formData.itemTemplate}
-                  onChange={e => setFormData(prev => ({ ...prev, itemTemplate: e.target.value }))}
-                  placeholder="각 프로그램에 적용될 템플릿"
+                  onChange={value => setFormData(prev => ({ ...prev, itemTemplate: value }))}
+                  variables={variables}
+                  placeholder="각 프로그램에 적용될 템플릿 ({{ 입력 시 변수 자동완성)"
                   rows={6}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="footerTemplate">푸터 템플릿</Label>
-                <Textarea
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="footerTemplate">푸터 템플릿</Label>
+                  <SnippetPicker
+                    onInsert={content =>
+                      setFormData(prev => ({
+                        ...prev,
+                        footerTemplate: prev.footerTemplate + content,
+                      }))
+                    }
+                  />
+                </div>
+                <VariableAutocompleteTextarea
                   id="footerTemplate"
                   value={formData.footerTemplate}
-                  onChange={e => setFormData(prev => ({ ...prev, footerTemplate: e.target.value }))}
-                  placeholder="메시지 하단에 표시될 내용"
+                  onChange={value => setFormData(prev => ({ ...prev, footerTemplate: value }))}
+                  variables={variables}
+                  placeholder="메시지 하단에 표시될 내용 ({{ 입력 시 변수 자동완성)"
                   rows={2}
                 />
               </div>
@@ -633,7 +716,7 @@ export default function CopyTemplatesManagementPage() {
             <TabsContent value="preview" className="mt-4">
               <div className="bg-gray-50 rounded-lg p-4">
                 <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
-                  {generatePreview(formData as CopyTemplate)}
+                  {generatePreview(formData as CopyTemplate, customVariables)}
                 </pre>
               </div>
             </TabsContent>

@@ -111,6 +111,26 @@ export async function POST(request: NextRequest) {
 
     const templateData = validationResult.data;
 
+    // 템플릿 이름 중복 체크
+    const { data: existingTemplate } = await supabase
+      .from('copy_templates')
+      .select('id')
+      .eq('name', templateData.name)
+      .maybeSingle();
+
+    if (existingTemplate) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'DUPLICATE_NAME',
+            message: '이미 같은 이름의 템플릿이 존재합니다',
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     // 기본 템플릿으로 설정하는 경우, 기존 기본 템플릿 해제
     if (templateData.isDefault) {
       await supabase.from('copy_templates').update({ isDefault: false }).eq('isDefault', true);

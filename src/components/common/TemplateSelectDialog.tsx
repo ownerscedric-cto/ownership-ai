@@ -19,9 +19,11 @@ import {
   type CopyTemplateListItem,
   type TemplateUsageType,
 } from '@/lib/hooks/useCopyTemplates';
+import { useTemplateVariables } from '@/hooks/useTemplateVariables';
 import {
   formatProgramsWithTemplate,
   type CopyTemplateData,
+  type CustomVariable,
 } from '@/lib/utils/programTextFormatter';
 import type { WatchlistProgram } from '@/lib/hooks/useWatchlist';
 import type { Program } from '@/lib/types/program';
@@ -51,6 +53,8 @@ export function TemplateSelectDialog({
 }: TemplateSelectDialogProps) {
   // 다이얼로그가 열릴 때만 템플릿 조회
   const { data: templates, isLoading, error, refetch } = useCopyTemplates(usageType);
+  // 커스텀 변수 조회
+  const { data: variablesData } = useTemplateVariables();
 
   // 다이얼로그 열릴 때 데이터 새로고침
   useEffect(() => {
@@ -89,9 +93,17 @@ export function TemplateSelectDialog({
       footerTemplate: selectedTemplate.footerTemplate,
     };
 
-    const text = formatProgramsWithTemplate(programs, templateData, { customerName });
+    // 커스텀 변수 추출 (시스템 변수 제외)
+    const customVariables: CustomVariable[] = (variablesData?.data || [])
+      .filter(v => !v.isSystem)
+      .map(v => ({ name: v.name, value: v.value }));
+
+    const text = formatProgramsWithTemplate(programs, templateData, {
+      customerName,
+      customVariables,
+    });
     setPreviewText(text);
-  }, [templates, selectedTemplateId, programs, customerName]);
+  }, [templates, selectedTemplateId, programs, customerName, variablesData]);
 
   // 복사 핸들러
   const handleCopy = async () => {

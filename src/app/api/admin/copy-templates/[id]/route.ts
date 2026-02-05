@@ -124,6 +124,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const updateData = validationResult.data;
 
+    // 이름 변경 시 중복 체크 (자기 자신 제외)
+    if (updateData.name) {
+      const { data: existingTemplate } = await supabase
+        .from('copy_templates')
+        .select('id')
+        .eq('name', updateData.name)
+        .neq('id', id)
+        .maybeSingle();
+
+      if (existingTemplate) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'DUPLICATE_NAME',
+              message: '이미 같은 이름의 템플릿이 존재합니다',
+            },
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     // 기본 템플릿으로 설정하는 경우, 기존 기본 템플릿 해제
     if (updateData.isDefault === true) {
       await supabase

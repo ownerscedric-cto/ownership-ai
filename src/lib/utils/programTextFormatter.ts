@@ -20,8 +20,14 @@ export interface CopyTemplateData {
   footerTemplate: string | null;
 }
 
+export interface CustomVariable {
+  name: string;
+  value: string;
+}
+
 export interface TemplateFormatOptions {
   customerName?: string;
+  customVariables?: CustomVariable[];
 }
 
 /**
@@ -189,6 +195,22 @@ function normalizeDataSource(dataSource: string): string {
 }
 
 /**
+ * 커스텀 변수를 치환하는 함수
+ */
+function applyCustomVariables(template: string, customVariables?: CustomVariable[]): string {
+  if (!customVariables || customVariables.length === 0) {
+    return template;
+  }
+
+  let result = template;
+  customVariables.forEach(variable => {
+    const regex = new RegExp(`\\{\\{${variable.name}\\}\\}`, 'g');
+    result = result.replace(regex, variable.value);
+  });
+  return result;
+}
+
+/**
  * 템플릿 변수를 치환하는 함수 (헤더/푸터용)
  */
 function applyHeaderFooterVariables(
@@ -198,13 +220,20 @@ function applyHeaderFooterVariables(
   let result = template;
   result = result.replace(/\{\{customerName\}\}/g, options.customerName || '고객');
   result = result.replace(/\{\{totalCount\}\}/g, String(options.totalCount));
+  // 커스텀 변수 적용
+  result = applyCustomVariables(result, options.customVariables);
   return result;
 }
 
 /**
  * 템플릿 변수를 치환하는 함수 (아이템용)
  */
-function applyItemVariables(template: string, program: ProgramInfo, index: number): string {
+function applyItemVariables(
+  template: string,
+  program: ProgramInfo,
+  index: number,
+  customVariables?: CustomVariable[]
+): string {
   let result = template;
 
   // 기본 변수
@@ -239,6 +268,9 @@ function applyItemVariables(template: string, program: ProgramInfo, index: numbe
     result = result.replace(/\{\{registeredAt\}\}/g, '-');
   }
 
+  // 커스텀 변수 적용
+  result = applyCustomVariables(result, customVariables);
+
   return result;
 }
 
@@ -267,7 +299,12 @@ export function formatProgramsWithTemplate(
   // 아이템
   programs.forEach((item, idx) => {
     const program = extractProgramInfo(item);
-    const formattedItem = applyItemVariables(template.itemTemplate, program, idx + 1);
+    const formattedItem = applyItemVariables(
+      template.itemTemplate,
+      program,
+      idx + 1,
+      options.customVariables
+    );
     parts.push(formattedItem);
     parts.push('');
   });
