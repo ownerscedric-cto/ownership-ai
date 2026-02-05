@@ -19,11 +19,20 @@ export const metadata: Metadata = {
     siteName: 'Ownership AI',
     title: 'Ownership AI - 컨설턴트 관리 플랫폼',
     description: '1인 컨설턴트를 위한 고객 정보 관리 및 정부지원사업 AI 매칭 플랫폼',
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 854,
+        height: 548,
+        alt: 'Ownership AI',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Ownership AI - 컨설턴트 관리 플랫폼',
     description: '1인 컨설턴트를 위한 고객 정보 관리 및 정부지원사업 AI 매칭 플랫폼',
+    images: ['/twitter-image.png'],
   },
   robots: {
     index: true,
