@@ -11,7 +11,7 @@ import { KStartupAPIClient } from '../apis/kstartup-api-client';
 import { KoccaPIMSAPIClient } from '../apis/kocca-pims-api-client';
 import { KoccaFinanceAPIClient } from '../apis/kocca-finance-api-client';
 import { SeoulTPAPIClient } from '../apis/seoul-tp-api-client';
-import { GyeonggiTPAPIClient } from '../apis/gyeonggi-tp-api-client';
+// import { GyeonggiTPAPIClient } from '../apis/gyeonggi-tp-api-client'; // ⚠️ 경기테크노파크 크롤링 일시 중단
 
 /**
  * 동기화 결과 타입
@@ -56,7 +56,7 @@ export class ProgramSyncOrchestrator {
       new KoccaPIMSAPIClient(),
       new KoccaFinanceAPIClient(),
       new SeoulTPAPIClient(),
-      new GyeonggiTPAPIClient(),
+      // new GyeonggiTPAPIClient(), // ⚠️ 경기테크노파크 크롤링 일시 중단
     ];
   }
 
