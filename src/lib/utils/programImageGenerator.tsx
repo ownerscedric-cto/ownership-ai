@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import type { Program } from '@/lib/types/program';
 import { decodeHtmlEntities } from './html';
+import { toKST } from './date';
 
 /**
  * 데이터 소스 이름 정규화
@@ -46,8 +47,9 @@ function groupByRegisteredDate(programs: Program[]): Map<string, Program[]> {
   const groups = new Map<string, Program[]>();
 
   programs.forEach(program => {
+    // KST 변환하여 날짜 그룹핑 (ProgramList.tsx와 동일한 기준)
     const dateKey = program.registeredAt
-      ? format(new Date(program.registeredAt), 'yyyy년 MM월 dd일', { locale: ko })
+      ? format(toKST(program.registeredAt), 'yyyy년 MM월 dd일', { locale: ko })
       : '등록일 미정';
 
     if (!groups.has(dateKey)) {
@@ -100,7 +102,7 @@ export async function generateProgramImage(programs: Program[]): Promise<void> {
       const dataSource = normalizeDataSource(program.dataSource);
       const textColor = getTextColors(dataSource).text;
       const deadline = program.deadline
-        ? format(new Date(program.deadline), 'MM.dd', { locale: ko })
+        ? format(toKST(program.deadline), 'MM.dd', { locale: ko })
         : '-';
 
       rowsHtml += `
