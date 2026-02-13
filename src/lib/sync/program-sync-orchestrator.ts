@@ -10,8 +10,8 @@ import { BizinfoAPIClient } from '../apis/bizinfo-api-client';
 import { KStartupAPIClient } from '../apis/kstartup-api-client';
 import { KoccaPIMSAPIClient } from '../apis/kocca-pims-api-client';
 import { KoccaFinanceAPIClient } from '../apis/kocca-finance-api-client';
-import { SeoulTPAPIClient } from '../apis/seoul-tp-api-client';
-// import { GyeonggiTPAPIClient } from '../apis/gyeonggi-tp-api-client'; // ⚠️ 경기테크노파크 크롤링 일시 중단
+// import { SeoulTPAPIClient } from '../apis/seoul-tp-api-client'; // ⚠️ 서울테크노파크 크롤링 금지로 비활성화
+// import { GyeonggiTPAPIClient } from '../apis/gyeonggi-tp-api-client'; // ⚠️ 경기테크노파크 크롤링 금지로 비활성화
 
 /**
  * 동기화 결과 타입
@@ -55,8 +55,8 @@ export class ProgramSyncOrchestrator {
       new KStartupAPIClient(),
       new KoccaPIMSAPIClient(),
       new KoccaFinanceAPIClient(),
-      new SeoulTPAPIClient(),
-      // new GyeonggiTPAPIClient(), // ⚠️ 경기테크노파크 크롤링 일시 중단
+      // new SeoulTPAPIClient(), // ⚠️ 서울테크노파크 크롤링 금지로 비활성화
+      // new GyeonggiTPAPIClient(), // ⚠️ 경기테크노파크 크롤링 금지로 비활성화
     ];
   }
 
