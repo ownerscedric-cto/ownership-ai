@@ -22,6 +22,7 @@ interface KnowHowPostListProps {
   limit: number;
   onPageChange: (page: number) => void;
   isLoading?: boolean;
+  showCategoryColumn?: boolean; // 카테고리 열 표시 여부 (하위 카테고리에서는 false)
 }
 
 /**
@@ -38,6 +39,7 @@ export function KnowHowPostList({
   limit,
   onPageChange,
   isLoading,
+  showCategoryColumn = true,
 }: KnowHowPostListProps) {
   const totalPages = Math.ceil(total / limit);
 
@@ -78,7 +80,7 @@ export function KnowHowPostList({
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-16 text-center">번호</TableHead>
-              <TableHead className="w-28 text-center">카테고리</TableHead>
+              {showCategoryColumn && <TableHead className="w-28 text-center">카테고리</TableHead>}
               <TableHead>제목</TableHead>
               <TableHead className="w-28 text-center">작성자</TableHead>
               <TableHead className="w-32 text-center">작성일</TableHead>
@@ -107,21 +109,23 @@ export function KnowHowPostList({
                   </TableCell>
 
                   {/* 카테고리 */}
-                  <TableCell className="text-center">
-                    <div className="flex flex-col gap-1 items-center">
-                      {post.isAnnouncement && (
-                        <Badge variant="destructive" className="text-xs">
-                          공지
-                        </Badge>
-                      )}
-                      {post.isEvent && <Badge className="text-xs bg-green-600">이벤트</Badge>}
-                      {!post.isAnnouncement && !post.isEvent && (
-                        <Badge variant="secondary" className="text-xs">
-                          {post.category.name}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
+                  {showCategoryColumn && (
+                    <TableCell className="text-center">
+                      <div className="flex flex-col gap-1 items-center">
+                        {post.isAnnouncement && (
+                          <Badge variant="destructive" className="text-xs">
+                            공지
+                          </Badge>
+                        )}
+                        {post.isEvent && <Badge className="text-xs bg-green-600">이벤트</Badge>}
+                        {!post.isAnnouncement && !post.isEvent && (
+                          <Badge variant="secondary" className="text-xs">
+                            {post.category.name}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
 
                   {/* 제목 */}
                   <TableCell>

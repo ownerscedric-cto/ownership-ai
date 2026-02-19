@@ -35,6 +35,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       id: archive.id,
       title: archive.title,
       content: archive.content,
+      categoryId: archive.categoryId,
       category: archive.category
         ? {
             id: archive.category.id,
@@ -42,6 +43,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             description: archive.category.description,
           }
         : null,
+      author: archive.author,
+      tags: archive.tags,
+      imageUrls: archive.imageUrls,
+      fileUrls: archive.fileUrls,
+      fileNames: archive.fileNames,
       viewCount: archive.viewCount,
       createdAt: archive.createdAt,
       updatedAt: archive.updatedAt,

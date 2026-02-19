@@ -12,6 +12,7 @@ import {
   type PostFormData,
 } from '@/hooks/useEducation';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsAdmin } from '@/hooks/useRoles';
 import { toast } from 'sonner';
 
 /**
@@ -26,6 +27,7 @@ export default function EditKnowHowPostPage() {
   const postId = params.id as string;
 
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const { data: categoriesData, isLoading: isLoadingCategories } = useKnowHowCategories();
   const { data: postData, isLoading: isLoadingPost } = useKnowHowPost(postId);
   const updatePost = useUpdateKnowHowPost();
@@ -117,6 +119,7 @@ export default function EditKnowHowPostPage() {
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           isSubmitting={updatePost.isPending}
+          showAdminOptions={isAdmin}
           defaultValues={{
             title: post.title,
             content: post.content,
@@ -124,6 +127,8 @@ export default function EditKnowHowPostPage() {
             imageUrls: post.imageUrls || [],
             fileUrls: post.fileUrls || [],
             fileNames: post.fileNames || [],
+            isAnnouncement: post.isAnnouncement || false,
+            isEvent: post.isEvent || false,
           }}
         />
       </div>

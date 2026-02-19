@@ -10,6 +10,7 @@ import {
   useCreateKnowHowPost,
   type PostFormData,
 } from '@/hooks/useEducation';
+import { useIsAdmin } from '@/hooks/useRoles';
 
 /**
  * 노하우 게시글 작성 페이지
@@ -21,6 +22,7 @@ export default function NewKnowHowPostPage() {
   const router = useRouter();
   const { data: categoriesData, isLoading: isLoadingCategories } = useKnowHowCategories();
   const createPost = useCreateKnowHowPost();
+  const { isAdmin } = useIsAdmin();
 
   const handleSubmit = async (data: PostFormData) => {
     try {
@@ -31,6 +33,8 @@ export default function NewKnowHowPostPage() {
         imageUrls: data.imageUrls || [],
         fileUrls: data.fileUrls || [],
         fileNames: data.fileNames || [],
+        isAnnouncement: data.isAnnouncement || false,
+        isEvent: data.isEvent || false,
       });
 
       // 작성 성공 시 상세 페이지로 이동
@@ -79,6 +83,7 @@ export default function NewKnowHowPostPage() {
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           isSubmitting={createPost.isPending}
+          showAdminOptions={isAdmin}
         />
       </div>
     </AppLayout>

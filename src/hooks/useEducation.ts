@@ -319,10 +319,13 @@ export interface KnowHowCategory {
   id: string;
   name: string;
   description: string | null;
+  order: number;
+  parentId: string | null;
   _count?: {
     posts: number;
     archives: number;
   };
+  children?: KnowHowCategory[];
 }
 
 export interface KnowHowPost {
@@ -354,6 +357,10 @@ export interface PostFormData {
   imageUrls?: string[];
   fileUrls?: string[];
   fileNames?: string[];
+  isAnnouncement?: boolean;
+  isEvent?: boolean;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface KnowHowComment {
@@ -522,6 +529,8 @@ export function useCreateKnowHowPost() {
       imageUrls?: string[];
       fileUrls?: string[];
       fileNames?: string[];
+      isAnnouncement?: boolean;
+      isEvent?: boolean;
     }) => {
       const res = await fetch('/api/education/knowhow/posts', {
         method: 'POST',

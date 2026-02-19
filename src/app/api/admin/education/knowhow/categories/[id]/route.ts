@@ -10,6 +10,7 @@ const updateCategorySchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   order: z.number().int().optional(),
+  parentId: z.string().nullable().optional(), // 상위 카테고리 ID (null이면 대분류)
 });
 
 /**
@@ -69,6 +70,59 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           },
           { status: 409 }
         );
+      }
+    }
+
+    // parentId 변경 시 유효성 체크
+    if (validatedData.parentId !== undefined) {
+      // 자기 자신을 부모로 설정할 수 없음
+      if (validatedData.parentId === id) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'INVALID_PARENT',
+              message: '자기 자신을 상위 카테고리로 설정할 수 없습니다.',
+            },
+          },
+          { status: 400 }
+        );
+      }
+
+      // parentId가 지정된 경우 부모 카테고리 존재 확인
+      if (validatedData.parentId) {
+        const { data: parentCategory } = await supabase
+          .from('knowhow_categories')
+          .select('id, parentId')
+          .eq('id', validatedData.parentId)
+          .single();
+
+        if (!parentCategory) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: 'PARENT_CATEGORY_NOT_FOUND',
+                message: '상위 카테고리를 찾을 수 없습니다.',
+              },
+            },
+            { status: 404 }
+          );
+        }
+
+        // 순환 참조 방지: 자신의 하위 카테고리를 부모로 설정할 수 없음
+        if (parentCategory.parentId === id) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: 'CIRCULAR_REFERENCE',
+                message: '하위 카테고리를 상위 카테고리로 설정할 수 없습니다.',
+              },
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -168,6 +222,28 @@ export async function DELETE(
       );
     }
 
+    // 하위 카테고리가 있는지 확인
+    const { count: childrenCount } = await supabase
+      .from('knowhow_categories')
+      .select('*', { count: 'exact', head: true })
+      .eq('parentId', id);
+
+    if (childrenCount && childrenCount > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'HAS_CHILDREN',
+            message: '하위 카테고리가 있어 삭제할 수 없습니다. 하위 카테고리를 먼저 삭제해주세요.',
+            details: {
+              childrenCount: childrenCount,
+            },
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     // 카테고리에 연결된 노하우 개수 확인
     const { count } = await supabase
       .from('knowhow')
@@ -184,6 +260,28 @@ export async function DELETE(
             message: '이 카테고리를 사용하는 노하우가 있어 삭제할 수 없습니다.',
             details: {
               knowhowCount: count,
+            },
+          },
+        },
+        { status: 409 }
+      );
+    }
+
+    // 커뮤니티 게시글 개수도 확인
+    const { count: postsCount } = await supabase
+      .from('knowhow_posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('categoryId', id);
+
+    if (postsCount && postsCount > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'CATEGORY_IN_USE',
+            message: '이 카테고리를 사용하는 게시글이 있어 삭제할 수 없습니다.',
+            details: {
+              postsCount: postsCount,
             },
           },
         },

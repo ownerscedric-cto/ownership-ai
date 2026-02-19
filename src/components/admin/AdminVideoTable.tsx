@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDate } from '@/lib/utils/date';
 import { Edit, Trash2, Eye, Video as VideoIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export function AdminVideoTable({ videos }: AdminVideoTableProps) {
+  const router = useRouter();
   const [deletingVideos, setDeletingVideos] = useState<Set<string>>(new Set());
 
   const handleDelete = async (videoId: string, title: string) => {
@@ -53,8 +55,8 @@ export function AdminVideoTable({ videos }: AdminVideoTableProps) {
         description: `"${title}" 비디오가 삭제되었습니다.`,
       });
 
-      // Refresh page
-      window.location.reload();
+      // Refresh server component data
+      router.refresh();
     } catch (error) {
       console.error('Delete video error:', error);
       toast.error('비디오 삭제 실패', {

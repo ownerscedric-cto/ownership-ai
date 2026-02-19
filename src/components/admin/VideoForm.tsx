@@ -549,7 +549,7 @@ export function VideoForm({ mode, video }: VideoFormProps) {
           <div>
             <Label htmlFor="categoryId">카테고리 *</Label>
             <Select
-              value={categoryId}
+              value={categoryId || undefined}
               onValueChange={value => setValue('categoryId', value)}
               disabled={isLoadingCategories}
             >

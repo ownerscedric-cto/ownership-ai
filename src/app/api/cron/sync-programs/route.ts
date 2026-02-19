@@ -2,10 +2,43 @@
  * @file /api/cron/sync-programs/route.ts
  * @description Vercel Cron Job 엔드포인트 - 매일 자동 동기화
  * Phase 3: 다중 API 통합 연동
+ * - 정부지원사업 데이터 동기화
+ * - 만료된 공지사항/이벤트 자동 처리
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ProgramSyncOrchestrator } from '@/lib/sync/program-sync-orchestrator';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+
+/**
+ * 만료된 공지사항/이벤트 자동 처리
+ * - endDate가 현재 시간보다 이전인 공지/이벤트의 isPinned를 false로 변경
+ */
+async function expireEndedAnnouncements(): Promise<{ updated: number; error: string | null }> {
+  try {
+    const now = new Date().toISOString();
+
+    // endDate가 지난 공지사항/이벤트 중 아직 isPinned가 true인 것들 업데이트
+    const { data, error } = await supabaseAdmin
+      .from('knowhow_posts')
+      .update({ isPinned: false })
+      .or('isAnnouncement.eq.true,isEvent.eq.true')
+      .eq('isPinned', true)
+      .lt('endDate', now)
+      .select('id');
+
+    if (error) {
+      console.error('[expireEndedAnnouncements] Error:', error);
+      return { updated: 0, error: error.message };
+    }
+
+    return { updated: data?.length || 0, error: null };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[expireEndedAnnouncements] Exception:', errorMessage);
+    return { updated: 0, error: errorMessage };
+  }
+}
 
 /**
  * GET /api/cron/sync-programs
@@ -65,16 +98,22 @@ export async function GET(request: NextRequest) {
     const orchestrator = new ProgramSyncOrchestrator();
 
     try {
-      // 모든 API 동기화 실행
+      // 1. 모든 API 동기화 실행
       const stats = await orchestrator.syncAll();
-
       console.log('[GET /api/cron/sync-programs] Sync completed:', stats);
+
+      // 2. 만료된 공지사항/이벤트 자동 처리
+      const expiredResult = await expireEndedAnnouncements();
+      console.log('[GET /api/cron/sync-programs] Expired announcements:', expiredResult);
 
       // 성공 응답
       return NextResponse.json(
         {
           success: true,
-          data: stats,
+          data: {
+            ...stats,
+            expiredAnnouncements: expiredResult,
+          },
           metadata: null,
         },
         { status: 200 }

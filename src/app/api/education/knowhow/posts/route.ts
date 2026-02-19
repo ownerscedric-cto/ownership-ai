@@ -111,9 +111,24 @@ export async function GET(request: NextRequest) {
         count: 'exact',
       });
 
-    // 카테고리 필터링
+    // 카테고리 필터링 (상위 카테고리 선택 시 하위 카테고리 글도 포함)
     if (filters.categoryId) {
-      query = query.eq('categoryId', filters.categoryId);
+      // 해당 카테고리의 하위 카테고리 ID들 조회
+      const { data: childCategories } = await supabase
+        .from('knowhow_categories')
+        .select('id')
+        .eq('parentId', filters.categoryId);
+
+      const childCategoryIds = childCategories?.map(c => c.id) || [];
+
+      if (childCategoryIds.length > 0) {
+        // 상위 카테고리 + 하위 카테고리 모두 포함
+        const allCategoryIds = [filters.categoryId, ...childCategoryIds];
+        query = query.in('categoryId', allCategoryIds);
+      } else {
+        // 하위 카테고리가 없으면 해당 카테고리만
+        query = query.eq('categoryId', filters.categoryId);
+      }
     }
 
     // 공지사항 필터링

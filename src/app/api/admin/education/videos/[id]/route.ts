@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { z } from 'zod';
 
 /**
@@ -29,10 +29,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const { id } = await params;
-    const supabase = await createClient();
 
     // 2. 비디오 존재 확인
-    const { data: existingVideo } = await supabase
+    const { data: existingVideo } = await supabaseAdmin
       .from('education_videos')
       .select('*')
       .eq('id', id)
@@ -66,7 +65,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     if (validatedData.categoryId) {
       // 카테고리 ID가 제공된 경우 카테고리 이름으로 변환
-      const { data: category } = await supabase
+      const { data: category } = await supabaseAdmin
         .from('video_categories')
         .select('name')
         .eq('id', validatedData.categoryId)
@@ -104,7 +103,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // 5. 비디오 업데이트
-    const { data: updatedVideo, error: updateError } = await supabase
+    const { data: updatedVideo, error: updateError } = await supabaseAdmin
       .from('education_videos')
       .update(updateData)
       .eq('id', id)
@@ -178,10 +177,9 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const supabase = await createClient();
 
     // 2. 비디오 존재 확인
-    const { data: video } = await supabase
+    const { data: video } = await supabaseAdmin
       .from('education_videos')
       .select('*')
       .eq('id', id)
@@ -201,7 +199,10 @@ export async function DELETE(
     }
 
     // 3. 비디오 삭제
-    const { error: deleteError } = await supabase.from('education_videos').delete().eq('id', id);
+    const { error: deleteError } = await supabaseAdmin
+      .from('education_videos')
+      .delete()
+      .eq('id', id);
 
     if (deleteError) {
       console.error('비디오 삭제 실패:', deleteError);
