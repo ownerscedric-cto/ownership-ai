@@ -9,6 +9,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { ProgramRoadmap } from '@/components/programs/ProgramRoadmap';
 import { ProgramFilters } from '@/components/programs/ProgramFilters';
 import { ProgramList } from '@/components/programs/ProgramList';
 import type { ProgramFilters as FilterType } from '@/lib/types/program';
@@ -186,6 +187,9 @@ function ProgramsPageContent() {
             다양한 정부지원사업 프로그램을 한눈에 확인하고 검색해보세요.
           </p>
         </div>
+
+        {/* 주요 지원사업 연간 일정 (로드맵) */}
+        <ProgramRoadmap />
 
         {/* 필터 섹션 (모바일 최적화) */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
