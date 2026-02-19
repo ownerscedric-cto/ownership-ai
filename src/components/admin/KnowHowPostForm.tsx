@@ -208,7 +208,11 @@ export function KnowHowPostForm({ mode, post, categories }: KnowHowPostFormProps
                 <span className="text-sm text-gray-500 ml-2">(공지사항/이벤트는 선택사항)</span>
               )}
             </Label>
-            <Select value={categoryId || undefined} onValueChange={setCategoryId}>
+            <Select
+              value={categoryId || undefined}
+              onValueChange={setCategoryId}
+              disabled={isAnnouncement || isEvent}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="카테고리를 선택하세요" />
               </SelectTrigger>
@@ -220,6 +224,11 @@ export function KnowHowPostForm({ mode, post, categories }: KnowHowPostFormProps
                 ))}
               </SelectContent>
             </Select>
+            {(isAnnouncement || isEvent) && (
+              <p className="text-sm text-gray-500">
+                {isAnnouncement ? '공지사항' : '이벤트'}은 카테고리를 변경할 수 없습니다.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

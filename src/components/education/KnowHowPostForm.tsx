@@ -193,7 +193,7 @@ export function KnowHowPostForm({
               <Select
                 value={categoryId || undefined}
                 onValueChange={value => setValue('categoryId', value)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isAnnouncement || isEvent}
               >
                 <SelectTrigger id="categoryId">
                   <SelectValue placeholder="카테고리 선택" />
@@ -208,6 +208,11 @@ export function KnowHowPostForm({
               </Select>
               {errors.categoryId && (
                 <p className="text-sm text-red-600">{errors.categoryId.message}</p>
+              )}
+              {(isAnnouncement || isEvent) && (
+                <p className="text-sm text-gray-500">
+                  {isAnnouncement ? '공지사항' : '이벤트'}은 카테고리를 변경할 수 없습니다.
+                </p>
               )}
             </div>
 
