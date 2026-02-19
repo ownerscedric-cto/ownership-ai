@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { successResponse, errorResponse, ErrorCode } from '@/lib/api/response';
 import { updateResourceSchema } from '@/lib/validations/education';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
@@ -40,10 +41,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const { id } = await params;
-    const supabase = await createClient();
 
     // 자료 존재 여부 확인
-    const { data: existingResource, error: existingError } = await supabase
+    const { data: existingResource, error: existingError } = await supabaseAdmin
       .from('resources')
       .select('id')
       .eq('id', id)
@@ -69,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (validated.videoId !== undefined) updateData.videoId = validated.videoId;
 
     // 자료 수정
-    const { data: resource, error: updateError } = await supabase
+    const { data: resource, error: updateError } = await supabaseAdmin
       .from('resources')
       .update(updateData)
       .eq('id', id)
@@ -110,10 +110,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
 
     // 자료 존재 여부 확인
-    const { data: existingResource, error: existingError } = await supabase
+    const { data: existingResource, error: existingError } = await supabaseAdmin
       .from('resources')
       .select('id, fileUrl')
       .eq('id', id)
@@ -124,7 +123,7 @@ export async function DELETE(
     }
 
     // 자료 삭제
-    const { error: deleteError } = await supabase.from('resources').delete().eq('id', id);
+    const { error: deleteError } = await supabaseAdmin.from('resources').delete().eq('id', id);
 
     if (deleteError) {
       console.error('Resource delete error:', deleteError);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDate } from '@/lib/utils/date';
 import { Edit, Trash2, Download, FileText, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ function formatFileSize(bytes: number | null): string {
 }
 
 export function AdminResourceTable({ resources }: AdminResourceTableProps) {
+  const router = useRouter();
   const [deletingResources, setDeletingResources] = useState<Set<string>>(new Set());
 
   const handleDelete = async (resourceId: string, title: string) => {
@@ -70,8 +72,8 @@ export function AdminResourceTable({ resources }: AdminResourceTableProps) {
         description: `"${title}" 자료가 삭제되었습니다.`,
       });
 
-      // Refresh page
-      window.location.reload();
+      // Refresh server component data
+      router.refresh();
     } catch (error) {
       console.error('Delete resource error:', error);
       toast.error('자료 삭제 실패', {
