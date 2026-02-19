@@ -29,7 +29,6 @@ interface GenericCategory {
 interface GenericCategoryManagerProps {
   apiEndpoint: string;
   queryKey: string[];
-  maxCount: number;
   entityName: string;
   countFieldName?: string;
 }
@@ -41,7 +40,6 @@ interface GenericCategoryManagerProps {
 export function GenericCategoryManager({
   apiEndpoint,
   queryKey,
-  maxCount,
   entityName,
   countFieldName,
 }: GenericCategoryManagerProps) {
@@ -147,11 +145,6 @@ export function GenericCategoryManager({
   };
 
   const handleCreate = () => {
-    // 최대 개수 체크
-    if (categories && categories.length >= maxCount) {
-      toast.error(`카테고리는 최대 ${maxCount}개까지 생성할 수 있습니다.`);
-      return;
-    }
     setIsCreateDialogOpen(true);
     resetForm();
   };
@@ -202,7 +195,7 @@ export function GenericCategoryManager({
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">
-          카테고리 목록 ({categories?.length || 0}개 / 최대 {maxCount}개)
+          카테고리 목록 ({categories?.length || 0}개)
         </h2>
         <Button onClick={handleCreate} className="bg-[#0052CC] hover:bg-[#003d99]">
           <Plus className="w-4 h-4 mr-2" />

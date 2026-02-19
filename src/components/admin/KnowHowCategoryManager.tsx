@@ -46,8 +46,6 @@ interface FormData {
   parentId: string | null;
 }
 
-const MAX_COUNT = 30; // 대분류 + 중분류 포함 최대 개수
-
 /**
  * 노하우 카테고리 관리 컴포넌트
  * 계층형 카테고리(대분류/중분류) 지원
@@ -171,10 +169,6 @@ export function KnowHowCategoryManager() {
   };
 
   const handleCreate = (parentId: string | null = null) => {
-    if (totalCount >= MAX_COUNT) {
-      toast.error(`카테고리는 최대 ${MAX_COUNT}개까지 생성할 수 있습니다.`);
-      return;
-    }
     setFormData({ name: '', description: '', order: 0, parentId });
     setIsCreateDialogOpen(true);
   };
@@ -368,9 +362,7 @@ export function KnowHowCategoryManager() {
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            카테고리 목록 ({totalCount}개 / 최대 {MAX_COUNT}개)
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">카테고리 목록 ({totalCount}개)</h2>
           <p className="text-sm text-gray-500 mt-1">
             대분류를 먼저 만들고, 대분류 안에 중분류를 추가할 수 있습니다.
           </p>

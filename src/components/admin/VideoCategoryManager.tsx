@@ -11,7 +11,6 @@ export function VideoCategoryManager() {
     <GenericCategoryManager
       apiEndpoint="/api/admin/education/categories"
       queryKey={['admin', 'video-categories']}
-      maxCount={10}
       entityName="비디오"
       countFieldName="videos"
     />

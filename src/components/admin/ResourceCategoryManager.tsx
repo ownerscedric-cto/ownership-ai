@@ -11,7 +11,6 @@ export function ResourceCategoryManager() {
     <GenericCategoryManager
       apiEndpoint="/api/admin/education/resource-categories"
       queryKey={['admin', 'resource-categories']}
-      maxCount={20}
       entityName="자료"
       countFieldName="resources"
     />
