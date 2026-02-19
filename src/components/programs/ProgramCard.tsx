@@ -7,7 +7,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { MapPin, Tag, Building2, Star, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +60,6 @@ const dataSourceColors: Record<string, string> = {
  * - 대상 지역 (최대 3개)
  */
 export function ProgramCard({ program, isSelected = false, onToggleSelect }: ProgramCardProps) {
-  const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const addToWatchlist = useAddToWatchlist();
 
@@ -81,9 +79,9 @@ export function ProgramCard({ program, isSelected = false, onToggleSelect }: Pro
   const displayedLocations = program.targetLocation.slice(0, 3);
   const remainingLocationsCount = Math.max(0, program.targetLocation.length - 3);
 
-  // Card 클릭 핸들러
+  // Card 클릭 핸들러 (새 탭에서 열기)
   const handleCardClick = () => {
-    router.push(`/programs/${program.id}`);
+    window.open(`/programs/${program.id}`, '_blank');
   };
 
   // 별표 버튼 클릭 핸들러

@@ -263,12 +263,7 @@ export function ProgramDetail({ id }: ProgramDetailProps) {
           {/* 공고 바로가기 & 첨부파일 다운로드 버튼 */}
           <div className="flex flex-wrap gap-3">
             {program.sourceUrl && (
-              <a
-                href={program.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block"
-              >
+              <a href={program.sourceUrl} className="inline-block">
                 <Button className="w-full sm:w-auto bg-[#0052CC] hover:bg-[#003d99] text-white font-semibold px-6 py-3 text-base">
                   <ExternalLink className="w-5 h-5 mr-2" />
                   공고 바로가기
