@@ -295,8 +295,21 @@ export function KnowHowCategoryManager() {
                 )}
                 <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                   <span>정렬: {category.order}</span>
-                  <span>게시글: {category._count?.posts || 0}개</span>
-                  <span>아카이브: {category._count?.archives || 0}개</span>
+                  {level === 0 && hasChildren ? (
+                    <>
+                      <span>
+                        전체 게시글: {getTotalContentCount(category)}개
+                        <span className="text-gray-400 ml-1">
+                          (직접: {category._count?.posts || 0})
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span>게시글: {category._count?.posts || 0}개</span>
+                      <span>아카이브: {category._count?.archives || 0}개</span>
+                    </>
+                  )}
                   {hasChildren && (
                     <span className="text-blue-600">
                       하위 카테고리: {category.children?.length}개
