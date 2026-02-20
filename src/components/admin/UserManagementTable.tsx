@@ -2,9 +2,28 @@
 
 import { useState } from 'react';
 import { formatDateTime } from '@/lib/utils/date';
-import { Shield, User, Star, MoreVertical, Check, KeyRound, Mail, Trash2 } from 'lucide-react';
+import {
+  Shield,
+  User,
+  Star,
+  MoreVertical,
+  Check,
+  KeyRound,
+  Mail,
+  Trash2,
+  Search,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -79,6 +98,29 @@ const getRoleStyle = (roleName: string) => {
 export function UserManagementTable({ users, roles }: UserManagementTableProps) {
   const [updatingUsers, setUpdatingUsers] = useState<Set<string>>(new Set());
   const [deleteTargetUser, setDeleteTargetUser] = useState<UserData | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [verificationFilter, setVerificationFilter] = useState<string>('all');
+
+  // 필터링된 사용자 목록
+  const filteredUsers = users.filter(user => {
+    // 검색어 필터 (이름, 이메일)
+    const matchesSearch =
+      searchQuery === '' ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    // 역할 필터
+    const matchesRole = roleFilter === 'all' || user.role.name === roleFilter;
+
+    // 인증 상태 필터
+    const matchesVerification =
+      verificationFilter === 'all' ||
+      (verificationFilter === 'verified' && user.email_confirmed_at) ||
+      (verificationFilter === 'unverified' && !user.email_confirmed_at);
+
+    return matchesSearch && matchesRole && matchesVerification;
+  });
 
   const handleRoleChange = async (
     userId: string,
@@ -221,6 +263,63 @@ export function UserManagementTable({ users, roles }: UserManagementTableProps) 
 
   return (
     <>
+      {/* 검색 및 필터 */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-4">
+        {/* 검색 입력 */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="이름 또는 이메일로 검색..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-10 pr-10"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* 역할 필터 */}
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="역할 필터" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">모든 역할</SelectItem>
+            {roles.map(role => (
+              <SelectItem key={role.id} value={role.name}>
+                {role.displayName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* 인증 상태 필터 */}
+        <Select value={verificationFilter} onValueChange={setVerificationFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="인증 상태" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">모든 상태</SelectItem>
+            <SelectItem value="verified">인증됨</SelectItem>
+            <SelectItem value="unverified">미인증</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* 검색 결과 카운트 */}
+      {(searchQuery || roleFilter !== 'all' || verificationFilter !== 'all') && (
+        <p className="text-sm text-gray-600 mb-2">
+          검색 결과: {filteredUsers.length}명
+          {filteredUsers.length !== users.length && ` (전체 ${users.length}명)`}
+        </p>
+      )}
+
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <Table>
           <TableHeader>
@@ -235,7 +334,16 @@ export function UserManagementTable({ users, roles }: UserManagementTableProps) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map(user => {
+            {filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  {searchQuery || roleFilter !== 'all' || verificationFilter !== 'all'
+                    ? '검색 결과가 없습니다.'
+                    : '등록된 사용자가 없습니다.'}
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {filteredUsers.map(user => {
               const roleStyle = getRoleStyle(user.role.name);
               const RoleIcon = roleStyle.icon;
 
