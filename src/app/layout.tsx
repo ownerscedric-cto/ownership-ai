@@ -3,6 +3,7 @@ import './globals.css';
 import { ReactQueryProvider } from '@/lib/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { pretendard } from '@/lib/fonts';
+import { FloatingActionButtonWrapper } from '@/components/common/FloatingActionButtonWrapper';
 
 export const metadata: Metadata = {
   title: {
@@ -55,6 +56,7 @@ export default function RootLayout({
       <body className={`${pretendard.className} antialiased`}>
         <ReactQueryProvider>{children}</ReactQueryProvider>
         <Toaster />
+        <FloatingActionButtonWrapper />
       </body>
     </html>
   );

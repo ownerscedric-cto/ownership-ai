@@ -19,6 +19,7 @@ import {
   Home,
   Tags,
   Copy,
+  Phone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +73,11 @@ const menuItems: MenuItem[] = [
     href: '#settings', // 드롭다운 전용 (페이지 없음)
     icon: Settings,
     children: [
+      {
+        label: '연락처 설정',
+        href: '/admin/settings/contact',
+        icon: Phone,
+      },
       {
         label: '키워드 관리',
         href: '/admin/settings/keywords',
