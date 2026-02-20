@@ -7,25 +7,49 @@ import { Users, Shield, Star } from 'lucide-react';
  * - List all users with their roles from user_roles table
  * - Change user roles (admin, premium, consultant)
  */
-export default async function AdminUsersPage() {
-  // Fetch all users
-  const {
-    data: { users },
-    error: usersError,
-  } = await supabaseAdmin.auth.admin.listUsers();
+// User 타입 정의
+type AuthUser = Awaited<
+  ReturnType<typeof supabaseAdmin.auth.admin.listUsers>
+>['data']['users'][number];
 
-  if (usersError) {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">사용자 관리</h1>
-          <p className="text-red-600 mt-2">
-            사용자 목록을 불러오는데 실패했습니다: {usersError.message}
-          </p>
+export default async function AdminUsersPage() {
+  // Fetch all users (페이지네이션으로 전체 조회)
+  // Supabase listUsers는 기본 50명만 반환하므로 모든 사용자를 가져오기 위해 반복 조회
+  const allUsers: AuthUser[] = [];
+  let page = 1;
+  const perPage = 100;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+
+    if (error) {
+      return (
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">사용자 관리</h1>
+            <p className="text-red-600 mt-2">
+              사용자 목록을 불러오는데 실패했습니다: {error.message}
+            </p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    allUsers.push(...data.users);
+
+    // 가져온 사용자 수가 perPage보다 적으면 더 이상 없음
+    if (data.users.length < perPage) {
+      hasMore = false;
+    } else {
+      page++;
+    }
   }
+
+  const users = allUsers;
 
   // Fetch all roles
   const { data: roles, error: rolesError } = await supabaseAdmin
