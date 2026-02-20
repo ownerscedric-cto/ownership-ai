@@ -127,6 +127,18 @@ export default function KnowHowPostDetailPage() {
   // 작성자 확인
   const isAuthor = user && user.id === post.userId;
 
+  // 공지/이벤트의 경우 종료일이 지났으면 상단 고정 표시 안 함
+  const isEffectivelyPinned = (() => {
+    if (!post.isPinned) return false;
+    if ((post.isAnnouncement || post.isEvent) && post.endDate) {
+      const endDateTime = new Date(post.endDate);
+      if (endDateTime < new Date()) {
+        return false;
+      }
+    }
+    return true;
+  })();
+
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -145,7 +157,7 @@ export default function KnowHowPostDetailPage() {
           <CardHeader>
             {/* 배지 및 메타 정보 */}
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              {post.isPinned && (
+              {isEffectivelyPinned && (
                 <div className="flex items-center gap-1 text-[#0052CC]">
                   <Pin className="w-4 h-4" fill="#0052CC" />
                   <span className="text-xs font-medium">고정됨</span>
@@ -196,7 +208,7 @@ export default function KnowHowPostDetailPage() {
               )}
             </div>
 
-            {/* 작성자, 작성일, 조회수, 댓글수 */}
+            {/* 작성자, 작성일/게시일, 조회수, 댓글수 */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
                 <User className="w-4 h-4" />
@@ -204,7 +216,12 @@ export default function KnowHowPostDetailPage() {
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>{formatRelativeTime(post.createdAt)}</span>
+                {/* 공지/이벤트는 게시일(startDate), 일반 게시글은 작성일(createdAt) 표시 */}
+                {(post.isAnnouncement || post.isEvent) && post.startDate ? (
+                  <span>게시일 {formatRelativeTime(post.startDate)}</span>
+                ) : (
+                  <span>{formatRelativeTime(post.createdAt)}</span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <Eye className="w-4 h-4" />

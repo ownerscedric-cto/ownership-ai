@@ -129,6 +129,8 @@ export default function EditKnowHowPostPage() {
             fileNames: post.fileNames || [],
             isAnnouncement: post.isAnnouncement || false,
             isEvent: post.isEvent || false,
+            startDate: post.startDate ? post.startDate.slice(0, 16) : '',
+            endDate: post.endDate ? post.endDate.slice(0, 16) : '',
           }}
         />
       </div>

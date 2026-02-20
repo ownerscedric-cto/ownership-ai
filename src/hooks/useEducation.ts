@@ -342,6 +342,8 @@ export interface KnowHowPost {
   imageUrls?: string[];
   fileUrls?: string[];
   fileNames?: string[];
+  startDate?: string | null;
+  endDate?: string | null;
   createdAt: string;
   updatedAt: string;
   category: KnowHowCategory;

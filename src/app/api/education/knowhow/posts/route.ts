@@ -165,11 +165,26 @@ export async function GET(request: NextRequest) {
       return errorResponse(ErrorCode.INTERNAL_ERROR, '게시글 목록 조회에 실패했습니다', null, 500);
     }
 
-    // 6. 댓글 수 추가 (Supabase 테이블은 이미 camelCase)
+    // 6. 댓글 수 추가 및 게시일 만료된 공지/이벤트 상단 고정 해제
+    const now = new Date();
     const formattedPosts = (posts || []).map((post: Record<string, unknown>) => {
       const comments = post.comments as Array<Record<string, unknown>> | undefined;
+      const isAnnouncement = post.isAnnouncement as boolean;
+      const isEvent = post.isEvent as boolean;
+      const endDate = post.endDate as string | null;
+
+      // 공지/이벤트의 종료일이 지났으면 상단 고정 해제 (프론트에서만 표시 변경)
+      let effectiveIsPinned = post.isPinned as boolean;
+      if ((isAnnouncement || isEvent) && endDate) {
+        const endDateTime = new Date(endDate);
+        if (endDateTime < now) {
+          effectiveIsPinned = false;
+        }
+      }
+
       return {
         ...post,
+        isPinned: effectiveIsPinned,
         _count: {
           comments: (comments?.[0]?.count as number) || 0,
         },
